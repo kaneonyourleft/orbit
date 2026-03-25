@@ -1,0 +1,13 @@
+# Common ignores
+node_modules
+.DS_Store
+*.log
+.env
+
+# Build artifacts
+dist
+.turbo
+.next
+out
+build
+*.tsbuildinfo
