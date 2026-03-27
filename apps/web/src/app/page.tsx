@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { Sidebar, DataTable } from '@orbit/ui';
+import { Sidebar, DataTable, ViewSwitcher, type ViewType, KanbanBoard, CalendarView } from '@orbit/ui';
 import { useWorkspaces, useTable, useRealtimeRows } from '@orbit/core';
 import { createClient } from '@/lib/supabase';
 
@@ -9,6 +9,7 @@ const supabase = createClient();
 
 export default function Home() {
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<ViewType>('Table');
   
   // 1. Load Workspaces
   const { workspaces, loading: workspacesLoading, error: workspacesError } = useWorkspaces(supabase);
@@ -76,16 +77,22 @@ export default function Home() {
     }
   };
 
-  const handleAddRow = async () => {
+  const handleAddRow = async (status?: string) => {
     if (!activeTableId) return;
 
     const newOrder = rows.length > 0 ? Math.max(...rows.map(r => r.order)) + 1 : 0;
+    const initialData: Record<string, any> = {};
+
+    if (status) {
+      const statusField = fields.find(f => f.name.toLowerCase() === 'status');
+      if (statusField) initialData[statusField.id] = status;
+    }
 
     try {
       const response = await fetch('/api/rows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table_id: activeTableId, data: {}, order: newOrder })
+        body: JSON.stringify({ table_id: activeTableId, data: initialData, order: newOrder })
       });
       const data = await response.json();
       if (data.id) setRows(prev => [...prev, data]);
@@ -117,7 +124,6 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_id: activeTableId, name, type: 'text', order: newOrder })
       });
-      // Realtime will handle the update if subscribed to fields (not yet done, but we can refresh)
       window.location.reload(); 
     } catch (err) {
       console.error('Add field failed:', err);
@@ -179,8 +185,8 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
         <header className="h-14 border-b border-zinc-900 bg-zinc-950/50 backdrop-blur-xl flex items-center px-6 sticky top-0 z-10 shrink-0 justify-between">
-          <h2 className="text-sm font-medium text-zinc-400 font-mono tracking-tighter">
-            WORKSPACE <span className="text-zinc-700 mx-2">/</span> {workspaces.find(w => w.id === activeTableId)?.name || 'PRODUCT MANAGEMENT'}
+          <h2 className="text-sm font-medium text-zinc-400 font-mono tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis mr-4">
+            {workspaces.find(w => w.id === workspaces[0].id)?.name || 'WORKSPACE'} <span className="text-zinc-700 mx-2">/</span> PRODUCT MANAGEMENT
           </h2>
           <div className="flex items-center space-x-4">
             <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full font-mono uppercase">Live Sync Active</span>
@@ -191,16 +197,14 @@ export default function Home() {
           <div className="flex items-end justify-between">
             <div className="space-y-1">
               <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Product Roadmap 2026</h1>
-              <p className="text-sm text-zinc-500 leading-relaxed max-w-2xl">
-                Real-time collaborative board for steering the next generation of business intelligence.
-              </p>
+              <ViewSwitcher activeView={activeView} onViewChange={setActiveView} />
             </div>
             <div className="flex space-x-3 mb-1">
               <button className="px-4 py-2 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-lg text-sm font-medium transition-all duration-200">
                 Filters
               </button>
               <button 
-                onClick={handleAddRow}
+                onClick={() => handleAddRow()}
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition-all duration-200 shadow-xl shadow-blue-500/10 active:scale-95"
               >
                 + New Item
@@ -209,36 +213,57 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 backdrop-blur-sm space-y-2">
+            <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 backdrop-blur-sm space-y-2 group">
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-widest text-[10px]">Total Tasks</p>
-              <p className="text-3xl font-bold text-white">{rows.length}</p>
+              <p className="text-3xl font-bold text-white group-hover:text-blue-400 transition-colors">{rows.length}</p>
             </div>
-            <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 backdrop-blur-sm space-y-2">
+            <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 backdrop-blur-sm space-y-2 group">
               <p className="text-xs font-medium text-emerald-500/60 uppercase tracking-widest text-[10px]">Completed</p>
-              <p className="text-3xl font-bold text-emerald-400">
+              <p className="text-3xl font-bold text-emerald-400 group-hover:text-emerald-300 transition-colors">
                 {mappedRows.filter((r: any) => r['8a007d09-d5b7-4558-87a4-7b99758c77ce'] === true).length}
               </p>
             </div>
             <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 backdrop-blur-sm col-span-2 overflow-hidden relative group">
-              <div className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-500">
-                  <img src="/orbit_dashboard_chart_mockup.png" alt="Analytics" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-emerald-500/20" />
               </div>
               <div className="relative z-10">
                 <p className="text-xs font-medium text-zinc-500 uppercase tracking-widest text-[10px]">Productivity Curve</p>
-                <p className="text-3xl font-bold text-blue-400">+12.5% <span className="text-sm font-medium text-zinc-600 ml-1">this week</span></p>
+                <p className="text-3xl font-bold text-blue-400 group-hover:text-blue-300 transition-colors">+12.5% <span className="text-sm font-medium text-zinc-600 ml-1">this week</span></p>
               </div>
             </div>
           </div>
 
-          <DataTable 
-            fields={fields} 
-            rows={mappedRows} 
-            onUpdateCell={handleUpdateCell}
-            onAddRow={handleAddRow}
-            onDeleteRow={handleDeleteRow}
-            onAddField={handleAddField}
-            onRenameField={handleRenameField}
-          />
+          <div className="transition-all duration-300 ease-in-out">
+            {activeView === 'Table' && (
+              <DataTable 
+                fields={fields} 
+                rows={mappedRows} 
+                onUpdateCell={handleUpdateCell}
+                onAddRow={() => handleAddRow()}
+                onDeleteRow={handleDeleteRow}
+                onAddField={handleAddField}
+                onRenameField={handleRenameField}
+              />
+            )}
+            
+            {activeView === 'Kanban' && (
+              <KanbanBoard 
+                fields={fields}
+                rows={mappedRows}
+                onUpdateCell={handleUpdateCell}
+                onAddRow={(status) => handleAddRow(status)}
+              />
+            )}
+
+            {activeView === 'Calendar' && (
+              <CalendarView 
+                fields={fields}
+                rows={mappedRows}
+                onUpdateCell={handleUpdateCell}
+              />
+            )}
+          </div>
           
           <div className="pt-4 flex items-center justify-between text-xs text-zinc-600 border-t border-zinc-800/50">
             <p>Supabase Realtime Engine / v0.1.0-alpha</p>
