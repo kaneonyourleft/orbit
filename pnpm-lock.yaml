@@ -20,6 +20,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@orbit/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@orbit/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@supabase/ssr':
         specifier: ^0.9.0
         version: 0.9.0(@supabase/supabase-js@2.100.1)

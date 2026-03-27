@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@orbit/core", "@orbit/ui", "@orbit/shared", "@orbit/database"],
 };
 
 export default nextConfig;
