@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { Sidebar, DataTable, ViewSwitcher, type ViewType, KanbanBoard, CalendarView } from '@orbit/ui';
+import { Sidebar, DataTable, ViewSwitcher, type ViewType, KanbanBoard, CalendarView, Toolbar, type FilterCondition, type SortCondition } from '@orbit/ui';
 import { useWorkspaces, useTable, useRealtimeRows } from '@orbit/core';
 import { createClient } from '@/lib/supabase';
 
@@ -10,6 +10,12 @@ const supabase = createClient();
 export default function Home() {
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ViewType>('Table');
+  
+  // TASK-006: Toolbar States
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
+  const [sorts, setSorts] = useState<SortCondition[]>([]);
+  const [groupByFieldId, setGroupByFieldId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // 1. Load Workspaces
   const { workspaces, loading: workspacesLoading, error: workspacesError } = useWorkspaces(supabase);
@@ -50,11 +56,60 @@ export default function Home() {
 
   useRealtimeRows(supabase, activeTableId || '', handleRealtimeUpdate);
 
-  // 4. Mapped Data for UI
-  const mappedRows = useMemo(() => rows.map(r => ({ 
-    id: r.id, 
-    ...r.data 
-  })), [rows]);
+  // 4. Transform Data (Search, Filter, Sort)
+  const processedRows = useMemo(() => {
+    let result = rows.map(r => ({ id: r.id, ...r.data }));
+
+    // A. Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(row => {
+        return Object.values(row).some(val => 
+          typeof val === 'string' && val.toLowerCase().includes(q)
+        );
+      });
+    }
+
+    // B. Filter
+    if (filters.length > 0) {
+      result = result.filter(row => {
+        return filters.every(f => {
+          const val = row[f.fieldId];
+          const target = f.value.toLowerCase();
+          const current = String(val || '').toLowerCase();
+
+          switch (f.operator) {
+            case 'is': return current === target;
+            case 'is not': return current !== target;
+            case 'contains': return current.includes(target);
+            case 'is empty': return !val || val === '';
+            case 'is not empty': return !!val && val !== '';
+            default: return true;
+          }
+        });
+      });
+    }
+
+    // C. Sort
+    if (sorts.length > 0) {
+      result.sort((a, b) => {
+        for (const sort of sorts) {
+          const valA = a[sort.fieldId];
+          const valB = b[sort.fieldId];
+          if (valA === valB) continue;
+          
+          const multiplier = sort.direction === 'asc' ? 1 : -1;
+          if (valA < valB) return -1 * multiplier;
+          if (valA > valB) return 1 * multiplier;
+        }
+        return 0;
+      });
+    }
+
+    return result;
+  }, [rows, searchQuery, filters, sorts]);
+
+  const mappedRows = processedRows; // Compatibility with legacy naming
 
   // 5. Handlers
   const handleUpdateCell = async (rowId: string, fieldId: string, value: unknown) => {
@@ -189,6 +244,17 @@ export default function Home() {
             {workspaces.find(w => w.id === workspaces[0].id)?.name || 'WORKSPACE'} <span className="text-zinc-700 mx-2">/</span> PRODUCT MANAGEMENT
           </h2>
           <div className="flex items-center space-x-4">
+             <Toolbar 
+              fields={fields}
+              filters={filters}
+              sorts={sorts}
+              groupBy={groupByFieldId}
+              searchQuery={searchQuery}
+              onUpdateFilters={setFilters}
+              onUpdateSorts={setSorts}
+              onUpdateGroupBy={setGroupByFieldId}
+              onUpdateSearch={setSearchQuery}
+            />
             <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full font-mono uppercase">Live Sync Active</span>
           </div>
         </header>
@@ -200,9 +266,6 @@ export default function Home() {
               <ViewSwitcher activeView={activeView} onViewChange={setActiveView} />
             </div>
             <div className="flex space-x-3 mb-1">
-              <button className="px-4 py-2 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-lg text-sm font-medium transition-all duration-200">
-                Filters
-              </button>
               <button 
                 onClick={() => handleAddRow()}
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition-all duration-200 shadow-xl shadow-blue-500/10 active:scale-95"
@@ -248,6 +311,7 @@ export default function Home() {
                 onDeleteRow={handleDeleteRow}
                 onAddField={handleAddField}
                 onRenameField={handleRenameField}
+                groupByFieldId={groupByFieldId}
               />
             )}
             
