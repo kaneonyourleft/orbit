@@ -1,21 +1,29 @@
 "use client";
 
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { Sidebar, DataTable, ViewSwitcher, type ViewType, KanbanBoard, CalendarView, Toolbar, type FilterCondition, type SortCondition } from '@orbit/ui';
-import { useWorkspaces, useTable, useRealtimeRows } from '@orbit/core';
+import { Sidebar, DataTable, ViewSwitcher, type ViewType, KanbanBoard, CalendarView, Toolbar, type FilterCondition, type SortCondition, PluginPanel } from '@orbit/ui';
+import { useWorkspaces, useTable, useRealtimeRows, usePlugins, statusColorPlugin, rowCountPlugin, exportCsvPlugin, pluginRegistry } from '@orbit/core';
 import { createClient } from '@/lib/supabase';
 
 const supabase = createClient();
 
 export default function Home() {
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<ViewType>('Table');
+  const [activeView, setActiveView] = useState<ViewType | string>('Table');
+  const [isPluginsOpen, setIsPluginsOpen] = useState(false);
   
   // TASK-006: Toolbar States
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [sorts, setSorts] = useState<SortCondition[]>([]);
   const [groupByFieldId, setGroupByFieldId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // TASK-007: Plugin System Integration
+  const plugins = useMemo(() => [
+    statusColorPlugin,
+    rowCountPlugin,
+    exportCsvPlugin
+  ], []);
   
   // 1. Load Workspaces
   const { workspaces, loading: workspacesLoading, error: workspacesError } = useWorkspaces(supabase);
@@ -39,6 +47,37 @@ export default function Home() {
 
   // 2. Load Table (Fields + Rows)
   const { fields, rows, loading: tableLoading, error: tableError, setRows } = useTable(supabase, activeTableId || '');
+
+  // 2.5 Plugin Context
+  const { extraViews, fieldRenderers, menuItems } = usePlugins(plugins, {
+    supabase,
+    currentWorkspace: workspaces[0],
+    currentTable: fields.length > 0 ? { id: activeTableId, name: 'Product Roadmap' } : null,
+    fields,
+    rows: rows.map(r => ({ id: r.id, ...r.data }))
+  });
+
+  const [activePluginIds, setActivePluginIds] = useState<string[]>([]);
+  const togglePlugin = useCallback((id: string) => {
+    if (pluginRegistry.isActive(id)) {
+      pluginRegistry.deactivate(id);
+    } else {
+      // For simplicity in this demo, we re-activate with current context
+      // In a real app, this should be reactive
+      pluginRegistry.activate(id, {
+        supabase,
+        currentWorkspace: workspaces[0],
+        currentTable: { id: activeTableId, name: 'Product Roadmap' },
+        fields,
+        rows: rows.map(r => ({ id: r.id, ...r.data })),
+        addMenuItem: () => {}, // Handled by hook
+        registerView: () => {},
+        registerFieldRenderer: () => {},
+        showNotification: (msg) => alert(msg)
+      });
+    }
+    setActivePluginIds(prev => [...prev]); // Trigger re-render
+  }, [activeTableId, fields, rows, workspaces]);
 
   // 3. Realtime Sync
   const handleRealtimeUpdate = useCallback((payload: { eventType: string; new: any; old: any }) => {
@@ -254,18 +293,39 @@ export default function Home() {
               onUpdateSorts={setSorts}
               onUpdateGroupBy={setGroupByFieldId}
               onUpdateSearch={setSearchQuery}
+              onTogglePlugins={() => setIsPluginsOpen(!isPluginsOpen)}
             />
             <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full font-mono uppercase">Live Sync Active</span>
           </div>
         </header>
 
-        <section className="flex-1 p-8 max-w-7xl w-full mx-auto space-y-8 overflow-auto scrollbar-hide">
+        <section className="flex-1 p-8 max-w-7xl w-full mx-auto space-y-8 overflow-auto scrollbar-hide relative">
+          <PluginPanel 
+            isOpen={isPluginsOpen} 
+            onClose={() => setIsPluginsOpen(false)} 
+            registry={pluginRegistry}
+            onToggle={togglePlugin}
+          />
+
           <div className="flex items-end justify-between">
             <div className="space-y-1">
               <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Product Roadmap 2026</h1>
-              <ViewSwitcher activeView={activeView} onViewChange={setActiveView} />
+              <ViewSwitcher 
+                activeView={activeView as any} 
+                onViewChange={setActiveView} 
+                extraViews={extraViews}
+              />
             </div>
-            <div className="flex space-x-3 mb-1">
+            <div className="flex items-center space-x-3 mb-1">
+              {menuItems.map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={item.onClick}
+                  className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 rounded-lg text-xs font-semibold transition-all"
+                >
+                  {item.label}
+                </button>
+              ))}
               <button 
                 onClick={() => handleAddRow()}
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition-all duration-200 shadow-xl shadow-blue-500/10 active:scale-95"
@@ -312,6 +372,7 @@ export default function Home() {
                 onAddField={handleAddField}
                 onRenameField={handleRenameField}
                 groupByFieldId={groupByFieldId}
+                renderers={fieldRenderers}
               />
             )}
             

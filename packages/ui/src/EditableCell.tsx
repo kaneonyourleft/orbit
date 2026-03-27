@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { PluginFieldRenderer, OrbitField } from '@orbit/core';
 
 interface EditableCellProps {
   value: any;
   type: string;
+  field: OrbitField;
   onSave: (newValue: any) => void;
+  renderers?: Record<string, PluginFieldRenderer>;
 }
 
 /**
  * A cell that can be edited in-place.
  */
-export function EditableCell({ value, type, onSave }: EditableCellProps) {
+export function EditableCell({ value, type, field, onSave, renderers = {} }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,7 +76,10 @@ export function EditableCell({ value, type, onSave }: EditableCellProps) {
       className="w-full h-full min-h-[1.5rem] flex items-center group cursor-text"
     >
       <div className="flex-1 truncate">
-         {renderDisplayValue(type, value)}
+         {renderers[type] 
+           ? React.createElement(renderers[type], { value, field, onChange: onSave })
+           : renderDisplayValue(type, value)
+         }
       </div>
       <span className="opacity-0 group-hover:opacity-100 text-[10px] text-zinc-600 ml-2 transition-opacity">✎</span>
     </div>

@@ -9,4 +9,4 @@ export * from './Toolbar';
 export * from './FilterPanel';
 export * from './SortPanel';
 export * from './GroupPanel';
-export * from './Modal';
+export * from './PluginPanel';

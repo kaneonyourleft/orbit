@@ -24,8 +24,9 @@ export function DataTable({
   onDeleteRow, 
   onAddField, 
   onRenameField,
-  groupByFieldId 
-}: DataTableProps) {
+  groupByFieldId,
+  renderers = {} 
+}: DataTableProps & { groupByFieldId?: string | null, renderers?: Record<string, any> }) {
   const [editingFieldId, setEditingFieldId] = React.useState<string | null>(null);
   const [tempFieldName, setTempFieldName] = React.useState('');
 
@@ -81,6 +82,8 @@ export function DataTable({
           <EditableCell 
             value={row[field.id]} 
             type={field.type} 
+            field={field}
+            renderers={renderers}
             onSave={(newValue) => onUpdateCell(row.id, field.id, newValue)} 
           />
         </td>

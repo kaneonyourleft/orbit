@@ -14,6 +14,7 @@ interface ToolbarProps {
   onUpdateSorts: (sorts: SortCondition[]) => void;
   onUpdateGroupBy: (fieldId: string | null) => void;
   onUpdateSearch: (query: string) => void;
+  onTogglePlugins?: () => void;
 }
 
 export function Toolbar({ 
@@ -25,7 +26,8 @@ export function Toolbar({
   onUpdateFilters, 
   onUpdateSorts, 
   onUpdateGroupBy, 
-  onUpdateSearch 
+  onUpdateSearch,
+  onTogglePlugins
 }: ToolbarProps) {
   const [activePanel, setActivePanel] = useState<'filter' | 'sort' | 'group' | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -124,6 +126,17 @@ export function Toolbar({
               onGroupBy={onUpdateGroupBy} 
             />
           )}
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={onTogglePlugins}
+            className="p-1.5 rounded-lg border border-zinc-800/50 bg-black/20 text-zinc-500 hover:text-blue-400 hover:border-blue-500/30 transition-all flex items-center justify-center group"
+            title="Plugin Management"
+            aria-label="Manage Plugins"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-puzzle group-hover:rotate-12 transition-transform duration-300"><path d="M19.439 7.85c0-1.57.948-2.31 1.561-3.111.612-.8.612-1.89h-1.89c-.8.613-1.54 1.562-3.111 1.562-1.57 0-2.31-.949-3.11-1.561-.801-.613-1.891-.613-1.891 1.89v1.89c.612.8 1.561 1.54 1.561 3.111 0 1.571-.949 2.31-1.561 3.111-.613.801-.613 1.89 1.89 1.89h1.891c.8-.612 1.562-1.561 3.112-1.561 1.57 0 2.31.949 3.11 1.561.801.613 1.891.613 1.891-1.89v-1.89c-.612-.8-1.561-1.54-1.561-3.111"/><path d="M4.561 7.85c0-1.57-.949-2.31-1.561-3.111-.613-.8-.613-1.89 1.89-1.89H6.78c.8.8.613 1.562 1.562 3.111 1.562 1.57 0 2.311-.949 3.112-1.561.8-.613 1.89-.613 1.89 1.89v1.89c-.612.8-1.561 1.54-1.561 3.111 0 1.571.949 2.31 1.561 3.111.613.801.612 1.89-1.89 1.89h-1.89c-.8-.612-1.562-1.561-3.112-1.561-1.57 0-2.31.949-3.11 1.561-.8.613-1.891.613-1.891-1.89v-1.89c.613-.8 1.562-1.54 1.562-3.111"/><path d="M12 4.561c1.57 0 2.31-.949 3.111-1.561.8-.613 1.89-.613 1.89 1.89v1.891c-.612.8-1.562 1.561-3.112 1.561-1.57 0-2.31.949-3.11 1.561-.8.613-1.89.613-1.89-1.89V6.451c.613-.8 1.562-1.562 1.562-3.111z"/></svg>
+          </button>
         </div>
       </div>
     </div>
