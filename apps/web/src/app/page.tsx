@@ -1,49 +1,113 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { Sidebar, DataTable } from '@orbit/ui';
-import { OrbitField, useWorkspaceStore } from '@orbit/core';
+import { useWorkspaces, useTable, useRealtimeRows } from '@orbit/core';
+import { createClient } from '@/lib/supabase';
 
-const MOCK_WORKSPACES = [
-  { id: '1', name: 'Product Management' },
-  { id: '2', name: 'Engineering Roadmap' },
-  { id: '3', name: 'Marketing Campaign' },
-];
+const supabase = createClient();
 
-const MOCK_FIELDS: OrbitField[] = [
-  { id: 'task', name: 'Task Name', type: 'text', order: 1 },
-  { id: 'status', name: 'Status', type: 'select', order: 2, options: { choices: [{ label: 'To Do', color: 'gray' }, { label: 'In Progress', color: 'blue' }, { label: 'Done', color: 'green' }] } },
-  { id: 'priority', name: 'Priority', type: 'select', order: 3 },
-  { id: 'owner', name: 'Owner', type: 'text', order: 4 },
-  { id: 'complete', name: 'Done', type: 'checkbox', order: 5 },
-];
-
-const INITIAL_ROWS = [
-  { id: 'r1', task: 'Bootstrap Monorepo', status: 'Done', priority: 'High', owner: 'Kane', complete: true },
-  { id: 'r2', task: 'Design Data Schema', status: 'In Progress', priority: 'Medium', owner: 'Kane', complete: false },
-  { id: 'r3', task: 'Implement Interactive Table', status: 'To Do', priority: 'High', owner: 'Kane', complete: false },
-  { id: 'r4', task: 'Setup Auth System', status: 'To Do', priority: 'Low', owner: '', complete: false },
-];
-
-/**
- * Main landing page for ORBIT - Work OS
- */
 export default function Home() {
-  const { currentTable, setCurrentTable, setWorkspaces, workspaces, updateCell, addRow } = useWorkspaceStore();
-
+  const [activeTableId, setActiveTableId] = useState<string | null>(null);
+  
+  // 1. Load Workspaces
+  const { workspaces, loading: workspacesLoading, error: workspacesError } = useWorkspaces(supabase);
+  
+  // Automatically select the first table of the first workspace if none selected
   useEffect(() => {
-    setWorkspaces(MOCK_WORKSPACES);
-    setCurrentTable({
-      id: 't1',
-      name: 'Product Roadmap 2026',
-      fields: MOCK_FIELDS,
-      rows: INITIAL_ROWS
-    });
-  }, [setWorkspaces, setCurrentTable]);
+    async function fetchFirstTable() {
+      if (workspaces.length > 0 && !activeTableId) {
+        const { data } = await supabase
+          .from('tables')
+          .select('id')
+          .eq('workspace_id', workspaces[0].id)
+          .limit(1)
+          .single();
+        
+        if (data) setActiveTableId(data.id);
+      }
+    }
+    fetchFirstTable();
+  }, [workspaces, activeTableId]);
 
-  if (!currentTable) return (
+  // 2. Load Table (Fields + Rows)
+  const { fields, rows, loading: tableLoading, error: tableError, setRows } = useTable(supabase, activeTableId || '');
+
+  // 3. Realtime Sync
+  const handleRealtimeUpdate = useCallback((payload: any) => {
+    if (payload.eventType === 'INSERT') {
+      setRows(prev => [...prev, payload.new]);
+    } else if (payload.eventType === 'UPDATE') {
+      setRows(prev => prev.map(row => row.id === payload.new.id ? payload.new : row));
+    } else if (payload.eventType === 'DELETE') {
+      setRows(prev => prev.filter(row => row.id === payload.old.id));
+    }
+  }, [setRows]);
+
+  useRealtimeRows(supabase, activeTableId || '', handleRealtimeUpdate);
+
+  // 4. Mapped Data for UI
+  const mappedRows = useMemo(() => rows.map(r => ({ 
+    id: r.id, 
+    ...r.data 
+  })), [rows]);
+
+  // 5. Handlers
+  const handleUpdateCell = async (rowId: string, fieldId: string, value: any) => {
+    const currentRow = rows.find(r => r.id === rowId);
+    if (!currentRow) return;
+
+    const newData = { ...currentRow.data, [fieldId]: value };
+
+    // Optimistic Update
+    setRows(prev => prev.map(r => r.id === rowId ? { ...r, data: newData } : r));
+
+    const { error } = await supabase
+      .from('rows')
+      .update({ data: newData })
+      .eq('id', rowId);
+
+    if (error) {
+      console.error('Update failed:', error);
+      // Rollback or handle error
+    }
+  };
+
+  const handleAddRow = async () => {
+    if (!activeTableId) return;
+
+    const initialData = {}; // Empty row
+    const newOrder = rows.length > 0 ? Math.max(...rows.map(r => r.order)) + 1 : 0;
+
+    const { data, error } = await supabase
+      .from('rows')
+      .insert({
+        table_id: activeTableId,
+        data: initialData,
+        order: newOrder
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Insert failed:', error);
+    } else if (data) {
+      setRows(prev => [...prev, data]);
+    }
+  };
+
+  const isLoading = workspacesLoading || (activeTableId && tableLoading);
+  const error = workspacesError || tableError;
+
+  if (isLoading) return (
     <div className="w-full h-screen bg-zinc-950 flex items-center justify-center">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="w-full h-screen bg-zinc-950 flex items-center justify-center text-red-500">
+      Error: {error.message}
     </div>
   );
 
@@ -64,7 +128,7 @@ export default function Home() {
         <section className="flex-1 p-8 max-w-7xl w-full mx-auto space-y-8 overflow-auto scrollbar-hide">
           <div className="flex items-end justify-between">
             <div className="space-y-1">
-              <h1 className="text-4xl font-bold tracking-tight text-white mb-2">{currentTable.name}</h1>
+              <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Product Roadmap 2026</h1>
               <p className="text-sm text-zinc-500 leading-relaxed max-w-2xl">
                 Real-time collaborative board for steering the next generation of business intelligence.
               </p>
@@ -74,7 +138,7 @@ export default function Home() {
                 Filters
               </button>
               <button 
-                onClick={addRow}
+                onClick={handleAddRow}
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition-all duration-200 shadow-xl shadow-blue-500/10 active:scale-95"
               >
                 + New Item
@@ -82,16 +146,15 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Quick Analytics Dashboard */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 backdrop-blur-sm space-y-2">
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-widest text-[10px]">Total Tasks</p>
-              <p className="text-3xl font-bold text-white">{currentTable.rows.length}</p>
+              <p className="text-3xl font-bold text-white">{rows.length}</p>
             </div>
             <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 backdrop-blur-sm space-y-2">
               <p className="text-xs font-medium text-emerald-500/60 uppercase tracking-widest text-[10px]">Completed</p>
               <p className="text-3xl font-bold text-emerald-400">
-                {currentTable.rows.filter(r => r.complete).length}
+                {mappedRows.filter((r: any) => r['8a007d09-d5b7-4558-87a4-7b99758c77ce'] === true).length}
               </p>
             </div>
             <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 backdrop-blur-sm col-span-2 overflow-hidden relative group">
@@ -106,14 +169,14 @@ export default function Home() {
           </div>
 
           <DataTable 
-            fields={currentTable.fields} 
-            rows={currentTable.rows} 
-            onUpdateCell={updateCell}
-            onAddRow={addRow}
+            fields={fields} 
+            rows={mappedRows} 
+            onUpdateCell={handleUpdateCell}
+            onAddRow={handleAddRow}
           />
           
           <div className="pt-4 flex items-center justify-between text-xs text-zinc-600 border-t border-zinc-800/50">
-            <p>Monorepo Monolithic Data Engine / v0.1.0-alpha</p>
+            <p>Supabase Realtime Engine / v0.1.0-alpha</p>
             <p className="font-mono">Synced @ {new Date().toLocaleTimeString()}</p>
           </div>
         </section>
@@ -121,4 +184,3 @@ export default function Home() {
     </div>
   );
 }
-
