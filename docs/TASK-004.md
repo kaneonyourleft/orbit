@@ -5,6 +5,7 @@
 Implemented full CRUD (Create, Read, Update, Delete) operations for the core data engine components: Workspaces, Tables, Fields, and Rows.
 
 ### 1. Backend: Next.js Route Handlers
+
 Created secure API endpoints in `apps/web/src/app/api/` using the Supabase server-side client with `service_role` key.
 
 - **Workspaces**:
@@ -21,6 +22,7 @@ Created secure API endpoints in `apps/web/src/app/api/` using the Supabase serve
   - `DELETE /api/rows/[id]`: Delete a row
 
 ### 2. UI/UX Enhancements
+
 - **Premium Modal Component**: Created a reusable, animated modal in `packages/ui` for high-impact interactions.
 - **Workspace Creation**: Added a dedicated flow in the Sidebar using the new Modal.
 - **Data Table Interactivity**:
@@ -29,11 +31,13 @@ Created secure API endpoints in `apps/web/src/app/api/` using the Supabase serve
   - Implemented **Rename Field** on double-click of header titles.
 
 ### 3. Technical Improvements
+
 - **Optimistic UI**: Implemented basic optimistic updates for row deletions and data changes to ensure a "zero latency" feel.
 - **Next.js 15+ Compatibility**: Updated dynamic route handlers to handle `params` as a Promise, ensuring build success on the latest Next.js version.
 - **Type Safety**: Removed all `any` types in the new API routes and added robust error handling.
 
 ### How to use
+
 - **Create Workspace**: Click "+ Create New" in the sidebar.
 - **Add Column**: Click the "+" button at the end of the table header.
 - **Rename Column**: Double-click any column header text.

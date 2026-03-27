@@ -19,6 +19,7 @@ Created high-quality, dark-themed components in `packages/ui`:
   - Handles empty states gracefully when no date field is present.
 
 ### 2. Core Integration
+
 Updated `apps/web/src/app/page.tsx` to integrate the view architecture:
 
 - **State Persistence**: Switching views preserves the underlying database state and real-time synchronization.
@@ -26,15 +27,19 @@ Updated `apps/web/src/app/page.tsx` to integrate the view architecture:
 - **Improved Header**: The page header now adapts to the active workspace and view context.
 
 ### 3. Styling & Aesthetics
+
 - **Design Tokens**: Consistent use of `zinc-900/950` backgrounds and `zinc-700/800` borders.
-- **Color Coding**: 
+
+- **Color Coding**:
   - **Done**: Emerald
   - **In Progress**: Amber
   - **High Priority**: Red
   - **Active State**: Blue (#2563EB)
+
 - **Glassmorphism**: Enhanced blur effects on headers and cards for a premium "Work OS" feel.
 
 ### How to use
+
 1.  **Switch Views**: Click "Kanban" or "Calendar" in the view switcher bar below the title.
 2.  **Add Kanban Card**: Click "+ Add card" at the bottom of a specific status column (e.g., "In Progress") to create a task already set to that status.
 3.  **Navigate Calendar**: Use the arrows to browse different months. Tasks with a "Date" field will appear automatically on their assigned days.

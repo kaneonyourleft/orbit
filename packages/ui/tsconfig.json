@@ -4,7 +4,10 @@
     "baseUrl": ".",
     "rootDir": "src",
     "outDir": "dist",
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "@orbit/core": ["../core/src/index.ts"]
+    }
   },
   "include": ["src"]
 }

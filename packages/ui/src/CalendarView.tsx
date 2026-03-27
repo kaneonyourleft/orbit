@@ -54,12 +54,16 @@ export function CalendarView({ fields, rows, onUpdateCell }: CalendarViewProps) 
           <button 
             onClick={prevMonth}
             className="p-2.5 rounded-xl border border-zinc-800 hover:bg-zinc-800 hover:text-white transition-all text-zinc-500"
+            title="Previous Month"
+            aria-label="Previous Month"
           >
            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
           <button 
             onClick={nextMonth}
             className="p-2.5 rounded-xl border border-zinc-800 hover:bg-zinc-800 hover:text-white transition-all text-zinc-500"
+            title="Next Month"
+            aria-label="Next Month"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
           </button>

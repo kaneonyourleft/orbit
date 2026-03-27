@@ -35,7 +35,7 @@ export default function Home() {
   const { fields, rows, loading: tableLoading, error: tableError, setRows } = useTable(supabase, activeTableId || '');
 
   // 3. Realtime Sync
-  const handleRealtimeUpdate = useCallback((payload: any) => {
+  const handleRealtimeUpdate = useCallback((payload: { eventType: string; new: any; old: any }) => {
     if (payload.eventType === 'INSERT') {
       setRows(prev => {
         if (prev.find(r => r.id === payload.new.id)) return prev;
@@ -57,7 +57,7 @@ export default function Home() {
   })), [rows]);
 
   // 5. Handlers
-  const handleUpdateCell = async (rowId: string, fieldId: string, value: any) => {
+  const handleUpdateCell = async (rowId: string, fieldId: string, value: unknown) => {
     const currentRow = rows.find(r => r.id === rowId);
     if (!currentRow) return;
 
@@ -81,7 +81,7 @@ export default function Home() {
     if (!activeTableId) return;
 
     const newOrder = rows.length > 0 ? Math.max(...rows.map(r => r.order)) + 1 : 0;
-    const initialData: Record<string, any> = {};
+    const initialData: Record<string, unknown> = {};
 
     if (status) {
       const statusField = fields.find(f => f.name.toLowerCase() === 'status');
@@ -223,7 +223,7 @@ export default function Home() {
                 {(() => {
                   const doneField = fields.find(f => f.name.toLowerCase() === 'done' || f.name.toLowerCase() === 'completed');
                   if (!doneField) return 0;
-                  return mappedRows.filter((r: any) => r[doneField.id] === true).length;
+                  return mappedRows.filter((r: { [key: string]: unknown }) => r[doneField.id] === true).length;
                 })()}
               </p>
             </div>
