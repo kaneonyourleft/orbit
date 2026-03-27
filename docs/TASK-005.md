@@ -5,10 +5,11 @@
 Implemented a robust multi-view system enabling users to visualize and manage their data in three distinct formats: Table, Kanban Board, and Calendar.
 
 ### 1. New UI Components
+
 Created high-quality, dark-themed components in `packages/ui`:
 
 - **ViewSwitcher**: A premium tab bar for switching between "Table", "Kanban", and "Calendar" views. Features smooth transitions and blue accent highlights.
-- **KanbanBoard**: 
+- **KanbanBoard**:
   - Groups rows by the "Status" select field.
   - Standard columns: To Do, In Progress, In Review, Done.
   - Features count badges, priority-coded cards, and owner avatars.
@@ -40,6 +41,6 @@ Updated `apps/web/src/app/page.tsx` to integrate the view architecture:
 
 ### How to use
 
-1.  **Switch Views**: Click "Kanban" or "Calendar" in the view switcher bar below the title.
-2.  **Add Kanban Card**: Click "+ Add card" at the bottom of a specific status column (e.g., "In Progress") to create a task already set to that status.
-3.  **Navigate Calendar**: Use the arrows to browse different months. Tasks with a "Date" field will appear automatically on their assigned days.
+1. **Switch Views**: Click "Kanban" or "Calendar" in the view switcher bar below the title.
+2. **Add Kanban Card**: Click "+ Add card" at the bottom of a specific status column (e.g., "In Progress") to create a task already set to that status.
+3. **Navigate Calendar**: Use the arrows to browse different months. Tasks with a "Date" field will appear automatically on their assigned days.
