@@ -36,7 +36,10 @@ export default function Home() {
   // 3. Realtime Sync
   const handleRealtimeUpdate = useCallback((payload: any) => {
     if (payload.eventType === 'INSERT') {
-      setRows(prev => [...prev, payload.new]);
+      setRows(prev => {
+        if (prev.find(r => r.id === payload.new.id)) return prev;
+        return [...prev, payload.new];
+      });
     } else if (payload.eventType === 'UPDATE') {
       setRows(prev => prev.map(row => row.id === payload.new.id ? payload.new : row));
     } else if (payload.eventType === 'DELETE') {
@@ -62,37 +65,89 @@ export default function Home() {
     // Optimistic Update
     setRows(prev => prev.map(r => r.id === rowId ? { ...r, data: newData } : r));
 
-    const { error } = await supabase
-      .from('rows')
-      .update({ data: newData })
-      .eq('id', rowId);
-
-    if (error) {
-      console.error('Update failed:', error);
-      // Rollback or handle error
+    try {
+      await fetch(`/api/rows/${rowId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: newData })
+      });
+    } catch (err) {
+      console.error('Update failed:', err);
     }
   };
 
   const handleAddRow = async () => {
     if (!activeTableId) return;
 
-    const initialData = {}; // Empty row
     const newOrder = rows.length > 0 ? Math.max(...rows.map(r => r.order)) + 1 : 0;
 
-    const { data, error } = await supabase
-      .from('rows')
-      .insert({
-        table_id: activeTableId,
-        data: initialData,
-        order: newOrder
-      })
-      .select()
-      .single();
+    try {
+      const response = await fetch('/api/rows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_id: activeTableId, data: {}, order: newOrder })
+      });
+      const data = await response.json();
+      if (data.id) setRows(prev => [...prev, data]);
+    } catch (err) {
+      console.error('Insert failed:', err);
+    }
+  };
 
-    if (error) {
-      console.error('Insert failed:', error);
-    } else if (data) {
-      setRows(prev => [...prev, data]);
+  const handleDeleteRow = async (rowId: string) => {
+    // Optimistic Update
+    setRows(prev => prev.filter(r => r.id !== rowId));
+
+    try {
+      await fetch(`/api/rows/${rowId}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
+
+  const handleAddField = async () => {
+    if (!activeTableId) return;
+
+    const newOrder = fields.length > 0 ? Math.max(...fields.map(f => f.order)) + 1 : 0;
+    const name = `New Field ${fields.length + 1}`;
+
+    try {
+      await fetch('/api/fields', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_id: activeTableId, name, type: 'text', order: newOrder })
+      });
+      // Realtime will handle the update if subscribed to fields (not yet done, but we can refresh)
+      window.location.reload(); 
+    } catch (err) {
+      console.error('Add field failed:', err);
+    }
+  };
+
+  const handleRenameField = async (fieldId: string, newName: string) => {
+    try {
+      await fetch(`/api/fields/${fieldId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName })
+      });
+      window.location.reload();
+    } catch (err) {
+      console.error('Rename field failed:', err);
+    }
+  };
+
+  const handleCreateWorkspace = async (name: string) => {
+    const slug = name.toLowerCase().replace(/\s+/g, '-');
+    try {
+      await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, slug })
+      });
+      window.location.reload();
+    } catch (err) {
+      console.error('Create workspace failed:', err);
     }
   };
 
@@ -106,19 +161,26 @@ export default function Home() {
   );
 
   if (error) return (
-    <div className="w-full h-screen bg-zinc-950 flex items-center justify-center text-red-500">
-      Error: {error.message}
+    <div className="w-full h-screen bg-zinc-950 flex items-center justify-center text-red-500 p-8 text-center">
+      <div className="max-w-md space-y-4">
+        <h2 className="text-2xl font-bold">Connection Error</h2>
+        <p className="text-zinc-500">{error.message}</p>
+        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-zinc-800 rounded-lg text-sm">Retry Connection</button>
+      </div>
     </div>
   );
 
   return (
     <div className="flex w-full h-screen bg-zinc-950 font-sans text-zinc-100 selection:bg-blue-500/30 overflow-hidden">
-      <Sidebar workspaces={workspaces} />
+      <Sidebar 
+        workspaces={workspaces} 
+        onCreateWorkspace={handleCreateWorkspace}
+      />
 
       <main className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
         <header className="h-14 border-b border-zinc-900 bg-zinc-950/50 backdrop-blur-xl flex items-center px-6 sticky top-0 z-10 shrink-0 justify-between">
           <h2 className="text-sm font-medium text-zinc-400 font-mono tracking-tighter">
-            WORKSPACE <span className="text-zinc-700 mx-2">/</span> PRODUCT MANAGEMENT
+            WORKSPACE <span className="text-zinc-700 mx-2">/</span> {workspaces.find(w => w.id === activeTableId)?.name || 'PRODUCT MANAGEMENT'}
           </h2>
           <div className="flex items-center space-x-4">
             <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full font-mono uppercase">Live Sync Active</span>
@@ -173,6 +235,9 @@ export default function Home() {
             rows={mappedRows} 
             onUpdateCell={handleUpdateCell}
             onAddRow={handleAddRow}
+            onDeleteRow={handleDeleteRow}
+            onAddField={handleAddField}
+            onRenameField={handleRenameField}
           />
           
           <div className="pt-4 flex items-center justify-between text-xs text-zinc-600 border-t border-zinc-800/50">

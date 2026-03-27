@@ -7,12 +7,46 @@ interface DataTableProps {
   rows: Record<string, any>[];
   onUpdateCell: (rowId: string, fieldId: string, value: any) => void;
   onAddRow: () => void;
+  onDeleteRow: (rowId: string) => void;
+  onAddField: () => void;
+  onRenameField: (fieldId: string, newName: string) => void;
 }
 
 /**
  * Core Data Table component for ORBIT workspace.
  */
-export function DataTable({ fields, rows, onUpdateCell, onAddRow }: DataTableProps) {
+export function DataTable({ 
+  fields, 
+  rows, 
+  onUpdateCell, 
+  onAddRow, 
+  onDeleteRow, 
+  onAddField, 
+  onRenameField 
+}: DataTableProps) {
+  const [editingFieldId, setEditingFieldId] = React.useState<string | null>(null);
+  const [tempFieldName, setTempFieldName] = React.useState('');
+
+  const handleFieldDoubleClick = (field: OrbitField) => {
+    setEditingFieldId(field.id);
+    setTempFieldName(field.name);
+  };
+
+  const handleFieldBlur = (fieldId: string) => {
+    if (tempFieldName.trim() && tempFieldName !== fields.find(f => f.id === fieldId)?.name) {
+      onRenameField(fieldId, tempFieldName);
+    }
+    setEditingFieldId(null);
+  };
+
+  const handleFieldKeyDown = (e: React.KeyboardEvent, fieldId: string) => {
+    if (e.key === 'Enter') {
+      handleFieldBlur(fieldId);
+    } else if (e.key === 'Escape') {
+      setEditingFieldId(null);
+    }
+  };
+
   return (
     <div className="w-full overflow-hidden border border-zinc-800/50 rounded-2xl bg-zinc-900/20 backdrop-blur-sm shadow-2xl">
       <div className="overflow-x-auto">
@@ -23,26 +57,49 @@ export function DataTable({ fields, rows, onUpdateCell, onAddRow }: DataTablePro
               {fields.map((field) => (
                 <th
                   key={field.id}
-                  className="px-4 py-3 font-semibold border-r border-zinc-800/20 last:border-0 min-w-[200px]"
+                  className="px-4 py-3 font-semibold border-r border-zinc-800/20 last:border-0 min-w-[200px] group/header relative"
+                  onDoubleClick={() => handleFieldDoubleClick(field)}
                 >
                   <div className="flex items-center space-x-2">
-                    <span className="text-zinc-500 text-[10px] uppercase font-mono bg-zinc-800 px-1.5 py-0.5 rounded leading-none">
+                    <span className="text-zinc-500 text-[10px] uppercase font-mono bg-zinc-800 px-1.5 py-0.5 rounded leading-none shrink-0">
                       {getFieldIcon(field.type)}
                     </span>
-                    <span className="text-zinc-400">{field.name}</span>
+                    {editingFieldId === field.id ? (
+                      <input
+                        autoFocus
+                        className="bg-zinc-800 text-white px-1 py-0.5 rounded outline-none border border-blue-500 w-full"
+                        value={tempFieldName}
+                        onChange={(e) => setTempFieldName(e.target.value)}
+                        onBlur={() => handleFieldBlur(field.id)}
+                        onKeyDown={(e) => handleFieldKeyDown(e, field.id)}
+                      />
+                    ) : (
+                      <span className="text-zinc-400 truncate flex-1">{field.name}</span>
+                    )}
                   </div>
                 </th>
               ))}
-              <th className="px-4 py-3 w-12 text-center text-zinc-600 cursor-pointer hover:text-zinc-300 transition-colors">
-                <span className="text-lg">+</span>
+              <th 
+                onClick={onAddField}
+                className="px-4 py-3 w-12 text-center text-zinc-600 cursor-pointer hover:bg-zinc-800/50 hover:text-blue-400 transition-colors"
+              >
+                <div className="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                </div>
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/30">
             {rows.map((row, rowIndex) => (
               <tr key={row.id || rowIndex} className="hover:bg-zinc-800/20 transition-all group">
-                <td className="px-4 py-3 text-center text-zinc-600 font-mono text-[11px]">
-                  {rowIndex + 1}
+                <td className="px-4 py-3 text-center text-zinc-600 font-mono text-[11px] relative">
+                  <span className="group-hover:opacity-0 transition-opacity">{rowIndex + 1}</span>
+                  <button 
+                    onClick={() => onDeleteRow(row.id)}
+                    className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-500 transition-all"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                  </button>
                 </td>
                 {fields.map((field) => (
                   <td
