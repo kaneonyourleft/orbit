@@ -13,8 +13,8 @@ interface KanbanBoardProps {
  * Groups rows by 'Status' select field.
  */
 export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoardProps) {
-  const statusField = fields.find(f => f.name.toLowerCase() === 'status' && f.type === 'select');
-  const priorityField = fields.find(f => f.name.toLowerCase() === 'priority' && f.type === 'select');
+  const statusField = fields.find(f => f.name.toLowerCase() === 'status');
+  const priorityField = fields.find(f => f.name.toLowerCase() === 'priority');
   const ownerField = fields.find(f => f.name.toLowerCase() === 'owner');
   const dueDateField = fields.find(f => f.type === 'date');
 
@@ -24,7 +24,7 @@ export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoar
   const groupedRows = statusOptions.map(status => {
     return {
       status,
-      rows: rows.filter(r => r[statusField?.id || 'status'] === status)
+      rows: rows.filter(r => r[statusField?.id || ''] === status)
     };
   });
 

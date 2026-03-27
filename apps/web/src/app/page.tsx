@@ -220,7 +220,11 @@ export default function Home() {
             <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 backdrop-blur-sm space-y-2 group">
               <p className="text-xs font-medium text-emerald-500/60 uppercase tracking-widest text-[10px]">Completed</p>
               <p className="text-3xl font-bold text-emerald-400 group-hover:text-emerald-300 transition-colors">
-                {mappedRows.filter((r: any) => r['8a007d09-d5b7-4558-87a4-7b99758c77ce'] === true).length}
+                {(() => {
+                  const doneField = fields.find(f => f.name.toLowerCase() === 'done' || f.name.toLowerCase() === 'completed');
+                  if (!doneField) return 0;
+                  return mappedRows.filter((r: any) => r[doneField.id] === true).length;
+                })()}
               </p>
             </div>
             <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 backdrop-blur-sm col-span-2 overflow-hidden relative group">
