@@ -25,74 +25,75 @@ export function Sidebar({
   };
 
   return (
-    <aside className="fixed left-0 top-14 bottom-0 flex flex-col w-64 p-4 gap-2 bg-zinc-50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 transition-all duration-150 ease-in-out z-40">
+    <aside className="fixed left-0 top-14 bottom-0 flex flex-col w-64 p-4 gap-2 bg-zinc-50 border-r border-zinc-200 transition-all duration-150 ease-in-out z-40 font-sans antialiased">
       {/* Profile Header */}
-      <div className="flex items-center gap-3 mb-6 px-1">
-        <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center overflow-hidden shadow-sm">
-          <span className="material-symbols-outlined text-on-primary-container text-xl">rocket_launch</span>
+      <div className="flex items-center gap-3 mb-6 px-1 cursor-pointer hover:bg-zinc-100/50 p-1.5 rounded-lg transition-colors group">
+        <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center overflow-hidden shadow-sm shadow-blue-100 border border-blue-100 transition-transform group-active:scale-95">
+          <span className="material-symbols-outlined text-on-primary-container text-xl font-medium">rocket_launch</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Acme Corp</span>
-          <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Enterprise Plan</span>
+          <span className="text-[13px] font-bold text-zinc-800 tracking-tight leading-tight">Acme Corp</span>
+          <span className="text-[9px] text-zinc-400 uppercase tracking-widest font-extrabold leading-tight">Enterprise Plan</span>
         </div>
-        <button className="ml-auto text-zinc-400">
-          <span className="material-symbols-outlined text-sm">unfold_more</span>
+        <button className="ml-auto text-zinc-300 group-hover:text-zinc-500 transition-colors">
+          <span className="material-symbols-outlined text-lg">unfold_more</span>
         </button>
       </div>
 
       <nav className="flex flex-col gap-1 overflow-y-auto hide-scrollbar">
-        <a className="flex items-center gap-3 px-3 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/">
-          <span className="material-symbols-outlined text-lg">home</span>
+        <a className="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm hover:border-zinc-200 border border-transparent rounded-lg text-xs font-bold uppercase tracking-wider transition-all" href="/">
+          <span className="material-symbols-outlined text-xl">home</span>
           <span>Home</span>
         </a>
-        <a className="flex items-center gap-3 px-3 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/tasks">
-          <span className="material-symbols-outlined text-lg">check_circle</span>
+        <a className="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm hover:border-zinc-200 border border-transparent rounded-lg text-xs font-bold uppercase tracking-wider transition-all" href="/tasks">
+          <span className="material-symbols-outlined text-xl">check_circle</span>
           <span>My Tasks</span>
         </a>
 
         <div className="mt-4">
-          <div className="flex items-center justify-between px-3 py-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">
+          <div className="flex items-center justify-between px-3 py-2 text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest mb-1">
             <span>Workspaces</span>
-            <span 
-              className="material-symbols-outlined text-sm cursor-pointer hover:text-primary transition-colors"
+            <button 
+              className="p-1 hover:bg-white hover:shadow-sm hover:border-zinc-200 border border-transparent rounded transition-all text-zinc-300 hover:text-primary"
               onClick={() => setIsModalOpen(true)}
+              title="Add Workspace"
             >
-              add
-            </span>
+              <span className="material-symbols-outlined text-sm">add</span>
+            </button>
           </div>
 
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {workspaces.map((ws) => (
               <div key={ws.id} className="space-y-0.5">
                 <div 
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all cursor-pointer group ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer group select-none ${
                     expandedFolder === ws.name 
-                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-r-2 border-blue-600' 
-                      : 'text-zinc-500 hover:bg-zinc-200/50'
+                      ? 'text-primary bg-white shadow-sm border border-zinc-200 ring-4 ring-blue-50/50' 
+                      : 'text-zinc-500 hover:bg-white hover:shadow-sm border border-transparent'
                   }`}
                   onClick={() => setExpandedFolder(expandedFolder === ws.name ? null : ws.name)}
                 >
-                  <span className={`material-symbols-outlined text-sm transition-transform ${expandedFolder === ws.name ? 'rotate-0' : '-rotate-90'}`}>
+                  <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${expandedFolder === ws.name ? 'rotate-0' : '-rotate-90 text-zinc-300'}`}>
                     keyboard_arrow_down
                   </span>
-                  <span className="material-symbols-outlined text-lg">
+                  <span className={`material-symbols-outlined text-lg font-medium ${expandedFolder === ws.name ? 'text-primary' : 'text-zinc-300'}`}>
                     {expandedFolder === ws.name ? 'folder_open' : 'folder'}
                   </span>
-                  <span className="flex-1 text-[11px] font-bold">{ws.name}</span>
-                  <span className="material-symbols-outlined text-xs hidden group-hover:block opacity-60">more_horiz</span>
+                  <span className={`flex-1 text-[12px] ${expandedFolder === ws.name ? 'font-bold' : 'font-semibold'}`}>{ws.name}</span>
+                  <button className="material-symbols-outlined text-sm hidden group-hover:block text-zinc-300 hover:text-zinc-500 transition-colors">more_horiz</button>
                 </div>
 
                 {expandedFolder === ws.name && (
-                  <div className="pl-8 flex flex-col gap-0.5">
-                    <a className="flex items-center gap-2 px-3 py-1.5 text-blue-600 font-semibold bg-blue-100/50 rounded text-[11px] group" href="#">
-                      <span className="material-symbols-outlined text-base">table_chart</span>
+                  <div className="pl-6 mt-1 flex flex-col gap-0.5 border-l-2 border-primary/10 ml-5">
+                    <a className="flex items-center gap-2 px-3 py-1.5 text-primary font-bold bg-primary/5 rounded-lg text-[12px] transition-all group border border-primary/10" href="#">
+                      <span className="material-symbols-outlined text-base">table_rows</span>
                       <span className="flex-1">Product Roadmap 2026</span>
-                      <span className="material-symbols-outlined text-[10px] hidden group-hover:block opacity-60">edit</span>
+                      <span className="material-symbols-outlined text-[10px] hidden group-hover:block text-primary/40">edit</span>
                     </a>
-                    <a className="flex items-center gap-2 px-3 py-1.5 text-zinc-500 hover:bg-zinc-200/50 rounded text-[11px] group" href="#">
-                      <span className="material-symbols-outlined text-base">table_chart</span>
-                      <span className="flex-1">Backlog Refinement</span>
-                      <span className="material-symbols-outlined text-[10px] hidden group-hover:block opacity-60 text-zinc-400">delete</span>
+                    <a className="flex items-center gap-2 px-3 py-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-white hover:shadow-sm rounded-lg text-[12px] transition-all group border border-transparent" href="#">
+                      <span className="material-symbols-outlined text-base">table_rows</span>
+                      <span className="flex-1 font-semibold">Backlog Refinement</span>
+                      <span className="material-symbols-outlined text-[10px] hidden group-hover:block opacity-60 text-zinc-300">delete</span>
                     </a>
                   </div>
                 )}
@@ -101,20 +102,20 @@ export function Sidebar({
           </div>
         </div>
 
-        <a className="flex items-center gap-3 px-3 py-2 mt-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/inbox">
-          <span className="material-symbols-outlined text-lg">inbox</span>
+        <a className="flex items-center gap-3 px-3 py-2 mt-2 text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm rounded-lg text-xs font-bold uppercase tracking-wider transition-all" href="/inbox">
+          <span className="material-symbols-outlined text-xl">inbox</span>
           <span>Inbox</span>
         </a>
       </nav>
 
-      <div className="mt-auto pt-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col gap-1">
-        <a className="flex items-center gap-3 px-3 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/settings">
+      <div className="mt-auto pt-4 border-t border-zinc-100 flex flex-col gap-1">
+        <a className="flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-700 hover:bg-white hover:shadow-sm rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all" href="/settings">
           <span className="material-symbols-outlined text-lg">settings</span>
-          <span>Settings</span>
+          <span className="tracking-widest">Settings</span>
         </a>
-        <a className="flex items-center gap-3 px-3 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/support">
+        <a className="flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-700 hover:bg-white hover:shadow-sm rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all" href="/support">
           <span className="material-symbols-outlined text-lg">contact_support</span>
-          <span>Support</span>
+          <span className="tracking-widest">Support</span>
         </a>
       </div>
 

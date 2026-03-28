@@ -10,6 +10,7 @@ interface KanbanBoardProps {
 
 /**
  * Clean Canvas Kanban Board for ORBIT Workspace OS.
+ * Highly refined for white theme and card visualization.
  */
 export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoardProps) {
   const statusField = fields.find(f => f.name.toLowerCase() === 'status');
@@ -21,47 +22,52 @@ export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoar
   const statusOptions = statusField?.options as string[] || defaultStatuses;
 
   const groupedRows = statusOptions.map(status => {
+    const statusRows = rows.filter(r => {
+      const rowStatus = String(r[statusField?.id || ''] || '').trim();
+      return rowStatus === status || (status === 'To Do' && !rowStatus);
+    });
     return {
       status,
-      rows: rows.filter(r => r[statusField?.id || ''] === status)
+      rows: statusRows
     };
   });
 
-  const getStatusStyles = (status: string) => {
+  const getStatusBadgeStyle = (status: string) => {
     const s = String(status || '').toLowerCase();
-    if (s.includes('progress')) return 'bg-blue-100 text-blue-700';
-    if (s.includes('planned')) return 'bg-zinc-100 text-zinc-600';
-    if (s.includes('stuck') || s.includes('critical')) return 'bg-red-100 text-red-700';
-    if (s.includes('completed') || s.includes('done')) return 'bg-emerald-100 text-emerald-700';
-    return 'bg-zinc-100 text-zinc-600';
+    if (s.includes('progress')) return 'bg-blue-50 text-primary border-blue-100';
+    if (s.includes('planned')) return 'bg-zinc-50 text-zinc-500 border-zinc-200';
+    if (s.includes('stuck') || s.includes('critical')) return 'bg-red-50 text-red-700 border-red-100';
+    if (s.includes('completed') || s.includes('done')) return 'bg-[#AFEFCB]/30 text-[#006C49] border-[#AFEFCB]/50';
+    return 'bg-zinc-50 text-zinc-400 border-zinc-100';
   };
 
-  const getPriorityStyles = (priority: string) => {
+  const getPriorityBadgeStyle = (priority: string) => {
     const p = String(priority || '').toLowerCase();
-    if (p.includes('high')) return 'bg-amber-100 text-amber-700 font-bold';
-    if (p.includes('low')) return 'bg-emerald-100 text-emerald-700';
-    return 'bg-zinc-100 text-zinc-600';
+    if (p.includes('critical')) return 'bg-red-100 text-red-800 border-red-200';
+    if (p.includes('high')) return 'bg-amber-100 text-amber-800 border-amber-200';
+    if (p.includes('low')) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+    return 'bg-zinc-100 text-zinc-600 border-zinc-200';
   };
 
   return (
-    <div className="flex space-x-6 h-[calc(100vh-280px)] overflow-x-auto pb-6 scrollbar-hide font-sans">
+    <div className="flex space-x-8 px-8 h-[calc(100vh-280px)] overflow-x-auto pb-12 hide-scrollbar font-sans antialiased">
       {groupedRows.map(({ status, rows: columnRows }) => (
-        <div key={status} className="flex flex-col w-80 shrink-0 space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center space-x-2">
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusStyles(status)}`}>
+        <div key={status} className="flex flex-col w-80 shrink-0 space-y-5">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center space-x-3">
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-widest border shadow-sm ${getStatusBadgeStyle(status)}`}>
                 {status}
               </span>
-              <span className="text-[10px] font-bold text-zinc-400">
+              <span className="text-[11px] font-black text-zinc-300 bg-zinc-50 border border-zinc-100 px-2 py-0.5 rounded-full min-w-[20px] text-center">
                 {columnRows.length}
               </span>
             </div>
-            <button className="p-1 hover:bg-zinc-100 rounded text-zinc-400 transition-colors">
-              <span className="material-symbols-outlined text-[16px]">more_horiz</span>
+            <button className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-300 hover:text-zinc-600 transition-all">
+              <span className="material-symbols-outlined text-[18px]">more_horiz</span>
             </button>
           </div>
 
-          <div className="flex-1 space-y-3 p-2 bg-zinc-100/50 rounded-xl border border-zinc-200/50 overflow-y-auto scrollbar-hide">
+          <div className="flex-1 space-y-4 p-3 bg-zinc-50/50 rounded-2xl border border-zinc-200/50 overflow-y-auto hide-scrollbar transition-all hover:bg-zinc-50/80 shadow-inner">
             {columnRows.map(row => {
                const statusVal = String(row[statusField?.id || ''] || '').toLowerCase();
                const isStuck = statusVal.includes('stuck') || statusVal.includes('critical');
@@ -70,36 +76,33 @@ export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoar
                return (
                 <div 
                   key={row.id} 
-                  className={`p-4 bg-white border border-zinc-200 rounded-lg shadow-sm hover:shadow-md hover:border-[#0058BE]/30 transition-all cursor-pointer group ${isStuck ? 'border-l-4 border-l-red-500' : ''} ${isCompleted ? 'border-l-4 border-l-emerald-500' : ''}`}
+                  className={`p-4 bg-white border border-zinc-200 rounded-xl shadow-sm hover:shadow-md hover:border-primary/30 transition-all cursor-grab active:cursor-grabbing group ring-inset ${isStuck ? 'border-l-4 border-l-red-500' : ''} ${isCompleted ? 'border-l-4 border-l-[#006C49] opacity-70' : ''}`}
                 >
-                  <div className="space-y-3">
-                    <p className={`text-sm font-semibold text-zinc-800 leading-snug group-hover:text-[#0058BE] transition-colors ${isCompleted ? 'opacity-50 line-through' : ''}`}>
+                  <div className="space-y-4">
+                    <p className={`text-sm font-bold text-zinc-800 leading-tight group-hover:text-primary transition-colors ${isCompleted ? 'line-through decoration-zinc-300' : ''}`}>
                       {row[fields.find(f => f.name.toLowerCase().includes('name'))?.id || fields[0].id] || 'Untitled Task'}
                     </p>
 
                     <div className="flex flex-wrap gap-2">
                       {priorityField && row[priorityField.id] && (
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight ${getPriorityStyles(row[priorityField.id])}`}>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${getPriorityBadgeStyle(row[priorityField.id])}`}>
                           {row[priorityField.id]}
                         </span>
                       )}
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight ${getStatusStyles(status)}`}>
-                        {status}
-                      </span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+                    <div className="flex items-center justify-between pt-4 border-t border-zinc-50">
                       <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded-full bg-zinc-200 flex items-center justify-center text-[8px] font-bold text-zinc-500 overflow-hidden shrink-0">
-                          {String(row[ownerField?.id || ''] || 'U').charAt(0).toUpperCase()}
+                        <div className="w-6 h-6 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-[10px] font-black text-zinc-400 overflow-hidden shrink-0 shadow-sm">
+                          {String(row[ownerField?.id || ''] || '?').charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-[10px] text-zinc-500 font-medium truncate max-w-[80px]">{row[ownerField?.id || ''] || 'Unassigned'}</span>
+                        <span className="text-[11px] text-zinc-500 font-bold truncate max-w-[100px] hover:text-zinc-800 transition-colors cursor-default">{row[ownerField?.id || ''] || 'No Owner'}</span>
                       </div>
                       
                       {dueDateField && row[dueDateField.id] && (
-                        <div className="flex items-center space-x-1 text-[9px] font-bold text-zinc-400">
-                           <span className="material-symbols-outlined text-[12px]">calendar_today</span>
-                           <span>{new Date(row[dueDateField.id]).toLocaleDateString()}</span>
+                        <div className="flex items-center space-x-1.5 text-[10px] font-bold text-zinc-400 group-hover:text-zinc-600 transition-colors">
+                           <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                           <span>{new Date(row[dueDateField.id]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                         </div>
                       )}
                     </div>
@@ -110,10 +113,10 @@ export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoar
 
             <button 
               onClick={() => onAddRow(status)}
-              className="w-full py-2.5 rounded-lg border border-dashed border-zinc-300 bg-white/50 text-zinc-400 text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-[#0058BE] hover:border-[#0058BE] transition-all flex items-center justify-center space-x-2 active:scale-[0.98]"
+              className="w-full py-3.5 rounded-xl border-2 border-dashed border-zinc-200 bg-white/40 text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-primary hover:border-primary/30 hover:shadow-sm transition-all flex items-center justify-center space-x-2 active:scale-[0.98] select-none"
             >
-              <span className="material-symbols-outlined text-[14px]">add</span>
-              <span>Add task</span>
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span>Create New</span>
             </button>
           </div>
         </div>

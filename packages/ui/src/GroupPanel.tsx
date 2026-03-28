@@ -7,17 +7,25 @@ interface GroupPanelProps {
   onGroupBy: (fieldId: string | null) => void;
 }
 
+/**
+ * Group Panel for ORBIT Workspace OS.
+ * Clean white theme dropdown for data grouping.
+ */
 export function GroupPanel({ fields, groupBy, onGroupBy }: GroupPanelProps) {
-  const selectFields = fields.filter(f => f.type === 'select');
+  // We allow grouping by 'select' or 'status' types
+  const groupableFields = fields.filter(f => f.type === 'select' || f.id === 'status');
 
   return (
-    <div className="absolute top-12 left-44 w-64 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Group By</h3>
+    <div className="w-72 bg-white border border-zinc-200 rounded-xl shadow-2xl p-5 z-[100] animate-in fade-in slide-in-from-top-2 duration-200 font-sans antialiased select-none">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-zinc-400 text-lg font-bold">account_tree</span>
+          <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-zinc-400 leading-none">Group By</h3>
+        </div>
         {groupBy && (
           <button 
             onClick={() => onGroupBy(null)}
-            className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-tight"
+            className="text-[10px] font-black text-red-500 hover:text-red-700 uppercase tracking-widest bg-red-50 px-2 py-1 rounded transition-colors active:scale-95"
           >
             Clear
           </button>
@@ -25,26 +33,38 @@ export function GroupPanel({ fields, groupBy, onGroupBy }: GroupPanelProps) {
       </div>
 
       <div className="space-y-1">
-        {selectFields.length === 0 && (
-          <p className="text-[11px] text-zinc-600 italic">No grouping fields (select/status) available.</p>
+        {groupableFields.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-8 text-center bg-zinc-50 rounded-lg border border-dashed border-zinc-200">
+             <span className="material-symbols-outlined text-zinc-300 text-3xl mb-2">view_array</span>
+             <p className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest">No Groupable Fields</p>
+          </div>
         )}
-        {selectFields.map((field) => (
+        {groupableFields.map((field) => (
           <button
             key={field.id}
             onClick={() => onGroupBy(field.id)}
             className={`
-              w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all
+              w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all border
               ${groupBy === field.id 
-                ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20' 
-                : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 border border-transparent'}
+                ? 'bg-primary text-white border-primary shadow-md shadow-blue-100 ring-4 ring-blue-50' 
+                : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800 border-transparent hover:border-zinc-100 hover:shadow-sm'}
             `}
           >
             <span>{field.name}</span>
             {groupBy === field.id && (
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><path d="M20 6L9 17l-5-5"/></svg>
+              <span className="material-symbols-outlined text-sm font-black">check</span>
+            )}
+            {groupBy !== field.id && (
+               <span className="text-[10px] opacity-20 group-hover:opacity-100 transition-opacity font-bold uppercase tracking-tighter">Apply</span>
             )}
           </button>
         ))}
+      </div>
+      
+      <div className="mt-4 pt-4 border-t border-zinc-50">
+        <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest text-center leading-relaxed">
+          Grouping changes the table layout to section the records by the selected field value.
+        </p>
       </div>
     </div>
   );
