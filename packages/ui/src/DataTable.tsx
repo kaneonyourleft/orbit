@@ -29,6 +29,11 @@ export function DataTable({
   groupByFieldId,
   renderers = {}
 }: DataTableProps) {
+  console.log('--- DATA TABLE RENDER ---');
+  console.log('FIELDS RECEIVED:', fields.map(f => f.name));
+  console.log('ROWS RECEIVED:', rows.length);
+  if (rows.length > 0) console.log('FIRST ROW SAMPLE:', rows[0]);
+
   const [editingFieldId, setEditingFieldId] = React.useState<string | null>(null);
   const [tempFieldName, setTempFieldName] = React.useState('');
   const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});

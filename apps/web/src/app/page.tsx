@@ -56,7 +56,6 @@ export default function Home() {
   useEffect(() => {
     async function fetchFirstTable() {
       if (workspaces.length > 0 && !activeTableId) {
-        // Find if user already has tables
         const { data, error } = await supabase
           .from('tables')
           .select('id')
@@ -66,10 +65,6 @@ export default function Home() {
         
         if (data) {
           setActiveTableId(data.id);
-        } else {
-          // Fallback or wait for user interaction?
-          // If no tables, this will show a "Select or create table" UI potentially
-          // But for this demo we assume tables exist as per user report (5 rows)
         }
       }
     }
@@ -78,6 +73,22 @@ export default function Home() {
 
   // 2. Load Table
   const { fields, rows, loading: tableLoading, error: tableError, setRows } = useTable(supabase, activeTableId || '');
+
+  // BUG 1 Debug Logs
+  useEffect(() => {
+    if (!tableLoading && activeTableId) {
+      console.log('--- ORBIT TABLE DEBUG ---');
+      console.log('ACTIVE TABLE:', activeTableId);
+      console.log('FIELDS:', fields.length);
+      console.log('ROWS:', rows.length);
+      if (rows.length > 0) {
+        console.log('RAW ROW SAMPLE:', rows[0]);
+        const sampleData = rows[0].data;
+        const processedSample = { id: rows[0].id, ...sampleData };
+        console.log('PROCESSED SAMPLE:', processedSample);
+      }
+    }
+  }, [tableLoading, activeTableId, fields, rows]);
 
   // 3. Plugin System
   const { extraViews, fieldRenderers, menuItems } = usePlugins(plugins, {
@@ -122,9 +133,13 @@ export default function Home() {
 
   // 5. Data Transformation
   const processedRows = useMemo(() => {
-    if (!rows.length) return [];
-    
-    let result = rows.map(r => ({ id: r.id, order: r.order, ...r.data }));
+    // Standardize data from JSONB
+    let result = rows.map(r => ({ 
+      id: r.id, 
+      order: r.order, 
+      done: r.data?.done === true, // Ensure done is accessible directly
+      ...r.data 
+    }));
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -160,7 +175,6 @@ export default function Home() {
         return 0;
       });
     } else {
-      // Default order by database 'order' field
       result.sort((a, b) => (a.order || 0) - (b.order || 0));
     }
     return result;
@@ -276,16 +290,20 @@ export default function Home() {
     </div>
   );
 
+  // BUG 3: Stats Calculation
   const completedCount = processedRows.filter((r: any) => {
-    const statusVal = String(r.status || r.data?.status || '').toLowerCase();
-    return statusVal.match(/completed|done/) || r.done === true;
+    const statusField = fields.find(f => f.name.toLowerCase() === 'status');
+    const doneField = fields.find(f => f.type === 'checkbox');
+    if (doneField && r[doneField.id] === true) return true;
+    if (statusField) return String(r[statusField.id] || '').toLowerCase().includes('complete');
+    return false;
   }).length;
 
   const activeWorkspace = workspaces.length > 0 ? workspaces[0] : null;
 
   return (
     <div className="flex flex-col w-full h-screen bg-white font-sans text-zinc-900 selection:bg-blue-100 antialiased overflow-hidden">
-      {/* BUG 2: TopNavBar sticky top */}
+      {/* Top Navigation */}
       <TopNavBar 
         workspaceName={activeWorkspace?.name} 
         tableName="Product Roadmap 2026"
@@ -294,13 +312,13 @@ export default function Home() {
       />
 
       <div className="flex flex-1 h-[calc(100vh-56px)] relative overflow-hidden">
-        {/* BUG 2: Sidebar fixed */}
+        {/* BUG 2: Sidebar fixed - w-64 */}
         <Sidebar 
           workspaces={workspaces} 
           onCreateWorkspace={handleCreateWorkspace}
         />
 
-        {/* BUG 2: Main Area fill with proper offsets */}
+        {/* BUG 2: Main Area fill with ml-64 and mr-72 OFFSETS */}
         <main className="flex-1 ml-64 mr-72 bg-white flex flex-col overflow-auto relative border-x border-zinc-100 shadow-sm">
           <PluginPanel 
             isOpen={isPluginsOpen} 
@@ -358,13 +376,6 @@ export default function Home() {
              {/* View Container */}
              <div className="flex-1 p-8 pt-4">
                <div className="max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700">
-                 {!activeTableId && !tableLoading && (
-                   <div className="flex flex-col items-center justify-center p-20 bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200">
-                     <span className="material-symbols-outlined text-4xl text-zinc-300 mb-4">search_off</span>
-                     <p className="text-zinc-500 font-bold">No active table selected.</p>
-                   </div>
-                 )}
-                 
                  {activeTableId && activeView === 'Table' && (
                     <DataTable 
                       fields={fields} 
@@ -398,10 +409,9 @@ export default function Home() {
           </div>
         </main>
 
-        {/* BUG 2: RightPanel fixed */}
-        {/* BUG 4: Plugin actions moved here */}
+        {/* BUG 2: RightPanel fixed right - MUST be outside Sidebar or main flow */}
         <RightPanel 
-          totalRows={rows.length} 
+          totalRows={processedRows.length} 
           completedRows={completedCount}
           menuItems={menuItems}
         />
