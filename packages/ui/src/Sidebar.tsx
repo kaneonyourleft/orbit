@@ -172,14 +172,23 @@ export function Sidebar({
       <nav className="px-4 flex flex-col gap-0.5 pb-2">
         {[
           { icon: 'home', label: 'Home' },
+          { icon: 'dashboard_customize', label: 'PAGE BUILDER', href: '/builder' },
           { icon: 'check_circle', label: 'My Tasks' },
           { icon: 'inbox', label: 'Inbox' },
         ].map(item => (
-          <button key={item.label}
-            className="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm border border-transparent hover:border-zinc-200 rounded-lg text-xs font-bold uppercase tracking-wider transition-all w-full text-left">
-            <span className="material-symbols-outlined text-xl">{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
+          item.href ? (
+            <a key={item.label} href={item.href}
+              className="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-[#0058BE] hover:bg-white hover:shadow-sm border border-transparent hover:border-zinc-200 rounded-lg text-xs font-bold uppercase tracking-wider transition-all w-full text-left">
+              <span className="material-symbols-outlined text-xl">{item.icon}</span>
+              <span>{item.label}</span>
+            </a>
+          ) : (
+            <button key={item.label}
+              className="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm border border-transparent hover:border-zinc-200 rounded-lg text-xs font-bold uppercase tracking-wider transition-all w-full text-left">
+              <span className="material-symbols-outlined text-xl">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          )
         ))}
       </nav>
 
