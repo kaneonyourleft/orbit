@@ -112,6 +112,7 @@ function FieldHeaderMenu({ field, onRename, onDelete, onChangeType, onReorder, o
         <div className="px-3 py-2">
           <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { onRename(field.id, nameVal); onClose(); } if (e.key === 'Escape') onClose(); }}
+            title="Rename field" placeholder="Enter field name"
             className="w-full px-2 py-1.5 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           <div className="flex gap-2 mt-2">
             <button onClick={() => setView('main')} className="text-xs text-zinc-500">Cancel</button>
@@ -164,6 +165,7 @@ function SelectDropdown({ value, options, styles, onChange, onClose }: {
       <div className="border-t border-zinc-100 mt-1 pt-1 px-3 pb-2">
         <input placeholder="Add option..." value={customVal} onChange={e => setCustomVal(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && customVal.trim()) { onChange(customVal.trim()); onClose(); } }}
+          title="Add select option"
           className="w-full text-xs px-2 py-1 border border-zinc-200 rounded-lg outline-none focus:ring-1 focus:ring-emerald-500" />
       </div>
     </div>
@@ -275,6 +277,7 @@ function InlineCell({ field, value, onSave, renderers = {} }: {
         <input ref={inputRef} type="date" value={localVal}
           onChange={e => setLocalVal(e.target.value)}
           onBlur={save} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }}
+          title="Pick a date"
           className="px-2 py-1 border border-zinc-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-36" />
       );
     }
@@ -295,6 +298,7 @@ function InlineCell({ field, value, onSave, renderers = {} }: {
         <input ref={inputRef} type="url" value={localVal} placeholder="https://..."
           onChange={e => setLocalVal(e.target.value)}
           onBlur={save} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }}
+          title="Paste a link"
           className="px-2 py-1 border border-zinc-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-full" />
       );
     }
@@ -316,6 +320,7 @@ function InlineCell({ field, value, onSave, renderers = {} }: {
       <input ref={inputRef} type={field.type === 'number' ? 'number' : 'text'}
         value={localVal} onChange={e => setLocalVal(e.target.value)}
         onBlur={save} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setLocalVal(value ?? ''); setEditing(false); } }}
+        title="Edit cell"
         className="w-full px-2 py-1 border border-zinc-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white" />
     );
   }
@@ -341,12 +346,12 @@ export function DataTable({
   const doneField = sortedFields.find(f => f.type === 'checkbox' || f.name.toLowerCase() === 'done');
   const displayFields = sortedFields.filter(f => f.id !== doneField?.id);
 
-  // 그룹핑
+  // 그룹핑 - 명시적 타입 지정으로 TS 에러 해결
   const groupField = groupByFieldId ? fields.find(f => f.id === groupByFieldId) : null;
-  const groups = groupField ? (() => {
+  const groups: [string, Record<string, any>[]][] = groupField ? (() => {
     const map: Record<string, Record<string, any>[]> = {};
     rows.forEach(r => {
-      const key = r.data?.[groupField.id] || r[groupField.id] || 'No Value';
+      const key = String(r.data?.[groupField.id] || r[groupField.id] || 'No Value');
       if (!map[key]) map[key] = [];
       map[key].push(r);
     });
@@ -373,15 +378,14 @@ export function DataTable({
           {groupField && (
             <button onClick={() => toggleGroup(groupKey)}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 w-full transition-colors rounded-lg group/gheader">
-              <span className="material-symbols-outlined text-[16px] text-zinc-400 transition-transform"
-                style={{ transform: collapsedGroups.has(groupKey) ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+              <span className={`material-symbols-outlined text-[16px] text-zinc-400 transition-transform ${collapsedGroups.has(groupKey) ? '-rotate-90' : 'rotate-0'}`}>
                 expand_more
               </span>
               <span className={`px-2.5 py-0.5 rounded-lg text-xs font-medium ${STATUS_STYLES[groupKey.toLowerCase()] || 'bg-zinc-100 text-zinc-600 border border-zinc-200'}`}>
                 {groupKey}
               </span>
-              <span className="text-xs text-zinc-400 font-normal">{(groupRows as any[]).length}</span>
-              <button onClick={(e) => { e.stopPropagation(); onAddRow({ [groupField.id]: groupKey }); }}
+              <span className="text-xs text-zinc-400 font-normal">{groupRows.length}</span>
+              <button title="Add task to group" onClick={(e) => { e.stopPropagation(); onAddRow({ [groupField.id]: groupKey }); }}
                 className="ml-auto opacity-0 group-hover/gheader:opacity-100 text-zinc-400 hover:text-emerald-600 transition-all">
                 <span className="material-symbols-outlined text-sm">add</span>
               </button>
@@ -422,7 +426,7 @@ export function DataTable({
                     ))}
                     {/* 필드 추가 버튼 */}
                     <th className="w-10 px-2 whitespace-nowrap">
-                      <button onClick={onAddField}
+                      <button title="Add new field" onClick={onAddField}
                         className="w-7 h-7 rounded-lg border border-dashed border-zinc-300 flex items-center justify-center hover:border-emerald-400 hover:text-emerald-600 text-zinc-400 transition-all">
                         <span className="material-symbols-outlined text-[16px]">add</span>
                       </button>
@@ -430,21 +434,22 @@ export function DataTable({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {(groupRows as any[]).map((row, idx) => {
+                  {groupRows.map((row, idx) => {
                     const rowId = row.id;
-                    const isCompleted = doneField && (getCellValue(row, doneField.id) === true || getCellValue(row, doneField.id) === 'true');
+                    const cellVal = getCellValue(row, doneField?.id || '');
+                    const isCompleted = doneField && (cellVal === true || cellVal === 'true');
                     return (
                       <tr key={rowId} className={`hover:bg-zinc-50/50 transition-colors group/row ${isCompleted ? 'opacity-60' : ''}`}>
                         {/* 체크박스 */}
                         {doneField && (
                           <td className="px-3 py-2.5 text-center">
-                            <InlineCell field={doneField} value={getCellValue(row, doneField.id)}
+                            <InlineCell field={doneField} value={cellVal}
                               onSave={v => onUpdateCell(rowId, doneField.id, v)} />
                           </td>
                         )}
                         {/* 행 메뉴 */}
                         <td className="px-1 py-2.5 relative">
-                          <button onClick={() => setActiveRowMenu(activeRowMenu === rowId ? null : rowId)}
+                          <button title="Row actions" onClick={() => setActiveRowMenu(activeRowMenu === rowId ? null : rowId)}
                             className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover/row:opacity-100 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-all">
                             <span className="material-symbols-outlined text-[16px]">drag_indicator</span>
                           </button>
