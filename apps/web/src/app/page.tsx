@@ -31,6 +31,7 @@ export default function Home() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [viewType, setViewType] = useState<string>("Table");
   const [groupBy, setGroupBy] = useState<string | null>(null);
+  const [workspacesLoading, setWorkspacesLoading] = useState(true);
   
   // Initialize from localStorage directly to avoid cascading renders
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -60,21 +61,24 @@ export default function Home() {
   }, [favorites]);
 
   const fetchWorkspaces = useCallback(async () => {
-    const { data: wsData } = await supabase.from("workspaces").select("*").order("created_at");
-    const { data: tData } = await supabase.from("tables").select("*").order("created_at");
-    
-    setWorkspaces(wsData || []);
-    setTables(tData || []);
-    
-    // Set initial active table if not set
-    if (!activeTableId && tData && tData.length > 0) {
-      setActiveTableId(tData[0].id);
+    try {
+      setWorkspacesLoading(true);
+      const { data: wsData } = await supabase.from("workspaces").select("*").order("created_at");
+      const { data: tData } = await supabase.from("tables").select("*").order("created_at");
+      
+      setWorkspaces(wsData || []);
+      setTables(tData || []);
+      
+      // Set initial active table if not set
+      if (!activeTableId && tData && tData.length > 0) {
+        setActiveTableId(tData[0].id);
+      }
+    } finally {
+      setWorkspacesLoading(false);
     }
   }, [activeTableId]);
 
   useEffect(() => { 
-    // fetchWorkspaces is async, so calling it here is generally fine.
-    // However, wrap it to satisfy strict linters if needed.
     const init = async () => {
       await fetchWorkspaces();
     };
@@ -207,6 +211,122 @@ export default function Home() {
   const activeTable = tables.find(t => t.id === activeTableId);
   const activeWorkspace = workspaces.find(w => w.id === activeTable?.workspace_id);
 
+  // ══════════════════════════════════════════════
+  // 온보딩 1: 워크스페이스가 없을 때 — 풀스크린, 패널 없음
+  // ══════════════════════════════════════════════
+  if (!workspacesLoading && workspaces.length === 0) {
+    return (
+      <div className="w-full h-screen bg-gradient-to-br from-white via-zinc-50 to-blue-50/30 flex items-center justify-center font-sans antialiased relative overflow-hidden">
+        {/* 배경 장식 */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-400 to-emerald-400" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-blue-100/20 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-emerald-100/20 blur-3xl" />
+
+        <div className="relative z-10 text-center space-y-8 max-w-md px-6">
+          {/* 로고 */}
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-blue-200">
+              <span className="material-symbols-outlined text-white text-[28px]">rocket_launch</span>
+            </div>
+            <span className="text-2xl font-black text-zinc-900 tracking-tight">ORBIT</span>
+          </div>
+
+          {/* 메인 카피 */}
+          <div className="space-y-3">
+            <h1 className="text-3xl font-black text-zinc-900 tracking-tight leading-tight">
+              Your Work, Your OS
+            </h1>
+            <p className="text-sm text-zinc-500 leading-relaxed max-w-xs mx-auto">
+              Create a workspace to start organizing projects, tasks, and everything in between.
+            </p>
+          </div>
+
+          {/* CTA 버튼 */}
+          <button
+            onClick={() => {
+              const name = window.prompt('Enter workspace name:');
+              if (name?.trim()) handleCreateWorkspace(name.trim());
+            }}
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary hover:bg-blue-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95 hover:shadow-xl hover:shadow-blue-200/50"
+          >
+            <span className="material-symbols-outlined text-[20px]">add</span>
+            Create Workspace
+          </button>
+
+          {/* 하단 힌트 */}
+          <p className="text-[11px] text-zinc-400 pt-4">
+            Workspaces contain tables, views, and automations — all in one place.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════
+  // 온보딩 2: 워크스페이스는 있지만 테이블이 없을 때
+  // — Sidebar만 보이고, RightPanel은 숨김
+  // ══════════════════════════════════════════════
+  if (!workspacesLoading && workspaces.length > 0 && tables.length === 0) {
+    return (
+      <div className="flex flex-col w-full h-screen bg-white font-sans text-zinc-900 antialiased overflow-hidden">
+        <TopNavBar workspaceName={workspaces[0]?.name} tableName="" searchQuery="" onSearchChange={() => {}} />
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} shrink-0 transition-all duration-300`}>
+            <Sidebar
+              workspaces={workspaces} tables={[]} activeTableId={null} favorites={favorites}
+              isCollapsed={isSidebarCollapsed}
+              onCreateWorkspace={handleCreateWorkspace} onRenameWorkspace={handleRenameWorkspace}
+              onDeleteWorkspace={handleDeleteWorkspace} onSelectTable={() => {}}
+              onCreateTable={handleCreateTable} onRenameTable={handleRenameTable}
+              onDeleteTable={handleDeleteTable} onDuplicateTable={handleDuplicateTable}
+              onToggleFavorite={handleToggleFavorite} onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            />
+          </div>
+          {/* 중앙 — 빈 테이블 안내 (RightPanel 없음) */}
+          <main className="flex-1 flex items-center justify-center bg-gradient-to-br from-white to-zinc-50/50">
+            <div className="text-center space-y-6 max-w-sm">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center shadow-sm">
+                <span className="material-symbols-outlined text-[40px] text-zinc-300">table_chart</span>
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-black text-zinc-800 tracking-tight">No Tables Yet</h2>
+                <p className="text-sm text-zinc-500 leading-relaxed">
+                  Click <strong className="text-zinc-700">+ New Table</strong> in the sidebar, or create one here.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const name = window.prompt('Table name:');
+                  if (name?.trim()) handleCreateTable(workspaces[0].id, name.trim());
+                }}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[18px]">add</span>
+                Create First Table
+              </button>
+            </div>
+          </main>
+          {/* RightPanel 의도적으로 제거 */}
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════
+  // 온보딩 3: 테이블은 있지만 아직 선택 안 됐을 때
+  // ══════════════════════════════════════════════
+  if (!activeTableId && tables.length > 0) {
+    // 자동 선택이 아직 안 된 경우 — 첫 테이블 자동 선택
+    const firstTable = tables.find(t => t.workspace_id === workspaces[0]?.id) || tables[0];
+    if (firstTable) {
+      setActiveTableId(firstTable.id);
+    }
+  }
+
+  // Final rows preparation
+  const processedRows = rows.map(r => ({ ...r.data, id: r.id }));
+
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       <div className={`${isSidebarCollapsed ? "w-16" : "w-64"} transition-all duration-300 ease-in-out`}>
@@ -255,32 +375,16 @@ export default function Home() {
           </div>
 
           <div className="flex-1 overflow-auto bg-white">
-            {!activeTableId ? (
-              <div className="flex flex-col items-center justify-center h-full text-center px-4 animate-in fade-in zoom-in duration-700">
-                <div className="w-24 h-24 bg-gradient-to-br from-[#0058BE] to-[#00A3FF] rounded-[2rem] flex items-center justify-center shadow-2xl mb-8 -rotate-6 scale-110">
-                  <span className="material-symbols-outlined text-white text-[48px]">rocket_launch</span>
-                </div>
-                <h2 className="text-3xl font-black text-zinc-900 mb-4 tracking-tighter">Your Workspace is Empty</h2>
-                <p className="text-zinc-500 max-w-md text-lg leading-relaxed mb-10 font-medium">
-                  Create a workspace and add your first table to start organizing your projects.
-                </p>
-                <div className="flex gap-4">
-                  <button onClick={() => handleCreateWorkspace("New Workspace")}
-                    className="px-8 py-3.5 bg-[#0058BE] text-white rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-blue-500/20">
-                    Create Workspace
-                  </button>
-                </div>
-              </div>
-            ) : viewType === "Calendar" ? (
+            {viewType === "Calendar" ? (
               <CalendarView 
                 fields={fields} 
-                rows={rows.map(r => ({ ...r.data, id: r.id }))} 
+                rows={processedRows} 
                 onUpdateCell={handleUpdateCell}
               />
             ) : (
               <DataTable
                 fields={fields}
-                rows={rows.map(r => ({ ...r.data, id: r.id }))}
+                rows={processedRows}
                 onUpdateCell={handleUpdateCell}
                 onAddRow={handleAddRow}
                 onDeleteRow={handleDeleteRow}
@@ -294,10 +398,15 @@ export default function Home() {
         </div>
       </main>
 
-      <RightPanel
-        totalRows={stats.total}
-        completedRows={stats.completed}
-      />
+      {/* RightPanel - 데이터가 있을 때만 표시 */}
+      {processedRows.length > 0 && (
+        <div className="w-72 shrink-0">
+          <RightPanel
+            totalRows={stats.total}
+            completedRows={stats.completed}
+          />
+        </div>
+      )}
     </div>
   );
 }
