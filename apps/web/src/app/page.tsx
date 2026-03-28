@@ -1,476 +1,256 @@
 "use client";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { Sidebar, DataTable, Toolbar, ViewSwitcher, TopBar, RightPanel, Modal, CalendarView } from "@orbit/ui";
+import { useTable } from "@orbit/core";
 
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import {
-  Sidebar, DataTable, ViewSwitcher, type ViewType, KanbanBoard,
-  CalendarView, Toolbar, type FilterCondition, type SortCondition,
-  PluginPanel, TopNavBar, RightPanel
-} from '@orbit/ui';
-import {
-  useWorkspaces, useTable, useRealtimeRows, usePlugins,
-  statusColorPlugin, rowCountPlugin, exportCsvPlugin, pluginRegistry
-} from '@orbit/core';
-import { createClient } from '@/lib/supabase';
-
-const supabase = createClient();
-
-interface RowData extends Record<string, unknown> {
-  id: string;
-  table_id: string;
-  data: Record<string, unknown>;
-  order: number;
-}
+// ── Supabase ──
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function Home() {
+  const [workspaces, setWorkspaces] = useState<any[]>([]);
+  const [tables, setTables] = useState<any[]>([]);
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
-  const [allTables, setAllTables] = useState<{ id: string; name: string; workspace_id: string }[]>([]);
-  const [activeView, setActiveView] = useState<ViewType | string>('Table');
-  const [isPluginsOpen, setIsPluginsOpen] = useState(false);
-  const [filters, setFilters] = useState<FilterCondition[]>([]);
-  const [sorts, setSorts] = useState<SortCondition[]>([]);
-  const [groupByFieldId, setGroupByFieldId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activePanel, setActivePanel] = useState<'filter' | 'sort' | 'group' | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [viewType, setViewType] = useState<"table" | "board" | "calendar">("table");
+  const [groupBy, setGroupBy] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
-  // Sidebar 접기
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // Favorites (localStorage)
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      try { return JSON.parse(localStorage.getItem('orbit-favorites') || '[]'); }
-      catch { return []; }
-    }
-    return [];
-  });
-
-  const plugins = useMemo(() => [statusColorPlugin, rowCountPlugin, exportCsvPlugin], []);
-
-  const { workspaces, loading: workspacesLoading, error: workspacesError } = useWorkspaces(supabase);
-
-  const fetchTables = useCallback(async () => {
-    if (workspaces.length === 0) return;
-    const { data } = await supabase.from('tables').select('*');
-    if (data) setAllTables(data);
-  }, [workspaces]);
-
-  useEffect(() => { fetchTables(); }, [fetchTables]);
-
-  const activeTable = useMemo(() => allTables.find(t => t.id === activeTableId), [allTables, activeTableId]);
-  const activeTableName = activeTable?.name || 'Table';
+  // 1. 초기 데이터 로드 (Local Favorites)
+  useEffect(() => {
+    const savedFavs = localStorage.getItem('orbit_favs');
+    if (savedFavs) setFavorites(JSON.parse(savedFavs));
+  }, []);
 
   useEffect(() => {
-    if (workspaces.length > 0 && !activeTableId && allTables.length > 0) {
-      const firstTable = allTables.find(t => t.workspace_id === workspaces[0].id);
-      if (firstTable) setActiveTableId(firstTable.id);
-    }
-  }, [workspaces, allTables, activeTableId]);
+    localStorage.setItem('orbit_favs', JSON.stringify(favorites));
+  }, [favorites]);
 
-  // Use the new refetch function from useTable
-  const { fields, rows, loading: tableLoading, error: tableError, setRows, refetch } = useTable(supabase, activeTableId || '');
+  const fetchWorkspaces = useCallback(async () => {
+    const { data: wsData } = await supabase.from("workspaces").select("*").order("created_at");
+    const { data: tData } = await supabase.from("tables").select("*").order("created_at");
+    setWorkspaces(wsData || []);
+    setTables(tData || []);
+    if (!activeTableId && tData && tData.length > 0) setActiveTableId(tData[0].id);
+  }, [activeTableId]);
 
-  useEffect(() => {
-    if (fields.length > 0 && groupByFieldId === null) {
-      const statusField = fields.find(f => f.name.toLowerCase() === 'status' && f.type === 'select');
-      if (statusField) setGroupByFieldId(statusField.id);
-    }
-  }, [fields, groupByFieldId]);
+  useEffect(() => { fetchWorkspaces(); }, [fetchWorkspaces]);
 
-  const { extraViews, fieldRenderers, menuItems } = usePlugins(plugins, {
-    supabase,
-    currentWorkspace: workspaces[0],
-    currentTable: activeTableId ? { id: activeTableId, name: activeTableName } : null,
-    fields,
-    rows: rows.map(r => ({ id: r.id, ...r.data }))
-  });
+  // 2. useTable (Core Hook)
+  const { fields, rows, loading, refetch, setRows } = useTable(supabase, activeTableId || "");
 
-  const togglePlugin = useCallback((id: string) => {
-    if (pluginRegistry.isActive(id)) pluginRegistry.deactivate(id);
-    else pluginRegistry.activate(id, {
-      supabase, currentWorkspace: workspaces[0],
-      currentTable: { id: activeTableId!, name: activeTableName }, fields,
-      rows: rows.map(r => ({ id: r.id, ...r.data })),
-      addMenuItem: () => {}, registerView: () => {}, registerFieldRenderer: () => {},
-      showNotification: (msg: string) => console.log(msg)
-    });
-    window.dispatchEvent(new CustomEvent('plugin-state-changed'));
-  }, [activeTableId, activeTableName, fields, rows, workspaces]);
-
-  const handleRealtimeUpdate = useCallback((payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
-    const newRow = payload.new as unknown as RowData;
-    const oldRow = payload.old as unknown as { id: string };
-    if (payload.eventType === 'INSERT') setRows(prev => prev.find(r => r.id === newRow.id) ? prev : [...prev, newRow as any]);
-    else if (payload.eventType === 'UPDATE') setRows(prev => prev.map(row => row.id === newRow.id ? newRow as any : row));
-    else if (payload.eventType === 'DELETE') setRows(prev => prev.filter(row => row.id !== oldRow.id));
-  }, [setRows]);
-
-  useRealtimeRows(supabase, activeTableId || '', handleRealtimeUpdate);
-
-  const processedRows = useMemo(() => {
-    let result = rows.map(r => ({ id: r.id, order: r.order, ...r.data }));
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(row => Object.values(row).some(val => typeof val === 'string' && val.toLowerCase().includes(q)));
-    }
-    if (filters.length > 0) {
-      result = result.filter(row => filters.every(f => {
-        const val = row[f.fieldId]; const target = f.value.toLowerCase(); const current = String(val || '').toLowerCase();
-        switch (f.operator) {
-          case 'is': return current === target; case 'is not': return current !== target;
-          case 'contains': return current.includes(target); case 'is empty': return !val || val === '';
-          case 'is not empty': return !!val && val !== ''; default: return true;
-        }
-      }));
-    }
-    if (sorts.length > 0) {
-      result.sort((a, b) => {
-        for (const sort of sorts) { const vA = a[sort.fieldId], vB = b[sort.fieldId]; if (vA === vB) continue; const m = sort.direction === 'asc' ? 1 : -1; return vA < vB ? -m : m; }
-        return 0;
-      });
-    } else result.sort((a, b) => (a.order || 0) - (b.order || 0));
-    return result;
-  }, [rows, searchQuery, filters, sorts]);
-
-  const handleUpdateCell = async (rowId: string, fieldId: string, value: unknown) => {
-    const currentRow = rows.find(r => r.id === rowId); if (!currentRow) return;
-    const newData = { ...currentRow.data, [fieldId]: value };
-    setRows(prev => prev.map(r => r.id === rowId ? { ...r, data: newData } : r));
-    try { const { error } = await supabase.from('rows').update({ data: newData }).eq('id', rowId); if (error) throw error; }
-    catch (err) { console.error('Update failed:', err); }
+  // ── Handlers (Workspace CRUD) ──
+  const handleCreateWorkspace = async (name: string) => {
+    const { data, error } = await supabase.from("workspaces").insert([{ name }]).select().single();
+    if (!error && data) setWorkspaces(prev => [...prev, data]);
   };
 
-  const handleAddRow = async (defaultData?: Record<string, unknown>) => {
+  const handleRenameWorkspace = async (id: string, name: string) => {
+    const { error } = await supabase.from("workspaces").update({ name }).eq("id", id);
+    if (!error) setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name } : w));
+  };
+
+  const handleDeleteWorkspace = async (id: string) => {
+    // Cascade delete tables and rows
+    const wsTables = tables.filter(t => t.workspace_id === id);
+    for (const t of wsTables) await handleDeleteTable(t.id);
+    const { error } = await supabase.from("workspaces").delete().eq("id", id);
+    if (!error) {
+      setWorkspaces(prev => prev.filter(w => w.id !== id));
+      if (activeTableId && wsTables.some(t => t.id === activeTableId)) setActiveTableId(null);
+    }
+  };
+
+  // ── Handlers (Table CRUD) ──
+  const handleCreateTable = async (workspaceId: string, name: string) => {
+    const { data, error } = await supabase.from("tables").insert([{ workspace_id: workspaceId, name }]).select().single();
+    if (error || !data) return;
+    
+    // 초기 필드 셋업 (Notion-like default fields)
+    const initialFields = [
+      { table_id: data.id, name: 'Task Name', type: 'text', order: 0 },
+      { table_id: data.id, name: 'Status', type: 'select', order: 1, options: { values: ['Planned', 'In Progress', 'Done'] } },
+      { table_id: data.id, name: 'Priority', type: 'select', order: 2, options: { values: ['High', 'Mid', 'Low'] } },
+      { table_id: data.id, name: 'Owner', type: 'text', order: 3 },
+      { table_id: data.id, name: 'Done', type: 'checkbox', order: 4 },
+    ];
+    await supabase.from("fields").insert(initialFields);
+    
+    setTables(prev => [...prev, data]);
+    setActiveTableId(data.id);
+  };
+
+  const handleRenameTable = async (id: string, name: string) => {
+    const { error } = await supabase.from("tables").update({ name }).eq("id", id);
+    if (!error) setTables(prev => prev.map(t => t.id === id ? { ...t, name } : t));
+  };
+
+  const handleDeleteTable = async (id: string) => {
+    await supabase.from("rows").delete().eq("table_id", id);
+    await supabase.from("fields").delete().eq("table_id", id);
+    const { error } = await supabase.from("tables").delete().eq("id", id);
+    if (!error) {
+      setTables(prev => prev.filter(t => t.id !== id));
+      if (activeTableId === id) setActiveTableId(null);
+    }
+  };
+
+  const handleDuplicateTable = async (id: string) => {
+    const original = tables.find(t => t.id === id);
+    if (!original) return;
+    const { data: copy, error } = await supabase.from("tables").insert([{ workspace_id: original.workspace_id, name: `${original.name} (Copy)` }]).select().single();
+    if (error || !copy) return;
+    
+    const { data: fData } = await supabase.from("fields").select("*").eq("table_id", id);
+    if (fData) {
+      const newFields = fData.map(f => ({ ...f, id: undefined, table_id: copy.id, created_at: undefined }));
+      await supabase.from("fields").insert(newFields);
+    }
+    setTables(prev => [...prev, copy]);
+  };
+
+  // ── Handlers (Table Engine) ──
+  const handleUpdateCell = async (rowId: string, fieldId: string, value: any) => {
+    const row = rows.find(r => r.id === rowId);
+    if (!row) return;
+    const updatedData = { ...row.data, [fieldId]: value };
+    const { error } = await supabase.from("rows").update({ data: updatedData }).eq("id", rowId);
+    if (!error) refetch();
+  };
+
+  const handleAddRow = async (defaultData = {}) => {
     if (!activeTableId) return;
-    const newOrder = rows.length > 0 ? Math.max(...rows.map(r => r.order)) + 1 : 0;
-    const initialData: Record<string, unknown> = { ...defaultData };
-    const taskNameField = fields.find(f => f.name.toLowerCase().includes('name'));
-    if (taskNameField && !initialData[taskNameField.id]) initialData[taskNameField.id] = `New Task ${newOrder + 1}`;
-    const doneField = fields.find(f => f.type === 'checkbox'); if (doneField && initialData[doneField.id] === undefined) initialData[doneField.id] = false;
-    try {
-      const { data, error } = await supabase.from('rows').insert({ table_id: activeTableId, data: initialData, order: newOrder }).select().single();
-      if (error) throw error; if (data) setRows(prev => [...prev, data]);
-    } catch (err) { console.error('Insert failed:', err); }
+    const { error } = await supabase.from("rows").insert([{
+      table_id: activeTableId,
+      data: defaultData,
+      order: rows.length
+    }]);
+    if (!error) refetch();
   };
 
-  const handleDeleteRow = async (rowId: string) => {
-    setRows(prev => prev.filter(r => r.id !== rowId));
-    try { await supabase.from('rows').delete().eq('id', rowId); } catch (err) { console.error('Delete failed:', err); }
+  const handleDeleteRow = async (id: string) => {
+    await supabase.from("rows").delete().eq("id", id);
+    refetch();
   };
 
   const handleAddField = async () => {
     if (!activeTableId) return;
-    try { await supabase.from('fields').insert({ table_id: activeTableId, name: `New Field ${fields.length + 1}`, type: 'text', order: fields.length }); refetch(); }
-    catch (err) { console.error('Add field failed:', err); }
-  };
-
-  const handleRenameField = async (fieldId: string, newName: string) => {
-    try { await supabase.from('fields').update({ name: newName }).eq('id', fieldId); refetch(); }
-    catch (err) { console.error('Rename field failed:', err); }
-  };
-
-  const handleDeleteField = useCallback(async (fieldId: string) => {
-    const { error } = await supabase.from('fields').delete().eq('id', fieldId);
-    if (!error) {
-      for (const row of rows) {
-        const newData = { ...row.data };
-        delete newData[fieldId];
-        await supabase.from('rows').update({ data: newData }).eq('id', row.id);
-      }
-      refetch();
-    }
-  }, [rows, refetch]);
-
-  const handleChangeFieldType = useCallback(async (fieldId: string, newType: string) => {
-    const { error } = await supabase.from('fields').update({ type: newType }).eq('id', fieldId);
-    if (!error) refetch();
-  }, [refetch]);
-
-  const handleReorderField = useCallback(async (fieldId: string, direction: 'left' | 'right') => {
-    const sorted = [...fields].sort((a, b) => a.order - b.order);
-    const idx = sorted.findIndex(f => f.id === fieldId);
-    const swapIdx = direction === 'left' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const a = sorted[idx], b = sorted[swapIdx];
-    await Promise.all([
-      supabase.from('fields').update({ order: b.order }).eq('id', a.id),
-      supabase.from('fields').update({ order: a.order }).eq('id', b.id),
-    ]);
-    refetch();
-  }, [fields, refetch]);
-
-  const handleDuplicateRow = useCallback(async (rowId: string) => {
-    const row = rows.find(r => r.id === rowId);
-    if (!row) return;
-    const { error } = await supabase.from('rows').insert({
+    await supabase.from("fields").insert([{
       table_id: activeTableId,
-      data: row.data,
-      order: rows.length,
-    });
-    if (!error) refetch();
-  }, [rows, activeTableId, refetch]);
-
-  const handleReorderRow = useCallback(async (rowId: string, direction: 'up' | 'down') => {
-    const sorted = [...rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    const idx = sorted.findIndex(r => r.id === rowId);
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const a = sorted[idx], b = sorted[swapIdx];
-    await Promise.all([
-      supabase.from('rows').update({ order: b.order ?? swapIdx }).eq('id', a.id),
-      supabase.from('rows').update({ order: a.order ?? idx }).eq('id', b.id),
-    ]);
+      name: "New Field",
+      type: "text",
+      order: fields.length
+    }]);
     refetch();
-  }, [rows, refetch]);
-
-  const handleCreateWorkspace = async (name: string) => {
-    try { await supabase.from('workspaces').insert({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }); refetch(); }
-    catch (err) { console.error('Create workspace failed:', err); }
   };
 
-  // ── 워크스페이스 이름 변경 ──
-  const handleRenameWorkspace = async (id: string, name: string) => {
-    try {
-      await supabase.from('workspaces').update({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }).eq('id', id);
-      window.location.reload(); // useWorkspaces에 refetch 없으므로 임시
-    } catch (err) { console.error('Rename workspace failed:', err); }
+  // ── Favorites ──
+  const handleToggleFavorite = (id: string) => {
+    setFavorites(prev => prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]);
   };
 
-  // ── 워크스페이스 삭제 ──
-  const handleDeleteWorkspace = async (id: string) => {
-    try {
-      const wsTables = allTables.filter(t => t.workspace_id === id);
-      for (const table of wsTables) {
-        await supabase.from('rows').delete().eq('table_id', table.id);
-        await supabase.from('fields').delete().eq('table_id', table.id);
-        await supabase.from('tables').delete().eq('id', table.id);
-      }
-      await supabase.from('workspaces').delete().eq('id', id);
-      if (activeTableId && wsTables.find(t => t.id === activeTableId)) setActiveTableId(null);
-      window.location.reload();
-    } catch (err) { console.error('Delete workspace failed:', err); }
-  };
+  // ── Statistics ──
+  const stats = useMemo(() => {
+    const total = rows.length;
+    let completed = 0;
+    const doneField = fields.find(f => f.type === 'checkbox' || f.name.toLowerCase() === 'done');
+    if (doneField) {
+      completed = rows.filter(r => r.data?.[doneField.id] === true || r.data?.[doneField.id] === 'true').length;
+    }
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, progress };
+  }, [rows, fields]);
 
-  // ── 테이블 생성 (+ 기본 필드 5개) ──
-  const handleCreateTable = async (workspaceId: string, name: string) => {
-    try {
-      const { data: newTable, error } = await supabase.from('tables')
-        .insert({ workspace_id: workspaceId, name }).select().single();
-      if (error || !newTable) throw error;
-
-      await supabase.from('fields').insert([
-        { table_id: newTable.id, name: 'Task Name', type: 'text', order: 0 },
-        { table_id: newTable.id, name: 'Status', type: 'select', order: 1 },
-        { table_id: newTable.id, name: 'Priority', type: 'select', order: 2 },
-        { table_id: newTable.id, name: 'Owner', type: 'text', order: 3 },
-        { table_id: newTable.id, name: 'Done', type: 'checkbox', order: 4 },
-      ]);
-
-      await fetchTables();
-      setActiveTableId(newTable.id);
-    } catch (err) { console.error('Create table failed:', err); }
-  };
-
-  // ── 테이블 이름 변경 ──
-  const handleRenameTable = async (tableId: string, name: string) => {
-    try {
-      await supabase.from('tables').update({ name }).eq('id', tableId);
-      await fetchTables();
-    } catch (err) { console.error('Rename table failed:', err); }
-  };
-
-  // ── 테이블 삭제 ──
-  const handleDeleteTable = async (tableId: string) => {
-    try {
-      await supabase.from('rows').delete().eq('table_id', tableId);
-      await supabase.from('fields').delete().eq('table_id', tableId);
-      await supabase.from('tables').delete().eq('id', tableId);
-      if (activeTableId === tableId) setActiveTableId(null);
-      await fetchTables();
-    } catch (err) { console.error('Delete table failed:', err); }
-  };
-
-  // ── 테이블 복제 ──
-  const handleDuplicateTable = async (tableId: string) => {
-    try {
-      const srcTable = allTables.find(t => t.id === tableId);
-      if (!srcTable) return;
-
-      const { data: newTable } = await supabase.from('tables')
-        .insert({ workspace_id: srcTable.workspace_id, name: `${srcTable.name} (copy)` })
-        .select().single();
-      if (!newTable) return;
-
-      const { data: srcFields } = await supabase.from('fields')
-        .select('*').eq('table_id', tableId).order('order');
-      
-      if (srcFields && srcFields.length > 0) {
-        const fieldMap: Record<string, string> = {};
-        for (const f of srcFields) {
-          const { data: nf } = await supabase.from('fields')
-            .insert({ table_id: newTable.id, name: f.name, type: f.type, options: f.options, order: f.order })
-            .select().single();
-          if (nf) fieldMap[f.id] = nf.id;
-        }
-
-        const { data: srcRows } = await supabase.from('rows')
-          .select('*').eq('table_id', tableId).order('order');
-        
-        if (srcRows) {
-          for (const r of srcRows) {
-            const newData: Record<string, unknown> = {};
-            for (const [oldId, val] of Object.entries(r.data || {})) {
-              if (fieldMap[oldId]) newData[fieldMap[oldId]] = val;
-            }
-            await supabase.from('rows').insert({ table_id: newTable.id, data: newData, order: r.order });
-          }
-        }
-      }
-
-      await fetchTables();
-      setActiveTableId(newTable.id);
-    } catch (err) { console.error('Duplicate table failed:', err); }
-  };
-
-  // ── Favorites 토글 ──
-  const handleToggleFavorite = (tableId: string) => {
-    setFavorites(prev => {
-      const next = prev.includes(tableId)
-        ? prev.filter(id => id !== tableId)
-        : [...prev, tableId];
-      if (typeof window !== 'undefined') localStorage.setItem('orbit-favorites', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  if (workspacesLoading || (activeTableId && tableLoading)) return (
-    <div className="w-full h-screen bg-white flex items-center justify-center font-sans">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0058BE]"></div>
-    </div>
-  );
-
-  if (workspacesError || tableError) return (
-    <div className="w-full h-screen bg-white flex items-center justify-center p-8 text-center font-sans">
-      <div className="max-w-md space-y-4">
-        <h2 className="text-2xl font-black text-zinc-900">System Offline</h2>
-        <p className="text-zinc-500 text-sm">Failed to connect to backend.</p>
-        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold">Reconnect</button>
-      </div>
-    </div>
-  );
-
-  const completedCount = processedRows.filter((r: Record<string, unknown>) => {
-    const df = fields.find(f => f.type === 'checkbox');
-    return df && (r[df.id] === true || r[df.id] === 'true');
-  }).length;
+  // ── Final Render Logic ──
+  const activeTable = tables.find(t => t.id === activeTableId);
 
   return (
-    <div className="flex flex-col w-full h-screen bg-white font-sans text-zinc-900 antialiased overflow-hidden">
-      <TopNavBar workspaceName={workspaces[0]?.name} tableName={activeTableName} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - flex, not fixed */}
-        <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} shrink-0 transition-all duration-300`}>
-          <Sidebar
-            workspaces={workspaces}
-            tables={allTables}
-            activeTableId={activeTableId}
-            favorites={favorites}
-            isCollapsed={sidebarCollapsed}
-
-            onCreateWorkspace={handleCreateWorkspace}
-            onRenameWorkspace={handleRenameWorkspace}
-            onDeleteWorkspace={handleDeleteWorkspace}
-
-            onSelectTable={(tableId) => {
-              setActiveTableId(tableId);
-              setFilters([]); setSorts([]); setGroupByFieldId(null);
-              setActivePanel(null); setActiveView('Table');
-            }}
-            onCreateTable={handleCreateTable}
-            onRenameTable={handleRenameTable}
-            onDeleteTable={handleDeleteTable}
-            onDuplicateTable={handleDuplicateTable}
-
-            onToggleFavorite={handleToggleFavorite}
-            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          />
-        </div>
-
-        {/* Main Content */}
-        <main className="flex-1 bg-white flex flex-col overflow-auto min-w-0">
-          <PluginPanel isOpen={isPluginsOpen} onClose={() => setIsPluginsOpen(false)} registry={pluginRegistry} onToggle={togglePlugin} />
-          <div className="flex flex-col min-h-full">
-            <div className="px-6 pt-6 pb-3 shrink-0 bg-white sticky top-0 z-20 border-b border-zinc-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-black text-zinc-900 tracking-tight">{activeTableName}</h1>
-                  {groupByFieldId && (
-                    <span className="text-[10px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-full">
-                      Grouped by: <span className="text-[#0058BE]">{fields.find(f => f.id === groupByFieldId)?.name || 'Status'}</span>
-                    </span>
-                  )}
-                </div>
-                <button onClick={() => setIsPluginsOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-zinc-400 hover:text-[#0058BE] hover:bg-zinc-50 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all">
-                  <span className="material-symbols-outlined text-[18px]">extension</span>Plugins
-                </button>
-              </div>
-              <ViewSwitcher activeView={activeView as ViewType} onViewChange={setActiveView} extraViews={extraViews} />
-              <Toolbar 
-                fields={fields} filters={filters} sorts={sorts} groupBy={groupByFieldId}
-                onUpdateFilters={setFilters} onUpdateSorts={setSorts} onUpdateGroupBy={setGroupByFieldId}
-                activePanel={activePanel} onPanelChange={setActivePanel} 
-                onNewRow={() => {
-                  const statusField = fields.find(f => f.name.toLowerCase() === 'status');
-                  handleAddRow(statusField ? { [statusField.id]: 'Planned' } : {});
-                }} 
-              />
-            </div>
-            <div className="flex-1 p-6 pt-3">
-              {activeTableId && activeView === 'Table' && (
-                <DataTable
-                  fields={fields}
-                  rows={processedRows}
-                  onUpdateCell={handleUpdateCell}
-                  onAddRow={handleAddRow}
-                  onDeleteRow={handleDeleteRow}
-                  onAddField={handleAddField}
-                  onRenameField={handleRenameField}
-                  onDeleteField={handleDeleteField}
-                  onChangeFieldType={handleChangeFieldType}
-                  onReorderField={handleReorderField}
-                  onDuplicateRow={handleDuplicateRow}
-                  onReorderRow={handleReorderRow}
-                  groupByFieldId={groupByFieldId || undefined}
-                  onGroupBy={setGroupByFieldId}
-                  renderers={fieldRenderers}
-                />
-              )}
-              {activeTableId && activeView === 'Kanban' && (
-                <KanbanBoard
-                  fields={fields}
-                  rows={processedRows}
-                  onUpdateCell={handleUpdateCell}
-                  onAddRow={(status?: string) => {
-                    const statusField = fields.find(f => f.name.toLowerCase() === 'status');
-                    handleAddRow(statusField && status ? { [statusField.id]: status } : {});
-                  }}
-                />
-              )}
-              {activeTableId && activeView === 'Calendar' && (
-                <CalendarView 
-                  fields={fields} 
-                  rows={processedRows} 
-                  onUpdateCell={handleUpdateCell} 
-                />
-              )}
-            </div>
-          </div>
-        </main>
-
-        {/* RightPanel - flex, not fixed */}
-        <div className="w-72 shrink-0">
-          <RightPanel totalRows={processedRows.length} completedRows={completedCount} menuItems={menuItems} />
-        </div>
+    <div className="flex h-screen bg-white overflow-hidden">
+      <div className={`${isSidebarCollapsed ? "w-16" : "w-64"} transition-all duration-300 ease-in-out`}>
+        <Sidebar
+          workspaces={workspaces}
+          tables={tables}
+          activeTableId={activeTableId}
+          favorites={favorites}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onCreateWorkspace={handleCreateWorkspace}
+          onRenameWorkspace={handleRenameWorkspace}
+          onDeleteWorkspace={handleDeleteWorkspace}
+          onSelectTable={setActiveTableId}
+          onCreateTable={handleCreateTable}
+          onRenameTable={handleRenameTable}
+          onDeleteTable={handleDeleteTable}
+          onDuplicateTable={handleDuplicateTable}
+          onToggleFavorite={handleToggleFavorite}
+        />
       </div>
+
+      <main className="flex-1 flex flex-col min-w-0">
+        <TopBar
+          title={activeTable?.name || "Welcome to ORBIT"}
+          isTableActive={!!activeTableId}
+          onOpenSearch={() => {}}
+          onOpenSettings={() => {}}
+        />
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="px-6 py-4 flex flex-col gap-4 border-b border-zinc-100">
+            <ViewSwitcher activeView={viewType} onChange={setViewType} />
+            <Toolbar
+              fields={fields}
+              onAddRow={() => handleAddRow()}
+              onAddField={handleAddField}
+              groupBy={groupBy}
+              onGroupBy={setGroupBy}
+            />
+          </div>
+
+          <div className="flex-1 overflow-auto bg-white">
+            {!activeTableId ? (
+              <div className="flex flex-col items-center justify-center h-full text-center px-4 animate-in fade-in zoom-in duration-700">
+                <div className="w-24 h-24 bg-gradient-to-br from-[#0058BE] to-[#00A3FF] rounded-[2rem] flex items-center justify-center shadow-2xl mb-8 -rotate-6 scale-110">
+                  <span className="material-symbols-outlined text-white text-[48px]">rocket_launch</span>
+                </div>
+                <h2 className="text-3xl font-black text-zinc-900 mb-4 tracking-tighter">Your Workspace is Empty</h2>
+                <p className="text-zinc-500 max-w-md text-lg leading-relaxed mb-10 font-medium">
+                  Create a workspace and add your first table to start organizing your projects.
+                </p>
+                <div className="flex gap-4">
+                  <button onClick={() => handleCreateWorkspace("New Workspace")}
+                    className="px-8 py-3.5 bg-[#0058BE] text-white rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-blue-500/20">
+                    Create Workspace
+                  </button>
+                </div>
+              </div>
+            ) : viewType === "calendar" ? (
+              <CalendarView fields={fields} rows={rows} />
+            ) : (
+              <DataTable
+                fields={fields}
+                rows={rows.map(r => ({ ...r.data, id: r.id }))}
+                onUpdateCell={handleUpdateCell}
+                onAddRow={handleAddRow}
+                onDeleteRow={handleDeleteRow}
+                onAddField={handleAddField}
+                onRenameField={() => {}} // CRUD implemented in follow-up
+                onDeleteField={() => {}}
+                groupByFieldId={groupBy}
+              />
+            )}
+          </div>
+        </div>
+      </main>
+
+      <RightPanel
+        title="Project Insights"
+        stats={stats}
+        activeTableId={activeTableId || undefined}
+        onOpenPlugin={() => {}}
+      />
     </div>
   );
 }

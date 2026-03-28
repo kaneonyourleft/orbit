@@ -8,25 +8,25 @@ export function useTable(supabase: SupabaseClient, tableId: string) {
   const [error, setError] = useState<Error | null>(null)
 
   const fetchData = useCallback(async () => {
-    if (!tableId) return;
+    if (!tableId) { setLoading(false); return; }
     try {
-      setLoading(true);
+      setLoading(true)
       const [fieldsRes, rowsRes] = await Promise.all([
         supabase.from('fields').select('*').eq('table_id', tableId).order('order'),
         supabase.from('rows').select('*').eq('table_id', tableId).order('order')
-      ]);
-      if (fieldsRes.error) throw fieldsRes.error;
-      if (rowsRes.error) throw rowsRes.error;
-      setFields(fieldsRes.data || []);
-      setRows(rowsRes.data || []);
+      ])
+      if (fieldsRes.error) throw fieldsRes.error
+      if (rowsRes.error) throw rowsRes.error
+      setFields(fieldsRes.data || [])
+      setRows(rowsRes.data || [])
     } catch (err) {
-      setError(err as Error);
+      setError(err as Error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [supabase, tableId]);
+  }, [supabase, tableId])
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchData() }, [fetchData])
 
-  return { fields, rows, loading, error, setRows, refetch: fetchData };
+  return { fields, rows, loading, error, setRows, refetch: fetchData }
 }

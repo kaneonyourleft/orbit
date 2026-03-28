@@ -402,6 +402,25 @@ export function DataTable({
     });
   };
 
+  if (rows.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 bg-white border border-dashed border-zinc-200 rounded-2xl mx-4 my-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="w-16 h-16 bg-[#F1F5FE] rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-blue-50">
+          <span className="material-symbols-outlined text-[#0058BE] text-[32px]">assignment_add</span>
+        </div>
+        <h3 className="text-lg font-bold text-zinc-800 mb-2">Start your project</h3>
+        <p className="text-sm text-zinc-500 mb-8 max-w-[280px] text-center leading-relaxed">
+          This table is currently empty. Create your first task to get things moving.
+        </p>
+        <button onClick={() => onAddRow()} 
+          className="flex items-center gap-2 px-6 py-3 bg-[#0058BE] text-white rounded-xl font-bold text-sm shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all">
+          <span className="material-symbols-outlined text-lg">add</span>
+          Add First Task
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-hidden bg-white">
       {groups.map(([groupKey, groupRows]) => (
