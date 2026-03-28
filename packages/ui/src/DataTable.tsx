@@ -225,7 +225,7 @@ export function DataTable({
             <td colSpan={fields.length + 2} className="px-8 py-4 text-zinc-300 text-xs font-bold uppercase tracking-widest">
               <div className="flex items-center gap-2 group-hover:text-primary transition-colors">
                 <span className="material-symbols-outlined text-sm">add</span>
-                <span>New Row</span>
+                <span>New Task</span>
               </div>
             </td>
           </tr>

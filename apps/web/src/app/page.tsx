@@ -31,6 +31,7 @@ const supabase = createClient();
 
 export default function Home() {
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
+  const [allTables, setAllTables] = useState<{ id: string; name: string; workspace_id: string }[]>([]);
   const [activeView, setActiveView] = useState<ViewType | string>('Table');
   const [isPluginsOpen, setIsPluginsOpen] = useState(false);
   
@@ -49,27 +50,34 @@ export default function Home() {
     exportCsvPlugin
   ], []);
   
-  // 1. Load Workspaces
+  // 1. Load Workspaces & Tables
   const { workspaces, loading: workspacesLoading, error: workspacesError } = useWorkspaces(supabase);
   
+  const fetchTables = useCallback(async () => {
+    if (workspaces.length === 0) return;
+    const { data } = await supabase.from('tables').select('*');
+    if (data) setAllTables(data);
+  }, [workspaces]);
+
+  useEffect(() => {
+    fetchTables();
+  }, [fetchTables]);
+
+  const activeTable = useMemo(() => allTables.find(t => t.id === activeTableId), [allTables, activeTableId]);
+  const activeTableName = activeTable?.name || 'Table';
+
   // Automatically select the first table
   useEffect(() => {
-    async function fetchFirstTable() {
-      if (workspaces.length > 0 && !activeTableId) {
-        const { data, error } = await supabase
-          .from('tables')
-          .select('id')
-          .eq('workspace_id', workspaces[0].id)
-          .limit(1)
-          .single();
-        
-        if (data) {
-          setActiveTableId(data.id);
-        }
-      }
+    if (workspaces.length > 0 && !activeTableId && allTables.length > 0) {
+      const firstTable = allTables.find(t => t.workspace_id === workspaces[0].id);
+      if (firstTable) setActiveTableId(firstTable.id);
     }
-    fetchFirstTable();
-  }, [workspaces, activeTableId]);
+  }, [workspaces, allTables, activeTableId]);
+
+  const refreshTable = () => {
+    // For now simple refresh, or we could refetch fields/rows
+    window.location.reload(); 
+  };
 
   // 2. Load Table
   const { fields, rows, loading: tableLoading, error: tableError, setRows } = useTable(supabase, activeTableId || '');
@@ -79,7 +87,7 @@ export default function Home() {
   const { extraViews, fieldRenderers, menuItems } = usePlugins(plugins, {
     supabase,
     currentWorkspace: workspaces[0],
-    currentTable: activeTableId ? { id: activeTableId, name: 'Product Roadmap 2026' } : null,
+    currentTable: activeTableId ? { id: activeTableId, name: activeTableName } : null,
     fields,
     rows: rows.map(r => ({ id: r.id, ...r.data }))
   });
@@ -91,7 +99,7 @@ export default function Home() {
       pluginRegistry.activate(id, {
         supabase,
         currentWorkspace: workspaces[0],
-        currentTable: { id: activeTableId, name: 'Product Roadmap 2026' },
+        currentTable: { id: activeTableId, name: activeTableName },
         fields,
         rows: rows.map(r => ({ id: r.id, ...r.data })),
         addMenuItem: () => {},
@@ -230,7 +238,7 @@ export default function Home() {
         .insert({ table_id: activeTableId, name, type: 'text', order: fields.length });
       
       if (error) throw error;
-      window.location.reload(); 
+      refreshTable(); 
     } catch (err) { console.error('Add field failed:', err); }
   };
 
@@ -242,7 +250,7 @@ export default function Home() {
         .eq('id', fieldId);
       
       if (error) throw error;
-      window.location.reload();
+      refreshTable();
     } catch (err) { console.error('Rename field failed:', err); }
   };
 
@@ -254,7 +262,7 @@ export default function Home() {
         .insert({ name, slug });
       
       if (error) throw error;
-      window.location.reload();
+      refreshTable();
     } catch (err) { console.error('Create workspace failed:', err); }
   };
 
@@ -270,7 +278,7 @@ export default function Home() {
       <div className="max-w-md space-y-4">
         <h2 className="text-2xl font-black tracking-tighter">System Offline</h2>
         <p className="text-zinc-500 text-sm font-bold">Failed to establish connection with Supabase backend.</p>
-        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-zinc-900 text-white rounded-xl text-sm font-black shadow-lg shadow-black/10 transition-all active:scale-95">Reconnect System</button>
+        <button onClick={() => refreshTable()} className="px-6 py-2 bg-zinc-900 text-white rounded-xl text-sm font-black shadow-lg shadow-black/10 transition-all active:scale-95">Reconnect System</button>
       </div>
     </div>
   );
@@ -291,7 +299,7 @@ export default function Home() {
       {/* Top Navigation */}
       <TopNavBar 
         workspaceName={activeWorkspace?.name} 
-        tableName="Product Roadmap 2026"
+        tableName={activeTableName}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
@@ -301,6 +309,9 @@ export default function Home() {
         <Sidebar 
           workspaces={workspaces} 
           onCreateWorkspace={handleCreateWorkspace}
+          tables={allTables}
+          activeTableId={activeTableId}
+          onSelectTable={setActiveTableId}
         />
 
         {/* BUG 2: Main Area fill with ml-64 and mr-72 OFFSETS */}
@@ -317,11 +328,13 @@ export default function Home() {
              <div className="px-8 pt-10 pb-4 shrink-0 bg-white sticky top-0 z-20 border-b border-zinc-50/50 backdrop-blur-md">
                <div className="flex items-center justify-between mb-6">
                  <div className="flex items-center space-x-4">
-                   <h1 className="text-3xl font-black text-zinc-900 tracking-tighter">Product Roadmap 2026</h1>
+                   <h1 className="text-3xl font-black text-zinc-900 tracking-tighter">{activeTableName}</h1>
                    {groupByFieldId && (
                      <div className="flex items-center space-x-2 px-2.5 py-1 bg-blue-50/50 rounded-lg border border-blue-100/50 shadow-sm">
                        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">Grouped by</span>
-                       <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">Status</span>
+                       <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">
+                         {fields.find(f => f.id === groupByFieldId)?.name || 'Status'}
+                       </span>
                      </div>
                    )}
                  </div>

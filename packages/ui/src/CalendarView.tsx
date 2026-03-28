@@ -12,7 +12,7 @@ interface CalendarViewProps {
  * Highly refined for white theme and Notion-style grid.
  */
 export function CalendarView({ fields, rows, onUpdateCell }: CalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 28)); 
+  const [currentDate, setCurrentDate] = useState(new Date()); 
   const dateField = fields.find(f => f.type === 'date');
 
   if (!dateField) {

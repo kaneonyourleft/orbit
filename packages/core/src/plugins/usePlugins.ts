@@ -53,11 +53,6 @@ export function usePlugins(pluginList: OrbitPlugin[], ctxParams: Omit<PluginCont
         pluginRegistry.register(plugin);
         pluginRegistry.activate(plugin.id, pluginCtx);
         initializedPlugins.current.add(plugin.id);
-      } else {
-        // If already initialized, just re-activate with NEW context if needed
-        // But some plugins might re-register items. 
-        // We've handled duplicates in the register callbacks above.
-        pluginRegistry.activate(plugin.id, pluginCtx);
       }
     });
 

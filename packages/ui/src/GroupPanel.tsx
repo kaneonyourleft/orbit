@@ -13,7 +13,7 @@ interface GroupPanelProps {
  */
 export function GroupPanel({ fields, groupBy, onGroupBy }: GroupPanelProps) {
   // We allow grouping by 'select' or 'status' types
-  const groupableFields = fields.filter(f => f.type === 'select' || f.id === 'status');
+  const groupableFields = fields.filter(f => f.type === 'select');
 
   return (
     <div className="w-72 bg-white border border-zinc-200 rounded-xl shadow-2xl p-5 z-[100] animate-in fade-in slide-in-from-top-2 duration-200 font-sans antialiased select-none">

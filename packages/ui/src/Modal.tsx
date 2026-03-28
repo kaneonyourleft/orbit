@@ -12,12 +12,12 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-          <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <div className="bg-white border border-zinc-200 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+          <h3 className="text-lg font-semibold text-zinc-900">{title}</h3>
           <button 
             onClick={onClose}
-            className="text-zinc-500 hover:text-white transition-colors p-1 hover:bg-zinc-800 rounded"
+            className="text-zinc-500 hover:text-zinc-900 transition-colors p-1 hover:bg-zinc-100 rounded"
             title="Close Modal"
             aria-label="Close Modal"
           >

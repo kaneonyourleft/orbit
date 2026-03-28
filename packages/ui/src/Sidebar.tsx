@@ -6,10 +6,16 @@ import { Modal } from './Modal';
  */
 export function Sidebar({ 
   workspaces, 
-  onCreateWorkspace 
+  onCreateWorkspace,
+  tables = [],
+  activeTableId = null,
+  onSelectTable = () => {}
 }: { 
   workspaces: { id: string; name: string }[], 
-  onCreateWorkspace: (name: string) => void 
+  onCreateWorkspace: (name: string) => void,
+  tables?: { id: string; name: string; workspace_id: string }[],
+  activeTableId?: string | null,
+  onSelectTable?: (id: string) => void
 }) {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = React.useState('');
@@ -85,16 +91,21 @@ export function Sidebar({
 
                 {expandedFolder === ws.name && (
                   <div className="pl-6 mt-1 flex flex-col gap-0.5 border-l-2 border-primary/10 ml-5">
-                    <a className="flex items-center gap-2 px-3 py-1.5 text-primary font-bold bg-primary/5 rounded-lg text-[12px] transition-all group border border-primary/10" href="#">
-                      <span className="material-symbols-outlined text-base">table_rows</span>
-                      <span className="flex-1">Product Roadmap 2026</span>
-                      <span className="material-symbols-outlined text-[10px] hidden group-hover:block text-primary/40">edit</span>
-                    </a>
-                    <a className="flex items-center gap-2 px-3 py-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-white hover:shadow-sm rounded-lg text-[12px] transition-all group border border-transparent" href="#">
-                      <span className="material-symbols-outlined text-base">table_rows</span>
-                      <span className="flex-1 font-semibold">Backlog Refinement</span>
-                      <span className="material-symbols-outlined text-[10px] hidden group-hover:block opacity-60 text-zinc-300">delete</span>
-                    </a>
+                    {tables.filter(t => t.workspace_id === ws.id).map(table => (
+                      <button 
+                        key={table.id}
+                        onClick={() => onSelectTable(table.id)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] transition-all group border ${
+                          activeTableId === table.id 
+                            ? 'text-primary font-bold bg-primary/5 border-primary/10' 
+                            : 'text-zinc-400 hover:text-zinc-700 hover:bg-white hover:shadow-sm border-transparent'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-base">table_rows</span>
+                        <span className="flex-1 text-left">{table.name}</span>
+                        <span className="material-symbols-outlined text-[10px] hidden group-hover:block opacity-60">edit</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
