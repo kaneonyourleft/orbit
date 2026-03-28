@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase'
 export default function OrbitBuilder() {
   const supabase = createClient()
   const [editor, setEditor] = useState<Editor | null>(null)
+  const [showToast, setShowToast] = useState(false)
 
   // Use editor state to log readiness or other side effects
   if (editor) {
@@ -21,6 +22,22 @@ export default function OrbitBuilder() {
 
   const onEditorReady = useCallback((editor: Editor) => {
     setEditor(editor)
+
+    // ── 💾 저장 버튼 및 커맨드 등록 ──
+    editor.Panels.addButton('options', {
+      id: 'save-to-supabase-btn',
+      className: 'fa fa-save custom-save-btn',
+      command: 'save-to-supabase',
+      attributes: { title: '💾 저장 (Supabase에 현재 상태 저장)' }
+    })
+
+    editor.Commands.add('save-to-supabase', {
+      run: (editor) => {
+        editor.store();
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 2000);
+      }
+    })
 
     // ── Orbit 커스텀 블록 (Widgets & Layouts) ──
 
@@ -628,6 +645,16 @@ export default function OrbitBuilder() {
           loadPage(editor)
         }}
       />
+
+      {/* 💾 저장 완료 토스트 UI */}
+      {showToast && (
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-zinc-900/90 backdrop-blur-md border border-zinc-700/50 text-white px-6 py-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-[9999] flex items-center gap-3 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4">
+          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-[10px] font-black">
+            ✓
+          </div>
+          <span className="font-bold text-[13px] tracking-tight text-white/90">페이지 저장 완료</span>
+        </div>
+      )}
     </div>
   )
 }
