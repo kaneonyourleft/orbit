@@ -291,7 +291,7 @@ export function Sidebar({
                       )}
                       {onCreateTable && creatingTableInWs !== ws.id && (
                         <button onClick={() => setCreatingTableInWs(ws.id)}
-                          className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] text-zinc-300 hover:text-[#0058BE] rounded-lg hover:bg-white/60 transition-all w-full text-left">
+                          className="flex items-center gap-2 px-2.5 py-2 text-[11px] font-semibold text-zinc-400 hover:text-primary rounded-lg hover:bg-white border border-transparent hover:border-zinc-200 hover:shadow-sm transition-all w-full text-left">
                           <span className="material-symbols-outlined text-[14px]">add</span>
                           <span>New Table</span>
                         </button>
