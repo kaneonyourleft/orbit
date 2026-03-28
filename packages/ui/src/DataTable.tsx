@@ -61,10 +61,10 @@ export function DataTable({
   };
 
   const renderRow = (row: Record<string, any>, rowIndex: number) => {
+    const doneField = fields.find(f => f.id === '8a007d09-d5b7-4558-87a4-7b99758c77ce' || f.type === 'checkbox');
     const statusField = fields.find(f => f.name.toLowerCase() === 'status');
-    const doneField = fields.find(f => f.type === 'checkbox');
-    const isCompleted = (doneField && row[doneField.id] === true) || 
-      (statusField && String(row[statusField.id] || '').toLowerCase().includes('completed'));
+    const isChecked = doneField ? row[doneField.id] === true : false;
+    const isCompleted = isChecked || (statusField && String(row[statusField.id] || '').toLowerCase().includes('completed'));
     
     return (
       <tr 
@@ -75,7 +75,7 @@ export function DataTable({
           <input 
             type="checkbox" 
             className="rounded text-primary focus:ring-primary w-4 h-4 border-zinc-300 transition-all cursor-pointer"
-            checked={isCompleted}
+            checked={isChecked}
             onChange={() => {
               if (doneField) onUpdateCell(row.id, doneField.id, !row[doneField.id]);
             }}

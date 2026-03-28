@@ -19,7 +19,13 @@ export function Sidebar({
 }) {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = React.useState('');
-  const [expandedFolder, setExpandedFolder] = React.useState<string | null>('Product Management');
+  const [expandedFolder, setExpandedFolder] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (workspaces.length > 0 && expandedFolder === null) {
+      setExpandedFolder(workspaces[0].name);
+    }
+  }, [workspaces]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

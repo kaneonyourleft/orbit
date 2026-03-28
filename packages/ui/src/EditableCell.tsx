@@ -16,7 +16,8 @@ export function EditableCell({ value, type, field, onSave, renderers = {} }: Edi
   const [isEditing, setIsEditing] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
-  const isSelectLike = type === 'select' || type === 'status' || type === 'priority';
+  const isSelectLike = type === 'select' || type === 'status' || type === 'priority' || 
+    field.name.toLowerCase() === 'status' || field.name.toLowerCase() === 'priority';
 
   useEffect(() => {
     setCurrentValue(value);

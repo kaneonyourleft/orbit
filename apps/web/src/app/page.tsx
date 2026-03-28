@@ -75,8 +75,9 @@ export default function Home() {
   }, [workspaces, allTables, activeTableId]);
 
   const refreshTable = () => {
-    // For now simple refresh, or we could refetch fields/rows
-    window.location.reload(); 
+    const currentId = activeTableId;
+    setActiveTableId(null);
+    setTimeout(() => setActiveTableId(currentId), 1);
   };
 
   // 2. Load Table
@@ -311,7 +312,14 @@ export default function Home() {
           onCreateWorkspace={handleCreateWorkspace}
           tables={allTables}
           activeTableId={activeTableId}
-          onSelectTable={setActiveTableId}
+          onSelectTable={(tableId) => {
+            setActiveTableId(tableId);
+            setFilters([]);
+            setSorts([]);
+            setGroupByFieldId(null);
+            setActivePanel(null);
+            setActiveView('Table');
+          }}
         />
 
         {/* BUG 2: Main Area fill with ml-64 and mr-72 OFFSETS */}
