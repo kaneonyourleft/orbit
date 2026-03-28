@@ -114,7 +114,7 @@ export function EditableCell({ value, type, field, onSave, renderers = {} }: Edi
          }
       </div>
       {!isSelectLike && (
-        <span className="opacity-0 group-hover:opacity-100 text-[14px] text-zinc-300 material-symbols-outlined ml-1.5 transition-opacity select-none pointer-events-none">edit</span>
+        <span className="hidden group-hover:inline text-[14px] text-zinc-300 material-symbols-outlined ml-1.5 select-none pointer-events-none">edit</span>
       )}
     </div>
   );
