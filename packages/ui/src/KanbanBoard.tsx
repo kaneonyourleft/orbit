@@ -9,8 +9,7 @@ interface KanbanBoardProps {
 }
 
 /**
- * Kanban board view for task management.
- * Groups rows by 'Status' select field.
+ * Clean Canvas Kanban Board for ORBIT Workspace OS.
  */
 export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoardProps) {
   const statusField = fields.find(f => f.name.toLowerCase() === 'status');
@@ -18,7 +17,7 @@ export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoar
   const ownerField = fields.find(f => f.name.toLowerCase() === 'owner');
   const dueDateField = fields.find(f => f.type === 'date');
 
-  const defaultStatuses = ['To Do', 'In Progress', 'In Review', 'Done'];
+  const defaultStatuses = ['To Do', 'In Progress', 'Done'];
   const statusOptions = statusField?.options as string[] || defaultStatuses;
 
   const groupedRows = statusOptions.map(status => {
@@ -28,76 +27,97 @@ export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoar
     };
   });
 
+  const getStatusStyles = (status: string) => {
+    const s = String(status || '').toLowerCase();
+    if (s.includes('progress')) return 'bg-blue-100 text-blue-700';
+    if (s.includes('planned')) return 'bg-zinc-100 text-zinc-600';
+    if (s.includes('stuck') || s.includes('critical')) return 'bg-red-100 text-red-700';
+    if (s.includes('completed') || s.includes('done')) return 'bg-emerald-100 text-emerald-700';
+    return 'bg-zinc-100 text-zinc-600';
+  };
+
+  const getPriorityStyles = (priority: string) => {
+    const p = String(priority || '').toLowerCase();
+    if (p.includes('high')) return 'bg-amber-100 text-amber-700 font-bold';
+    if (p.includes('low')) return 'bg-emerald-100 text-emerald-700';
+    return 'bg-zinc-100 text-zinc-600';
+  };
+
   return (
-    <div className="flex space-x-6 h-[calc(100vh-280px)] overflow-x-auto pb-4 scrollbar-hide">
+    <div className="flex space-x-6 h-[calc(100vh-280px)] overflow-x-auto pb-6 scrollbar-hide font-sans">
       {groupedRows.map(({ status, rows: columnRows }) => (
-        <div key={status} className="flex flex-col w-72 shrink-0 space-y-4">
+        <div key={status} className="flex flex-col w-80 shrink-0 space-y-4">
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center space-x-2">
-              <h3 className="text-sm font-semibold text-zinc-300">{status}</h3>
-              <span className="px-1.5 py-0.5 rounded-full bg-zinc-800 text-[10px] font-bold text-zinc-500 font-mono">
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusStyles(status)}`}>
+                {status}
+              </span>
+              <span className="text-[10px] font-bold text-zinc-400">
                 {columnRows.length}
               </span>
             </div>
+            <button className="p-1 hover:bg-zinc-100 rounded text-zinc-400 transition-colors">
+              <span className="material-symbols-outlined text-[16px]">more_horiz</span>
+            </button>
           </div>
 
-          <div className="flex-1 space-y-3 p-2 bg-zinc-900/40 rounded-2xl border border-zinc-800/30 overflow-y-auto scrollbar-hide shadow-inner">
-            {columnRows.map(row => (
-              <div 
-                key={row.id} 
-                className="p-4 bg-zinc-800/80 border border-zinc-700/50 rounded-xl shadow-lg hover:shadow-blue-500/5 hover:border-zinc-600/50 transition-all cursor-pointer group"
-              >
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start">
-                    <p className="text-sm font-bold text-zinc-100 leading-snug group-hover:text-blue-400 transition-colors">
-                      {row[fields.find(f => f.name === 'Task Name')?.id || fields[0].id] || 'Untitled Task'}
+          <div className="flex-1 space-y-3 p-2 bg-zinc-100/50 rounded-xl border border-zinc-200/50 overflow-y-auto scrollbar-hide">
+            {columnRows.map(row => {
+               const statusVal = String(row[statusField?.id || ''] || '').toLowerCase();
+               const isStuck = statusVal.includes('stuck') || statusVal.includes('critical');
+               const isCompleted = statusVal.includes('completed') || statusVal.includes('done') || row.done === true;
+               
+               return (
+                <div 
+                  key={row.id} 
+                  className={`p-4 bg-white border border-zinc-200 rounded-lg shadow-sm hover:shadow-md hover:border-[#0058BE]/30 transition-all cursor-pointer group ${isStuck ? 'border-l-4 border-l-red-500' : ''} ${isCompleted ? 'border-l-4 border-l-emerald-500' : ''}`}
+                >
+                  <div className="space-y-3">
+                    <p className={`text-sm font-semibold text-zinc-800 leading-snug group-hover:text-[#0058BE] transition-colors ${isCompleted ? 'opacity-50 line-through' : ''}`}>
+                      {row[fields.find(f => f.name.toLowerCase().includes('name'))?.id || fields[0].id] || 'Untitled Task'}
                     </p>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {priorityField && row[priorityField.id] && (
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getPriorityStyle(row[priorityField.id])}`}>
-                        {row[priorityField.id]}
+                    <div className="flex flex-wrap gap-2">
+                      {priorityField && row[priorityField.id] && (
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight ${getPriorityStyles(row[priorityField.id])}`}>
+                          {row[priorityField.id]}
+                        </span>
+                      )}
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight ${getStatusStyles(status)}`}>
+                        {status}
                       </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-zinc-700/50 group-hover:border-zinc-700">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-400">
-                        {row[ownerField?.id || '']?.charAt(0) || 'U'}
-                      </div>
-                      <span className="text-[10px] text-zinc-500 font-medium">{row[ownerField?.id || ''] || 'Unassigned'}</span>
                     </div>
-                    {dueDateField && row[dueDateField.id] && (
-                      <span className="text-[10px] text-zinc-600 font-mono italic">
-                        {new Date(row[dueDateField.id]).toLocaleDateString()}
-                      </span>
-                    )}
+
+                    <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 rounded-full bg-zinc-200 flex items-center justify-center text-[8px] font-bold text-zinc-500 overflow-hidden shrink-0">
+                          {String(row[ownerField?.id || ''] || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-[10px] text-zinc-500 font-medium truncate max-w-[80px]">{row[ownerField?.id || ''] || 'Unassigned'}</span>
+                      </div>
+                      
+                      {dueDateField && row[dueDateField.id] && (
+                        <div className="flex items-center space-x-1 text-[9px] font-bold text-zinc-400">
+                           <span className="material-symbols-outlined text-[12px]">calendar_today</span>
+                           <span>{new Date(row[dueDateField.id]).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+               );
+            })}
 
             <button 
               onClick={() => onAddRow(status)}
-              className="w-full py-2.5 rounded-xl border border-dashed border-zinc-800 text-zinc-600 text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-800/50 hover:text-zinc-400 hover:border-zinc-700 transition-all flex items-center justify-center space-x-2 active:scale-[0.98]"
+              className="w-full py-2.5 rounded-lg border border-dashed border-zinc-300 bg-white/50 text-zinc-400 text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-[#0058BE] hover:border-[#0058BE] transition-all flex items-center justify-center space-x-2 active:scale-[0.98]"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-              <span>Add card</span>
+              <span className="material-symbols-outlined text-[14px]">add</span>
+              <span>Add task</span>
             </button>
           </div>
         </div>
       ))}
     </div>
   );
-}
-
-function getPriorityStyle(priority: string) {
-  switch (priority?.toLowerCase()) {
-    case 'high': return 'bg-red-500/10 text-red-500 border border-red-500/20';
-    case 'medium': return 'bg-blue-500/10 text-blue-500 border border-blue-500/20';
-    case 'low': return 'bg-zinc-700/50 text-zinc-500 border border-zinc-700/50';
-    default: return 'bg-zinc-800 text-zinc-500 border border-zinc-700';
-  }
 }

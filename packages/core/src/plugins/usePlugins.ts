@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { OrbitPlugin, PluginContext, PluginMenuItem, PluginView, PluginFieldRenderer } from './types';
 import { pluginRegistry } from './registry';
 
@@ -10,13 +10,21 @@ export function usePlugins(pluginList: OrbitPlugin[], ctxParams: Omit<PluginCont
   const [extraViews, setExtraViews] = useState<PluginView[]>([]);
   const [fieldRenderers, setFieldRenderers] = useState<Record<string, PluginFieldRenderer>>({});
   const [notifications, setNotifications] = useState<string[]>([]);
+  
+  const initializedPlugins = useRef<Set<string>>(new Set());
 
   const addMenuItem = useCallback((item: PluginMenuItem) => {
-    setMenuItems(prev => [...prev, item]);
+    setMenuItems(prev => {
+      if (prev.find(p => p.label === item.label)) return prev;
+      return [...prev, item];
+    });
   }, []);
 
   const registerView = useCallback((view: PluginView) => {
-    setExtraViews(prev => [...prev, view]);
+    setExtraViews(prev => {
+      if (prev.find(v => v.id === view.id)) return prev;
+      return [...prev, view];
+    });
   }, []);
 
   const registerFieldRenderer = useCallback((type: string, component: PluginFieldRenderer) => {
@@ -30,7 +38,6 @@ export function usePlugins(pluginList: OrbitPlugin[], ctxParams: Omit<PluginCont
     }, 5000);
   }, []);
 
-  // Context should be updated when rows/fields change
   const pluginCtx = useMemo<PluginContext>(() => ({
     ...ctxParams,
     addMenuItem,
@@ -40,16 +47,25 @@ export function usePlugins(pluginList: OrbitPlugin[], ctxParams: Omit<PluginCont
   }), [ctxParams, addMenuItem, registerView, registerFieldRenderer, showNotification]);
 
   useEffect(() => {
-    // Initial registration and activation
+    // Only register and activate once per plugin list change
     pluginList.forEach(plugin => {
-      pluginRegistry.register(plugin);
-      pluginRegistry.activate(plugin.id, pluginCtx);
+      if (!initializedPlugins.current.has(plugin.id)) {
+        pluginRegistry.register(plugin);
+        pluginRegistry.activate(plugin.id, pluginCtx);
+        initializedPlugins.current.add(plugin.id);
+      } else {
+        // If already initialized, just re-activate with NEW context if needed
+        // But some plugins might re-register items. 
+        // We've handled duplicates in the register callbacks above.
+        pluginRegistry.activate(plugin.id, pluginCtx);
+      }
     });
 
     return () => {
-      pluginList.forEach(plugin => {
-        pluginRegistry.deactivate(plugin.id);
-      });
+      // In a real app we might want to deactivate, but here we keep it sticky
+      // pluginList.forEach(plugin => {
+      //   pluginRegistry.deactivate(plugin.id);
+      // });
     };
   }, [pluginList, pluginCtx]);
 

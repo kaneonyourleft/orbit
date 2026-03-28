@@ -10,3 +10,5 @@ export * from './FilterPanel';
 export * from './SortPanel';
 export * from './GroupPanel';
 export * from './PluginPanel';
+export * from './TopNavBar';
+export * from './RightPanel';
