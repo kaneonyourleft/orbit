@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@blocksuite/blocks": "0.0.0-canary-20250316001624",
+    "@blocksuite/presets": "0.0.0-canary-20250316001624",
+    "@blocksuite/store": "0.0.0-canary-20250316001624",
     "@grapesjs/react": "^2.0.0",
     "@orbit/core": "workspace:*",
     "@orbit/ui": "workspace:*",
