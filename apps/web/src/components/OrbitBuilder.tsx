@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase'
 export default function OrbitBuilder() {
   const supabase = createClient()
   const [editor, setEditor] = useState<Editor | null>(null)
-  const [showToast, setShowToast] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Use editor state to log readiness or other side effects
   if (editor) {
@@ -33,9 +33,8 @@ export default function OrbitBuilder() {
 
     editor.Commands.add('save-to-supabase', {
       run: (editor) => {
+        console.log('Builder: Manual save triggered...')
         editor.store();
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 2000);
       }
     })
 
@@ -449,17 +448,25 @@ export default function OrbitBuilder() {
     // ── 저장 로직 (Supabase 연동) ──
     editor.on('storage:store', async (data: Record<string, unknown>) => {
       try {
-        const { error } = await supabase.from('pages').upsert({
+        const payload = {
           id: 'default',
           html: editor.getHtml(),
           css: editor.getCss(),
           project_data: JSON.stringify(data),
           updated_at: new Date().toISOString(),
-        })
+        };
+        
+        const { error } = await supabase.from('pages').upsert(payload)
+        
         if (error) throw error;
-        console.log('Builder: Project saved to Supabase (Remote Storage Active)')
-      } catch (err) {
+        
+        console.log('Builder: Successfully saved to Supabase:', payload)
+        setToast({ message: '페이지 저장 완료', type: 'success' })
+        setTimeout(() => setToast(null), 2500)
+      } catch (err: any) {
         console.error('Builder Save Error:', err)
+        setToast({ message: `저장 실패: ${err.message || '알 수 없는 오류'}`, type: 'error' })
+        setTimeout(() => setToast(null), 4000)
       }
     })
 
@@ -703,13 +710,21 @@ export default function OrbitBuilder() {
         }}
       />
 
-      {/* 💾 저장 완료 토스트 UI */}
-      {showToast && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-zinc-900/90 backdrop-blur-md border border-zinc-700/50 text-white px-6 py-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-[9999] flex items-center gap-3 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4">
-          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-[10px] font-black">
-            ✓
+      {/* 💾 저장 상태 토스트 UI */}
+      {toast && (
+        <div className={`fixed bottom-12 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-[9999] flex items-center gap-3 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
+          toast.type === 'success' 
+            ? 'bg-zinc-900/90 backdrop-blur-md border border-zinc-700/50 text-white' 
+            : 'bg-red-600 text-white border border-red-500'
+        }`}>
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${
+            toast.type === 'success' ? 'bg-blue-500' : 'bg-white text-red-600'
+          }`}>
+            {toast.type === 'success' ? '✓' : '✕'}
           </div>
-          <span className="font-bold text-[13px] tracking-tight text-white/90">페이지 저장 완료</span>
+          <span className="font-bold text-[13px] tracking-tight whitespace-nowrap">
+            {toast.message}
+          </span>
         </div>
       )}
     </div>
