@@ -37,7 +37,7 @@ export function Sidebar({
   };
 
   return (
-    <aside className="fixed left-0 top-14 bottom-0 flex flex-col w-64 p-4 gap-2 bg-zinc-50 border-r border-zinc-200 transition-all duration-150 ease-in-out z-40 font-sans antialiased">
+    <aside className="flex flex-col w-full h-full p-4 gap-2 bg-zinc-50 border-r border-zinc-200 font-sans antialiased overflow-y-auto hide-scrollbar">
       {/* Profile Header */}
       <div className="flex items-center gap-3 mb-6 px-1 cursor-pointer hover:bg-zinc-100/50 p-1.5 rounded-lg transition-colors group">
         <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center overflow-hidden shadow-sm shadow-blue-100 border border-blue-100 transition-transform group-active:scale-95">

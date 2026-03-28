@@ -14,7 +14,7 @@ export function RightPanel({ totalRows = 24, completedRows = 12, menuItems = [] 
   const utilization = Math.round((completedRows / totalRows) * 100) || 0;
   
   return (
-    <aside className="fixed right-0 top-14 bottom-0 flex flex-col w-72 bg-white border-l border-zinc-100 z-40 transition-all duration-200 shadow-sm font-sans antialiased">
+    <aside className="flex flex-col w-full h-full bg-white border-l border-zinc-100 shadow-sm font-sans antialiased overflow-y-auto hide-scrollbar">
       {/* Header */}
       <div className="px-5 py-4 border-b border-zinc-50 flex items-center justify-between bg-zinc-50/20">
         <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] select-none">Project Dashboard</span>
