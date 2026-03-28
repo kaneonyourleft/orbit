@@ -68,6 +68,8 @@ export function DataTable({
           type="checkbox" 
           className="rounded text-primary w-4 h-4 border-zinc-300 focus:ring-primary"
           checked={row.selected}
+          aria-label="Select row"
+          title="Select row"
           readOnly
         />
       </td>
@@ -114,7 +116,12 @@ export function DataTable({
         <thead className="sticky top-0 bg-white/90 backdrop-blur-md z-10 border-b border-zinc-200">
           <tr>
             <th className="w-12 px-4 py-3 border-b border-zinc-200">
-              <input type="checkbox" className="rounded text-primary focus:ring-primary w-4 h-4 border-zinc-300" />
+              <input 
+                type="checkbox" 
+                className="rounded text-primary focus:ring-primary w-4 h-4 border-zinc-300"
+                aria-label="Select all rows"
+                title="Select all rows"
+              />
             </th>
             {fields.map((field) => (
               <th
@@ -131,6 +138,9 @@ export function DataTable({
                       onChange={(e) => setTempFieldName(e.target.value)}
                       onBlur={() => handleFieldBlur(field.id)}
                       onKeyDown={(e) => handleFieldKeyDown(e, field.id)}
+                      placeholder="Enter field name"
+                      aria-label="Edit field name"
+                      title="Edit field name"
                     />
                   ) : (
                     <>
