@@ -1,8 +1,10 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Sidebar, DataTable, Toolbar, ViewSwitcher, TopBar, RightPanel, Modal, CalendarView } from "@orbit/ui";
+import { Sidebar, DataTable, Toolbar, ViewSwitcher, TopNavBar, RightPanel, CalendarView } from "@orbit/ui";
 import { useTable } from "@orbit/core";
+import { FilterCondition } from "@orbit/ui";
+import { SortCondition } from "@orbit/ui";
 
 // ── Supabase ──
 const supabase = createClient(
@@ -10,37 +12,68 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
+interface TableMetadata {
+  id: string;
+  name: string;
+  workspace_id: string;
+}
+
 export default function Home() {
-  const [workspaces, setWorkspaces] = useState<any[]>([]);
-  const [tables, setTables] = useState<any[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [tables, setTables] = useState<TableMetadata[]>([]);
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [viewType, setViewType] = useState<"table" | "board" | "calendar">("table");
+  const [viewType, setViewType] = useState<string>("Table");
   const [groupBy, setGroupBy] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
+  
+  // Toolbar states
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
+  const [sorts, setSorts] = useState<SortCondition[]>([]);
+  const [activePanel, setActivePanel] = useState<'filter' | 'sort' | 'group' | null>(null);
 
   // 1. 초기 데이터 로드 (Local Favorites)
   useEffect(() => {
     const savedFavs = localStorage.getItem('orbit_favs');
-    if (savedFavs) setFavorites(JSON.parse(savedFavs));
+    if (savedFavs) {
+      try {
+        setFavorites(JSON.parse(savedFavs));
+      } catch (e) {
+        console.error("Failed to parse favorites", e);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('orbit_favs', JSON.stringify(favorites));
+    if (favorites.length > 0) {
+      localStorage.setItem('orbit_favs', JSON.stringify(favorites));
+    }
   }, [favorites]);
 
   const fetchWorkspaces = useCallback(async () => {
     const { data: wsData } = await supabase.from("workspaces").select("*").order("created_at");
     const { data: tData } = await supabase.from("tables").select("*").order("created_at");
+    
     setWorkspaces(wsData || []);
     setTables(tData || []);
-    if (!activeTableId && tData && tData.length > 0) setActiveTableId(tData[0].id);
+    
+    // Set initial active table if not set
+    if (!activeTableId && tData && tData.length > 0) {
+      setActiveTableId(tData[0].id);
+    }
   }, [activeTableId]);
 
-  useEffect(() => { fetchWorkspaces(); }, [fetchWorkspaces]);
+  useEffect(() => { 
+    fetchWorkspaces(); 
+  }, [fetchWorkspaces]);
 
   // 2. useTable (Core Hook)
-  const { fields, rows, loading, refetch, setRows } = useTable(supabase, activeTableId || "");
+  const { fields, rows, refetch } = useTable(supabase, activeTableId || "");
 
   // ── Handlers (Workspace CRUD) ──
   const handleCreateWorkspace = async (name: string) => {
@@ -54,7 +87,6 @@ export default function Home() {
   };
 
   const handleDeleteWorkspace = async (id: string) => {
-    // Cascade delete tables and rows
     const wsTables = tables.filter(t => t.workspace_id === id);
     for (const t of wsTables) await handleDeleteTable(t.id);
     const { error } = await supabase.from("workspaces").delete().eq("id", id);
@@ -69,7 +101,6 @@ export default function Home() {
     const { data, error } = await supabase.from("tables").insert([{ workspace_id: workspaceId, name }]).select().single();
     if (error || !data) return;
     
-    // 초기 필드 셋업 (Notion-like default fields)
     const initialFields = [
       { table_id: data.id, name: 'Task Name', type: 'text', order: 0 },
       { table_id: data.id, name: 'Status', type: 'select', order: 1, options: { values: ['Planned', 'In Progress', 'Done'] } },
@@ -160,8 +191,7 @@ export default function Home() {
     if (doneField) {
       completed = rows.filter(r => r.data?.[doneField.id] === true || r.data?.[doneField.id] === 'true').length;
     }
-    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { total, completed, progress };
+    return { total, completed };
   }, [rows, fields]);
 
   // ── Final Render Logic ──
@@ -190,22 +220,24 @@ export default function Home() {
       </div>
 
       <main className="flex-1 flex flex-col min-w-0">
-        <TopBar
-          title={activeTable?.name || "Welcome to ORBIT"}
-          isTableActive={!!activeTableId}
-          onOpenSearch={() => {}}
-          onOpenSettings={() => {}}
+        <TopNavBar 
+          title={activeTable?.name || "Welcome to ORBIT"} 
         />
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="px-6 py-4 flex flex-col gap-4 border-b border-zinc-100">
-            <ViewSwitcher activeView={viewType} onChange={setViewType} />
+          <div className="flex flex-col border-b border-zinc-100">
+            <ViewSwitcher activeView={viewType} onViewChange={setViewType} />
             <Toolbar
               fields={fields}
-              onAddRow={() => handleAddRow()}
-              onAddField={handleAddField}
+              filters={filters}
+              sorts={sorts}
               groupBy={groupBy}
-              onGroupBy={setGroupBy}
+              onUpdateFilters={setFilters}
+              onUpdateSorts={setSorts}
+              onUpdateGroupBy={setGroupBy}
+              activePanel={activePanel}
+              onPanelChange={setActivePanel}
+              onNewRow={() => handleAddRow()}
             />
           </div>
 
@@ -226,8 +258,12 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-            ) : viewType === "calendar" ? (
-              <CalendarView fields={fields} rows={rows} />
+            ) : viewType === "Calendar" ? (
+              <CalendarView 
+                fields={fields} 
+                rows={rows.map(r => ({ ...r.data, id: r.id }))} 
+                onUpdateCell={handleUpdateCell}
+              />
             ) : (
               <DataTable
                 fields={fields}
@@ -236,7 +272,7 @@ export default function Home() {
                 onAddRow={handleAddRow}
                 onDeleteRow={handleDeleteRow}
                 onAddField={handleAddField}
-                onRenameField={() => {}} // CRUD implemented in follow-up
+                onRenameField={() => {}} 
                 onDeleteField={() => {}}
                 groupByFieldId={groupBy}
               />
@@ -246,10 +282,8 @@ export default function Home() {
       </main>
 
       <RightPanel
-        title="Project Insights"
-        stats={stats}
-        activeTableId={activeTableId || undefined}
-        onOpenPlugin={() => {}}
+        totalRows={stats.total}
+        completedRows={stats.completed}
       />
     </div>
   );
