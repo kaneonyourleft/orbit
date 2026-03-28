@@ -32,6 +32,18 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activePanel, setActivePanel] = useState<'filter' | 'sort' | 'group' | null>(null);
 
+  // Sidebar 접기
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Favorites (localStorage)
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try { return JSON.parse(localStorage.getItem('orbit-favorites') || '[]'); }
+      catch { return []; }
+    }
+    return [];
+  });
+
   const plugins = useMemo(() => [statusColorPlugin, rowCountPlugin, exportCsvPlugin], []);
 
   const { workspaces, loading: workspacesLoading, error: workspacesError } = useWorkspaces(supabase);
@@ -215,6 +227,121 @@ export default function Home() {
     catch (err) { console.error('Create workspace failed:', err); }
   };
 
+  // ── 워크스페이스 이름 변경 ──
+  const handleRenameWorkspace = async (id: string, name: string) => {
+    try {
+      await supabase.from('workspaces').update({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }).eq('id', id);
+      window.location.reload(); // useWorkspaces에 refetch 없으므로 임시
+    } catch (err) { console.error('Rename workspace failed:', err); }
+  };
+
+  // ── 워크스페이스 삭제 ──
+  const handleDeleteWorkspace = async (id: string) => {
+    try {
+      const wsTables = allTables.filter(t => t.workspace_id === id);
+      for (const table of wsTables) {
+        await supabase.from('rows').delete().eq('table_id', table.id);
+        await supabase.from('fields').delete().eq('table_id', table.id);
+        await supabase.from('tables').delete().eq('id', table.id);
+      }
+      await supabase.from('workspaces').delete().eq('id', id);
+      if (activeTableId && wsTables.find(t => t.id === activeTableId)) setActiveTableId(null);
+      window.location.reload();
+    } catch (err) { console.error('Delete workspace failed:', err); }
+  };
+
+  // ── 테이블 생성 (+ 기본 필드 5개) ──
+  const handleCreateTable = async (workspaceId: string, name: string) => {
+    try {
+      const { data: newTable, error } = await supabase.from('tables')
+        .insert({ workspace_id: workspaceId, name }).select().single();
+      if (error || !newTable) throw error;
+
+      await supabase.from('fields').insert([
+        { table_id: newTable.id, name: 'Task Name', type: 'text', order: 0 },
+        { table_id: newTable.id, name: 'Status', type: 'select', order: 1 },
+        { table_id: newTable.id, name: 'Priority', type: 'select', order: 2 },
+        { table_id: newTable.id, name: 'Owner', type: 'text', order: 3 },
+        { table_id: newTable.id, name: 'Done', type: 'checkbox', order: 4 },
+      ]);
+
+      await fetchTables();
+      setActiveTableId(newTable.id);
+    } catch (err) { console.error('Create table failed:', err); }
+  };
+
+  // ── 테이블 이름 변경 ──
+  const handleRenameTable = async (tableId: string, name: string) => {
+    try {
+      await supabase.from('tables').update({ name }).eq('id', tableId);
+      await fetchTables();
+    } catch (err) { console.error('Rename table failed:', err); }
+  };
+
+  // ── 테이블 삭제 ──
+  const handleDeleteTable = async (tableId: string) => {
+    try {
+      await supabase.from('rows').delete().eq('table_id', tableId);
+      await supabase.from('fields').delete().eq('table_id', tableId);
+      await supabase.from('tables').delete().eq('id', tableId);
+      if (activeTableId === tableId) setActiveTableId(null);
+      await fetchTables();
+    } catch (err) { console.error('Delete table failed:', err); }
+  };
+
+  // ── 테이블 복제 ──
+  const handleDuplicateTable = async (tableId: string) => {
+    try {
+      const srcTable = allTables.find(t => t.id === tableId);
+      if (!srcTable) return;
+
+      const { data: newTable } = await supabase.from('tables')
+        .insert({ workspace_id: srcTable.workspace_id, name: `${srcTable.name} (copy)` })
+        .select().single();
+      if (!newTable) return;
+
+      const { data: srcFields } = await supabase.from('fields')
+        .select('*').eq('table_id', tableId).order('order');
+      
+      if (srcFields && srcFields.length > 0) {
+        const fieldMap: Record<string, string> = {};
+        for (const f of srcFields) {
+          const { data: nf } = await supabase.from('fields')
+            .insert({ table_id: newTable.id, name: f.name, type: f.type, options: f.options, order: f.order })
+            .select().single();
+          if (nf) fieldMap[f.id] = nf.id;
+        }
+
+        const { data: srcRows } = await supabase.from('rows')
+          .select('*').eq('table_id', tableId).order('order');
+        
+        if (srcRows) {
+          for (const r of srcRows) {
+            const newData: Record<string, unknown> = {};
+            for (const [oldId, val] of Object.entries(r.data || {})) {
+              if (fieldMap[oldId]) newData[fieldMap[oldId]] = val;
+            }
+            await supabase.from('rows').insert({ table_id: newTable.id, data: newData, order: r.order });
+          }
+        }
+      }
+
+      await fetchTables();
+      setActiveTableId(newTable.id);
+    } catch (err) { console.error('Duplicate table failed:', err); }
+  };
+
+  // ── Favorites 토글 ──
+  const handleToggleFavorite = (tableId: string) => {
+    setFavorites(prev => {
+      const next = prev.includes(tableId)
+        ? prev.filter(id => id !== tableId)
+        : [...prev, tableId];
+      if (typeof window !== 'undefined') localStorage.setItem('orbit-favorites', JSON.stringify(next));
+      return next;
+    });
+  };
+
   if (workspacesLoading || (activeTableId && tableLoading)) return (
     <div className="w-full h-screen bg-white flex items-center justify-center font-sans">
       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0058BE]"></div>
@@ -241,9 +368,31 @@ export default function Home() {
       <TopNavBar workspaceName={workspaces[0]?.name} tableName={activeTableName} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - flex, not fixed */}
-        <div className="w-64 shrink-0">
-          <Sidebar workspaces={workspaces} onCreateWorkspace={handleCreateWorkspace} tables={allTables} activeTableId={activeTableId}
-            onSelectTable={(tableId) => { setActiveTableId(tableId); setFilters([]); setSorts([]); setGroupByFieldId(null); setActivePanel(null); setActiveView('Table'); }} />
+        <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} shrink-0 transition-all duration-300`}>
+          <Sidebar
+            workspaces={workspaces}
+            tables={allTables}
+            activeTableId={activeTableId}
+            favorites={favorites}
+            isCollapsed={sidebarCollapsed}
+
+            onCreateWorkspace={handleCreateWorkspace}
+            onRenameWorkspace={handleRenameWorkspace}
+            onDeleteWorkspace={handleDeleteWorkspace}
+
+            onSelectTable={(tableId) => {
+              setActiveTableId(tableId);
+              setFilters([]); setSorts([]); setGroupByFieldId(null);
+              setActivePanel(null); setActiveView('Table');
+            }}
+            onCreateTable={handleCreateTable}
+            onRenameTable={handleRenameTable}
+            onDeleteTable={handleDeleteTable}
+            onDuplicateTable={handleDuplicateTable}
+
+            onToggleFavorite={handleToggleFavorite}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
         </div>
 
         {/* Main Content */}
