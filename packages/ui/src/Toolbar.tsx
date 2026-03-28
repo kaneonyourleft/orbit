@@ -127,10 +127,10 @@ export function Toolbar({
         <div className="w-px h-6 bg-zinc-100" />
         <button 
           onClick={onNewRow}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-200 active:scale-95"
+          className="flex items-center gap-2 px-4 py-2 bg-[#006C49] border border-[#006C49] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-[#005a3d] transition-all shadow-lg shadow-emerald-100 active:scale-95"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
-          <span>New Record</span>
+          <span>New Task</span>
         </button>
       </div>
     </div>

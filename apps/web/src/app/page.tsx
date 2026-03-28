@@ -203,10 +203,25 @@ export default function Home() {
     if (!activeTableId) return;
     const newOrder = rows.length > 0 ? Math.max(...rows.map(r => r.order)) + 1 : 0;
     const initialData: Record<string, unknown> = {};
+    
+    // 기본 Task Name 설정 → 빈 행 방지
+    const taskNameField = fields.find(f => f.name.toLowerCase().includes('name'));
+    if (taskNameField) {
+      initialData[taskNameField.id] = `New Task ${newOrder + 1}`;
+    }
+    
+    // Status 설정 (그룹에서 추가 시)
     if (status) {
       const statusField = fields.find(f => f.name.toLowerCase() === 'status');
       if (statusField) initialData[statusField.id] = status;
     }
+    
+    // Done 필드 기본값 false
+    const doneField = fields.find(f => f.type === 'checkbox');
+    if (doneField) {
+      initialData[doneField.id] = false;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('rows')
@@ -286,10 +301,9 @@ export default function Home() {
 
   // BUG 3: Stats Calculation
   const completedCount = processedRows.filter((r: any) => {
-    const statusField = fields.find(f => f.name.toLowerCase() === 'status');
     const doneField = fields.find(f => f.type === 'checkbox');
+    // 오직 Done 체크박스가 true인 경우만 completed로 카운트
     if (doneField && r[doneField.id] === true) return true;
-    if (statusField) return String(r[statusField.id] || '').toLowerCase().includes('complete');
     return false;
   }).length;
 

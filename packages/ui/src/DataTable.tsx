@@ -62,9 +62,8 @@ export function DataTable({
 
   const renderRow = (row: Record<string, any>, rowIndex: number) => {
     const doneField = fields.find(f => f.id === '8a007d09-d5b7-4558-87a4-7b99758c77ce' || f.type === 'checkbox');
-    const statusField = fields.find(f => f.name.toLowerCase() === 'status');
-    const isChecked = doneField ? row[doneField.id] === true : false;
-    const isCompleted = isChecked || (statusField && String(row[statusField.id] || '').toLowerCase().includes('completed'));
+    const isChecked = doneField ? (row[doneField.id] === true || row[doneField.id] === 'true') : false;
+    const isCompleted = isChecked;
     
     return (
       <tr 
