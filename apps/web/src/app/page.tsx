@@ -124,14 +124,13 @@ export default function Home() {
     catch (err) { console.error('Update failed:', err); }
   };
 
-  const handleAddRow = async (status?: string) => {
+  const handleAddRow = async (defaultData?: Record<string, any>) => {
     if (!activeTableId) return;
     const newOrder = rows.length > 0 ? Math.max(...rows.map(r => r.order)) + 1 : 0;
-    const initialData: Record<string, unknown> = {};
+    const initialData: Record<string, unknown> = { ...defaultData };
     const taskNameField = fields.find(f => f.name.toLowerCase().includes('name'));
-    if (taskNameField) initialData[taskNameField.id] = `New Task ${newOrder + 1}`;
-    if (status) { const sf = fields.find(f => f.name.toLowerCase() === 'status'); if (sf) initialData[sf.id] = status; }
-    const doneField = fields.find(f => f.type === 'checkbox'); if (doneField) initialData[doneField.id] = false;
+    if (taskNameField && !initialData[taskNameField.id]) initialData[taskNameField.id] = `New Task ${newOrder + 1}`;
+    const doneField = fields.find(f => f.type === 'checkbox'); if (doneField && initialData[doneField.id] === undefined) initialData[doneField.id] = false;
     try {
       const { data, error } = await supabase.from('rows').insert({ table_id: activeTableId, data: initialData, order: newOrder }).select().single();
       if (error) throw error; if (data) setRows(prev => [...prev, data]);
@@ -153,6 +152,60 @@ export default function Home() {
     try { await supabase.from('fields').update({ name: newName }).eq('id', fieldId); refreshTable(); }
     catch (err) { console.error('Rename field failed:', err); }
   };
+
+  const handleDeleteField = useCallback(async (fieldId: string) => {
+    const { error } = await supabase.from('fields').delete().eq('id', fieldId);
+    if (!error) {
+      for (const row of rows) {
+        const newData = { ...row.data };
+        delete newData[fieldId];
+        await supabase.from('rows').update({ data: newData }).eq('id', row.id);
+      }
+      refreshTable();
+    }
+  }, [supabase, rows, refreshTable]);
+
+  const handleChangeFieldType = useCallback(async (fieldId: string, newType: string) => {
+    const { error } = await supabase.from('fields').update({ type: newType }).eq('id', fieldId);
+    if (!error) refreshTable();
+  }, [supabase, refreshTable]);
+
+  const handleReorderField = useCallback(async (fieldId: string, direction: 'left' | 'right') => {
+    const sorted = [...fields].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex(f => f.id === fieldId);
+    const swapIdx = direction === 'left' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+    const a = sorted[idx], b = sorted[swapIdx];
+    await Promise.all([
+      supabase.from('fields').update({ order: b.order }).eq('id', a.id),
+      supabase.from('fields').update({ order: a.order }).eq('id', b.id),
+    ]);
+    refreshTable();
+  }, [supabase, fields, refreshTable]);
+
+  const handleDuplicateRow = useCallback(async (rowId: string) => {
+    const row = rows.find(r => r.id === rowId);
+    if (!row) return;
+    const { error } = await supabase.from('rows').insert({
+      table_id: activeTableId,
+      data: row.data,
+      order: rows.length,
+    });
+    if (!error) refreshTable();
+  }, [supabase, rows, activeTableId, refreshTable]);
+
+  const handleReorderRow = useCallback(async (rowId: string, direction: 'up' | 'down') => {
+    const sorted = [...rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const idx = sorted.findIndex(r => r.id === rowId);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+    const a = sorted[idx], b = sorted[swapIdx];
+    await Promise.all([
+      supabase.from('rows').update({ order: b.order ?? swapIdx }).eq('id', a.id),
+      supabase.from('rows').update({ order: a.order ?? idx }).eq('id', b.id),
+    ]);
+    refreshTable();
+  }, [supabase, rows, refreshTable]);
 
   const handleCreateWorkspace = async (name: string) => {
     try { await supabase.from('workspaces').insert({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }); refreshTable(); }
@@ -215,9 +268,23 @@ export default function Home() {
             </div>
             <div className="flex-1 p-6 pt-3">
               {activeTableId && activeView === 'Table' && (
-                <DataTable fields={fields} rows={processedRows} onUpdateCell={handleUpdateCell} onAddRow={(s) => handleAddRow(s)}
-                  onDeleteRow={handleDeleteRow} onAddField={handleAddField} onRenameField={handleRenameField}
-                  groupByFieldId={groupByFieldId} renderers={fieldRenderers} />
+                <DataTable
+                  fields={fields}
+                  rows={processedRows}
+                  onUpdateCell={handleUpdateCell}
+                  onAddRow={handleAddRow}
+                  onDeleteRow={handleDeleteRow}
+                  onAddField={handleAddField}
+                  onRenameField={handleRenameField}
+                  onDeleteField={handleDeleteField}
+                  onChangeFieldType={handleChangeFieldType}
+                  onReorderField={handleReorderField}
+                  onDuplicateRow={handleDuplicateRow}
+                  onReorderRow={handleReorderRow}
+                  groupByFieldId={groupByFieldId || undefined}
+                  onGroupBy={setGroupByFieldId}
+                  renderers={fieldRenderers}
+                />
               )}
               {activeTableId && activeView === 'Kanban' && <KanbanBoard fields={fields} rows={processedRows} onUpdateCell={handleUpdateCell} onAddRow={(s) => handleAddRow(s)} />}
               {activeTableId && activeView === 'Calendar' && <CalendarView fields={fields} rows={processedRows} onUpdateCell={handleUpdateCell} />}
