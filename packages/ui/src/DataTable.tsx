@@ -316,6 +316,36 @@ function InlineCell({ field, value, onSave, renderers = {} }: {
     );
   }
 
+  // Owner (text 필드지만 이름이 'owner'인 경우 아바타 표시)
+  const isOwner = field.name.toLowerCase() === 'owner' && field.type === 'text';
+  if (isOwner) {
+    if (editing) {
+      return (
+        <input ref={inputRef} type="text"
+          value={localVal} onChange={e => setLocalVal(e.target.value)}
+          onBlur={save} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setLocalVal(value ?? ''); setEditing(false); } }}
+          title="Edit owner"
+          className="w-full px-2 py-1 border border-zinc-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white" />
+      );
+    }
+    const displayName = value || '';
+    const initial = displayName ? displayName.charAt(0).toUpperCase() : '?';
+    const colors = [
+      'bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700',
+      'bg-amber-100 text-amber-700', 'bg-purple-100 text-purple-700',
+      'bg-rose-100 text-rose-700', 'bg-cyan-100 text-cyan-700',
+    ];
+    const colorIdx = displayName ? displayName.charCodeAt(0) % colors.length : 0;
+    return (
+      <button onClick={() => setEditing(true)} className="flex items-center gap-2 hover:bg-zinc-50 px-1.5 py-1 rounded-lg transition-colors">
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${colors[colorIdx]}`}>
+          {initial}
+        </div>
+        <span className="text-sm text-zinc-700 font-medium truncate max-w-[120px]">{displayName || <span className="text-zinc-400">—</span>}</span>
+      </button>
+    );
+  }
+
   // Text / Number (default)
   if (editing) {
     return (
