@@ -13,6 +13,7 @@ export function Sidebar({
 }) {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = React.useState('');
+  const [expandedFolder, setExpandedFolder] = React.useState<string | null>('Product Management');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,82 +25,95 @@ export function Sidebar({
   };
 
   return (
-    <aside className="w-64 h-full bg-[#F7F7F5] border-r border-zinc-200 flex flex-col font-sans text-zinc-800 shrink-0">
-      {/* Top Header */}
-      <div className="p-4 flex items-center space-x-2">
-        <div className="w-6 h-6 rounded bg-[#0058BE] flex items-center justify-center">
-          <span className="material-symbols-outlined text-white text-[16px]">orbit</span>
+    <aside className="fixed left-0 top-14 bottom-0 flex flex-col w-64 p-4 gap-2 bg-zinc-50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 transition-all duration-150 ease-in-out z-40">
+      {/* Profile Header */}
+      <div className="flex items-center gap-3 mb-6 px-1">
+        <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center overflow-hidden shadow-sm">
+          <span className="material-symbols-outlined text-on-primary-container text-xl">rocket_launch</span>
         </div>
-        <span className="font-bold text-sm tracking-tight text-zinc-800">ORBIT</span>
-        <span className="text-[10px] text-zinc-400 font-bold bg-zinc-100 px-1.5 py-0.5 rounded ml-1">Workspace OS</span>
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Acme Corp</span>
+          <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Enterprise Plan</span>
+        </div>
+        <button className="ml-auto text-zinc-400">
+          <span className="material-symbols-outlined text-sm">unfold_more</span>
+        </button>
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2">
-        <div className="px-3 space-y-0.5">
-          <a href="/" className="flex items-center space-x-2 px-2 py-1.5 rounded-md text-sm font-medium hover:bg-zinc-200/50 text-zinc-700 transition-colors">
-            <span className="material-symbols-outlined text-[18px]">home</span>
-            <span>Home</span>
-          </a>
-          <a href="/tasks" className="flex items-center space-x-2 px-2 py-1.5 rounded-md text-sm font-medium hover:bg-zinc-200/50 text-zinc-700 transition-colors">
-            <span className="material-symbols-outlined text-[18px]">check_circle</span>
-            <span>My Tasks</span>
-          </a>
+      <nav className="flex flex-col gap-1 overflow-y-auto hide-scrollbar">
+        <a className="flex items-center gap-3 px-3 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/">
+          <span className="material-symbols-outlined text-lg">home</span>
+          <span>Home</span>
+        </a>
+        <a className="flex items-center gap-3 px-3 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/tasks">
+          <span className="material-symbols-outlined text-lg">check_circle</span>
+          <span>My Tasks</span>
+        </a>
+
+        <div className="mt-4">
+          <div className="flex items-center justify-between px-3 py-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">
+            <span>Workspaces</span>
+            <span 
+              className="material-symbols-outlined text-sm cursor-pointer hover:text-primary transition-colors"
+              onClick={() => setIsModalOpen(true)}
+            >
+              add
+            </span>
+          </div>
+
+          <div className="space-y-0.5">
+            {workspaces.map((ws) => (
+              <div key={ws.id} className="space-y-0.5">
+                <div 
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all cursor-pointer group ${
+                    expandedFolder === ws.name 
+                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-r-2 border-blue-600' 
+                      : 'text-zinc-500 hover:bg-zinc-200/50'
+                  }`}
+                  onClick={() => setExpandedFolder(expandedFolder === ws.name ? null : ws.name)}
+                >
+                  <span className={`material-symbols-outlined text-sm transition-transform ${expandedFolder === ws.name ? 'rotate-0' : '-rotate-90'}`}>
+                    keyboard_arrow_down
+                  </span>
+                  <span className="material-symbols-outlined text-lg">
+                    {expandedFolder === ws.name ? 'folder_open' : 'folder'}
+                  </span>
+                  <span className="flex-1 text-[11px] font-bold">{ws.name}</span>
+                  <span className="material-symbols-outlined text-xs hidden group-hover:block opacity-60">more_horiz</span>
+                </div>
+
+                {expandedFolder === ws.name && (
+                  <div className="pl-8 flex flex-col gap-0.5">
+                    <a className="flex items-center gap-2 px-3 py-1.5 text-blue-600 font-semibold bg-blue-100/50 rounded text-[11px] group" href="#">
+                      <span className="material-symbols-outlined text-base">table_chart</span>
+                      <span className="flex-1">Product Roadmap 2026</span>
+                      <span className="material-symbols-outlined text-[10px] hidden group-hover:block opacity-60">edit</span>
+                    </a>
+                    <a className="flex items-center gap-2 px-3 py-1.5 text-zinc-500 hover:bg-zinc-200/50 rounded text-[11px] group" href="#">
+                      <span className="material-symbols-outlined text-base">table_chart</span>
+                      <span className="flex-1">Backlog Refinement</span>
+                      <span className="material-symbols-outlined text-[10px] hidden group-hover:block opacity-60 text-zinc-400">delete</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Workspaces Section */}
-        <div className="mt-6">
-          <div className="px-5 mb-1 flex items-center justify-between group">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Workspaces</span>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-zinc-200 rounded"
-              title="Add Workspace"
-            >
-              <span className="material-symbols-outlined text-[14px]">add</span>
-            </button>
-          </div>
-          
-          <ul className="space-y-0.5">
-            {workspaces.map((ws, idx) => (
-              <li key={ws.id}>
-                <div className={`group flex flex-col ${idx === 0 ? 'bg-white border-l-2 border-[#0058BE]' : ''}`}>
-                  <button className={`flex items-center w-full px-5 py-1.5 text-sm font-medium transition-colors ${idx === 0 ? 'text-[#0058BE]' : 'text-zinc-600 hover:bg-zinc-200/50'}`}>
-                    <span className="material-symbols-outlined text-[16px] mr-2">folder</span>
-                    <span className="flex-1 text-left truncate">{ws.name}</span>
-                    <span className="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100">chevron_right</span>
-                  </button>
-                  
-                  {/* Nested Tables - Mocked as per request */}
-                  {idx === 0 && (
-                    <ul className="pl-9 pr-2 py-1 space-y-0.5 bg-white">
-                      <li>
-                        <a href="#" className="block px-2 py-1 text-xs text-[#0058BE] bg-blue-50/50 font-medium rounded transition-colors border-l border-[#0058BE]">
-                          Product Roadmap 2026
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#" className="block px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100 rounded transition-colors border-l border-transparent">
-                          Backlog Refinement
-                        </a>
-                      </li>
-                    </ul>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <a className="flex items-center gap-3 px-3 py-2 mt-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/inbox">
+          <span className="material-symbols-outlined text-lg">inbox</span>
+          <span>Inbox</span>
+        </a>
       </nav>
 
-      {/* Bottom Actions */}
-      <div className="p-3 border-t border-zinc-200 bg-white">
-        <a href="#" className="flex items-center space-x-2 px-2 py-1.5 rounded-md text-sm font-medium hover:bg-zinc-100 text-zinc-600 transition-colors">
-          <span className="material-symbols-outlined text-[18px]">settings</span>
+      <div className="mt-auto pt-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col gap-1">
+        <a className="flex items-center gap-3 px-3 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/settings">
+          <span className="material-symbols-outlined text-lg">settings</span>
           <span>Settings</span>
         </a>
-        <a href="#" className="flex items-center space-x-2 px-2 py-1.5 rounded-md text-sm font-medium hover:bg-zinc-100 text-zinc-600 transition-colors">
-          <span className="material-symbols-outlined text-[18px]">help</span>
+        <a className="flex items-center gap-3 px-3 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-md text-xs font-medium uppercase tracking-wider" href="/support">
+          <span className="material-symbols-outlined text-lg">contact_support</span>
           <span>Support</span>
         </a>
       </div>

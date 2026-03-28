@@ -255,7 +255,7 @@ export default function Home() {
   const activeWorkspace = workspaces.find(w => w.id === workspaces[0].id);
 
   return (
-    <div className="flex flex-col w-full h-screen bg-[#F7F7F5] font-sans text-zinc-900 selection:bg-blue-100 antialiased overflow-hidden">
+    <div className="flex flex-col w-full h-screen bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 selection:bg-blue-100 antialiased overflow-hidden">
       {/* Top Navigation */}
       <TopNavBar 
         workspaceName={activeWorkspace?.name} 
@@ -264,15 +264,15 @@ export default function Home() {
         onSearchChange={setSearchQuery}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Left Sidebar */}
         <Sidebar 
           workspaces={workspaces} 
           onCreateWorkspace={handleCreateWorkspace}
         />
 
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col bg-white overflow-hidden relative shadow-[inset_1px_0_0_0_rgba(0,0,0,0.05)]">
+        {/* Main Content Area - Shifted for fixed sidebars */}
+        <main className="flex-1 ml-64 mr-72 flex flex-col bg-white dark:bg-zinc-900 overflow-hidden relative shadow-[inset_1px_0_0_0_rgba(0,0,0,0.05)] border-x border-zinc-200 dark:border-zinc-800">
           <PluginPanel 
             isOpen={isPluginsOpen} 
             onClose={() => setIsPluginsOpen(false)} 
@@ -282,14 +282,14 @@ export default function Home() {
           
           <div className="flex flex-col h-full overflow-hidden">
              {/* Dynamic Sub Header */}
-             <div className="px-8 pt-8 pb-1 shrink-0 bg-white">
+             <div className="px-8 pt-8 pb-1 shrink-0 bg-white dark:bg-zinc-900 mt-2">
                <div className="flex items-center justify-between mb-4">
                  <div className="flex items-center space-x-3">
-                   <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Product Roadmap 2026</h1>
+                   <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight">Product Roadmap 2026</h1>
                    {groupByFieldId && (
-                     <div className="flex items-center space-x-1.5 px-2 py-1 bg-zinc-50 rounded border border-zinc-200">
+                     <div className="flex items-center space-x-1.5 px-2 py-1 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700">
                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Grouped by:</span>
-                       <span className="text-[10px] font-bold text-[#0058BE] uppercase tracking-widest leading-none">Status</span>
+                       <span className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none">Status</span>
                      </div>
                    )}
                  </div>
@@ -299,14 +299,14 @@ export default function Home() {
                       <button 
                         key={idx} 
                         onClick={item.onClick} 
-                        className="px-3 py-1.5 text-xs font-bold text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800 border border-zinc-200 rounded-lg transition-all"
+                        className="px-3 py-1.5 text-xs font-bold text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg transition-all"
                       >
                         {item.label}
                       </button>
                     ))}
                     <button 
                       onClick={() => setIsPluginsOpen(true)} 
-                      className="p-1.5 text-zinc-400 hover:text-[#0058BE] transition-colors hover:bg-zinc-50 rounded-lg"
+                      className="p-1.5 text-zinc-400 hover:text-primary transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg"
                       title="Plugins"
                     >
                       <span className="material-symbols-outlined text-[22px]">extension</span>
@@ -338,7 +338,7 @@ export default function Home() {
              </div>
 
              {/* View Container */}
-             <div className="flex-1 overflow-auto p-8 pt-2 scrollbar-none">
+             <div className="flex-1 overflow-auto p-8 pt-2 hide-scrollbar">
                <div className="max-w-[1400px] mx-auto animate-in fade-in duration-500">
                  {activeView === 'Table' && (
                     <DataTable 
@@ -374,10 +374,7 @@ export default function Home() {
         </main>
 
         {/* Right Side Panel */}
-        <RightPanel 
-          totalRows={rows.length} 
-          completedRows={completedCount} 
-        />
+        <RightPanel />
       </div>
     </div>
   );

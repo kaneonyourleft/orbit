@@ -8,6 +8,16 @@
 
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --color-primary: #0058be;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #d6e3ff;
+  --color-on-primary-container: #001b3e;
+  --color-secondary: #006c49;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #afefcb;
+  --color-on-secondary-container: #002113;
+  --color-surface: #f9f9f7;
+  --color-outline: #e2e2df;
 }
 
 body {
