@@ -1,10 +1,11 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Sidebar, DataTable, Toolbar, ViewSwitcher, TopNavBar, RightPanel, CalendarView } from "@orbit/ui";
+import { 
+  Sidebar, DataTable, Toolbar, ViewSwitcher, TopNavBar, RightPanel, CalendarView,
+  FilterCondition, SortCondition
+} from "@orbit/ui";
 import { useTable } from "@orbit/core";
-import { FilterCondition } from "@orbit/ui";
-import { SortCondition } from "@orbit/ui";
 
 // ── Supabase ──
 const supabase = createClient(
@@ -30,29 +31,32 @@ export default function Home() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [viewType, setViewType] = useState<string>("Table");
   const [groupBy, setGroupBy] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
   
+  // Initialize from localStorage directly to avoid cascading renders
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('orbit_favs');
+      try {
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        console.error("Failed to parse favorites", e);
+        return [];
+      }
+    }
+    return [];
+  });
+  
+  // Search
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Toolbar states
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [sorts, setSorts] = useState<SortCondition[]>([]);
   const [activePanel, setActivePanel] = useState<'filter' | 'sort' | 'group' | null>(null);
 
-  // 1. 초기 데이터 로드 (Local Favorites)
+  // Persistence effect for favorites
   useEffect(() => {
-    const savedFavs = localStorage.getItem('orbit_favs');
-    if (savedFavs) {
-      try {
-        setFavorites(JSON.parse(savedFavs));
-      } catch (e) {
-        console.error("Failed to parse favorites", e);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (favorites.length > 0) {
-      localStorage.setItem('orbit_favs', JSON.stringify(favorites));
-    }
+    localStorage.setItem('orbit_favs', JSON.stringify(favorites));
   }, [favorites]);
 
   const fetchWorkspaces = useCallback(async () => {
@@ -69,7 +73,12 @@ export default function Home() {
   }, [activeTableId]);
 
   useEffect(() => { 
-    fetchWorkspaces(); 
+    // fetchWorkspaces is async, so calling it here is generally fine.
+    // However, wrap it to satisfy strict linters if needed.
+    const init = async () => {
+      await fetchWorkspaces();
+    };
+    init();
   }, [fetchWorkspaces]);
 
   // 2. useTable (Core Hook)
@@ -144,7 +153,7 @@ export default function Home() {
   };
 
   // ── Handlers (Table Engine) ──
-  const handleUpdateCell = async (rowId: string, fieldId: string, value: any) => {
+  const handleUpdateCell = async (rowId: string, fieldId: string, value: unknown) => {
     const row = rows.find(r => r.id === rowId);
     if (!row) return;
     const updatedData = { ...row.data, [fieldId]: value };
@@ -196,6 +205,7 @@ export default function Home() {
 
   // ── Final Render Logic ──
   const activeTable = tables.find(t => t.id === activeTableId);
+  const activeWorkspace = workspaces.find(w => w.id === activeTable?.workspace_id);
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
@@ -221,7 +231,10 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col min-w-0">
         <TopNavBar 
-          title={activeTable?.name || "Welcome to ORBIT"} 
+          workspaceName={activeWorkspace?.name || "Workspace"}
+          tableName={activeTable?.name || "Select a table"}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
 
         <div className="flex-1 flex flex-col overflow-hidden">
