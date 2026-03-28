@@ -95,14 +95,6 @@ export function DataTable({
                 </div>
                 <span className="text-xs font-medium text-zinc-600">{row[field.id] || 'Unassigned'}</span>
               </div>
-            ) : field.name.toLowerCase() === 'status' ? (
-              <div className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold w-fit shadow-sm border ${getStatusBadgeStyle(row[field.id])}`}>
-                {row[field.id]}
-              </div>
-            ) : field.name.toLowerCase() === 'priority' ? (
-              <div className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest w-fit border ${getPriorityBadgeStyle(row[field.id])}`}>
-                {row[field.id]}
-              </div>
             ) : field.type === 'date' ? (
                <div className="flex flex-col">
                   <span className={isOverdue(row[field.id]) ? 'text-red-600 font-extrabold' : ''}>{row[field.id]}</span>
@@ -237,19 +229,20 @@ export function DataTable({
 
 function getStatusBadgeStyle(status: string) {
   const s = String(status || '').toLowerCase();
-  if (s.includes('progress')) return 'bg-blue-50 text-[#0058BE] border-blue-100';
   if (s.includes('planned')) return 'bg-zinc-50 text-zinc-500 border-zinc-200';
-  if (s.includes('stuck') || s.includes('critical')) return 'bg-red-50 text-red-700 border-red-100';
+  if (s.includes('progress')) return 'bg-blue-50 text-[#0058BE] border-blue-100';
+  if (s.includes('stuck')) return 'bg-red-50 text-red-700 border-red-100';
   if (s.includes('completed') || s.includes('done')) return 'bg-[#AFEFCB]/30 text-[#006C49] border-[#AFEFCB]/50';
   return 'bg-zinc-50 text-zinc-400 border-zinc-100';
 }
 
 function getPriorityBadgeStyle(priority: string) {
   const p = String(priority || '').toLowerCase();
-  if (p.includes('critical')) return 'bg-red-100 text-red-800 border-red-200';
+  if (p.includes('critical')) return 'bg-red-50 text-red-700 border-red-100';
   if (p.includes('high')) return 'bg-amber-100 text-amber-800 border-amber-200';
+  if (p.includes('mid') || p.includes('medium')) return 'bg-zinc-100 text-zinc-600 border-zinc-200';
   if (p.includes('low')) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-  return 'bg-zinc-100 text-zinc-600 border-zinc-200';
+  return 'bg-zinc-50 text-zinc-400 border-zinc-100';
 }
 
 function isOverdue(dateStr: any) {
