@@ -198,8 +198,6 @@ function getStatusColorClass(status: string) {
   if (s.includes('completed')) return 'text-emerald-600';
   return 'text-zinc-500';
 }
-  );
-}
 
 function getFieldIcon(type: string) {
   switch (type) {
