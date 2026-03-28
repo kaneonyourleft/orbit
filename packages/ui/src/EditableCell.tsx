@@ -16,6 +16,7 @@ export function EditableCell({ value, type, field, onSave, renderers = {} }: Edi
   const [isEditing, setIsEditing] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isSelectLike = type === 'select' || type === 'status' || type === 'priority';
 
   useEffect(() => {
     setCurrentValue(value);
@@ -56,6 +57,35 @@ export function EditableCell({ value, type, field, onSave, renderers = {} }: Edi
   }
 
   if (isEditing) {
+    if (isSelectLike) {
+      // Mockup default options for status/priority if not provided by field metadata
+      const defaultOptions = field.name.toLowerCase() === 'priority' 
+        ? ['Critical', 'High', 'Medium', 'Low'] 
+        : ['Planned', 'In Progress', 'Stuck', 'Completed', 'Done'];
+      
+      return (
+        <select
+          ref={inputRef as any}
+          title="Field options"
+          className="w-full bg-white border border-primary shadow-sm outline-none px-2 py-1 rounded-md text-sm text-zinc-900 ring-2 ring-blue-50 cursor-pointer"
+          value={currentValue ?? ''}
+          onChange={(e) => {
+            const val = e.target.value;
+            setCurrentValue(val);
+            onSave(val);
+            setIsEditing(false);
+          }}
+          onBlur={handleBlur}
+          autoFocus
+        >
+          <option value="">Unset</option>
+          {defaultOptions.map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      );
+    }
+
     return (
       <input
         ref={inputRef}
@@ -72,8 +102,9 @@ export function EditableCell({ value, type, field, onSave, renderers = {} }: Edi
 
   return (
     <div 
-      onDoubleClick={() => setIsEditing(true)}
-      className="w-full h-full min-h-[1.5rem] flex items-center group cursor-text transition-colors hover:bg-zinc-50/50 rounded px-1 -ml-1"
+      onClick={() => isSelectLike && setIsEditing(true)}
+      onDoubleClick={() => !isSelectLike && setIsEditing(true)}
+      className={`w-full h-full min-h-[1.5rem] flex items-center group transition-colors hover:bg-zinc-50/50 rounded px-1 -ml-1 ${isSelectLike ? 'cursor-pointer' : 'cursor-text'}`}
     >
       <div className="flex-1 truncate">
          {renderers[type] 
@@ -81,7 +112,9 @@ export function EditableCell({ value, type, field, onSave, renderers = {} }: Edi
            : renderDisplayValue(type, value)
          }
       </div>
-      <span className="opacity-0 group-hover:opacity-100 text-[14px] text-zinc-300 material-symbols-outlined ml-1.5 transition-opacity">edit</span>
+      {!isSelectLike && (
+        <span className="opacity-0 group-hover:opacity-100 text-[14px] text-zinc-300 material-symbols-outlined ml-1.5 transition-opacity select-none pointer-events-none">edit</span>
+      )}
     </div>
   );
 }
