@@ -76,6 +76,314 @@ export default function OrbitBuilder() {
       attributes: { class: 'fa fa-bolt' },
     })
 
+    // 7. 애니메이션 사이드바
+    editor.BlockManager.add('orbit-sidebar', {
+      label: '사이드바',
+      category: 'Orbit Layouts',
+      content: `
+        <style>
+          .orbit-sidebar {
+            width: 240px;
+            height: 100vh;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: #fff;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Inter', sans-serif;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            position: relative;
+          }
+          .orbit-sidebar.collapsed {
+            width: 64px;
+          }
+          .orbit-sidebar .sidebar-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          .orbit-sidebar .sidebar-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 900;
+            flex-shrink: 0;
+          }
+          .orbit-sidebar .sidebar-title {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+          }
+          .orbit-sidebar .sidebar-subtitle {
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 500;
+            white-space: nowrap;
+          }
+          .orbit-sidebar .sidebar-nav {
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+          }
+          .orbit-sidebar .nav-section-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 12px 12px 6px;
+            white-space: nowrap;
+          }
+          .orbit-sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            text-decoration: none;
+          }
+          .orbit-sidebar .nav-item:hover {
+            background: rgba(255,255,255,0.06);
+            color: #e2e8f0;
+          }
+          .orbit-sidebar .nav-item.active {
+            background: rgba(59,130,246,0.15);
+            color: #60a5fa;
+          }
+          .orbit-sidebar .nav-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+          }
+          .orbit-sidebar .nav-text {
+            opacity: 1;
+            transition: opacity 0.2s ease;
+          }
+          .orbit-sidebar .sidebar-footer {
+            padding: 12px 8px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+          }
+          .orbit-sidebar .workspace-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.15s ease;
+          }
+          .orbit-sidebar .workspace-item:hover {
+            background: rgba(255,255,255,0.06);
+          }
+          .orbit-sidebar .ws-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+          }
+
+          @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+          }
+          @keyframes fadeInUp {
+            from { transform: translateY(8px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          .orbit-sidebar {
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+          .orbit-sidebar .nav-item:nth-child(1) { animation: fadeInUp 0.3s ease 0.1s both; }
+          .orbit-sidebar .nav-item:nth-child(2) { animation: fadeInUp 0.3s ease 0.15s both; }
+          .orbit-sidebar .nav-item:nth-child(3) { animation: fadeInUp 0.3s ease 0.2s both; }
+          .orbit-sidebar .nav-item:nth-child(4) { animation: fadeInUp 0.3s ease 0.25s both; }
+          .orbit-sidebar .nav-item:nth-child(5) { animation: fadeInUp 0.3s ease 0.3s both; }
+          .orbit-sidebar .workspace-item:nth-child(1) { animation: fadeInUp 0.3s ease 0.35s both; }
+          .orbit-sidebar .workspace-item:nth-child(2) { animation: fadeInUp 0.3s ease 0.4s both; }
+        </style>
+        <aside class="orbit-sidebar">
+          <div class="sidebar-header">
+            <div class="sidebar-logo">O</div>
+            <div>
+              <div class="sidebar-title">ORBIT</div>
+              <div class="sidebar-subtitle">WORKSPACE OS</div>
+            </div>
+          </div>
+
+          <nav class="sidebar-nav">
+            <a class="nav-item active">
+              <span class="nav-icon">🏠</span>
+              <span class="nav-text">홈</span>
+            </a>
+            <a class="nav-item">
+              <span class="nav-icon">📋</span>
+              <span class="nav-text">내 작업</span>
+            </a>
+            <a class="nav-item">
+              <span class="nav-icon">📥</span>
+              <span class="nav-text">알림함</span>
+            </a>
+            <a class="nav-item">
+              <span class="nav-icon">🎨</span>
+              <span class="nav-text">페이지 빌더</span>
+            </a>
+
+            <div class="nav-section-label">워크스페이스</div>
+
+            <div class="workspace-item">
+              <div class="ws-dot" style="background:#3b82f6;"></div>
+              <span>생산관리</span>
+            </div>
+            <div class="workspace-item">
+              <div class="ws-dot" style="background:#22c55e;"></div>
+              <span>거래처</span>
+            </div>
+            <div class="workspace-item">
+              <div class="ws-dot" style="background:#f59e0b;"></div>
+              <span>품질검사</span>
+            </div>
+          </nav>
+
+          <div class="sidebar-footer">
+            <a class="nav-item">
+              <span class="nav-icon">⚙️</span>
+              <span class="nav-text">설정</span>
+            </a>
+          </div>
+        </aside>
+      `,
+      attributes: { class: 'fa fa-bars' },
+    })
+
+    // 8. 애니메이션 탑 네비게이션
+    editor.BlockManager.add('orbit-topnav-animated', {
+      label: '상단바 (애니메이션)',
+      category: 'Orbit Layouts',
+      content: `
+        <style>
+          @keyframes navSlideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          @keyframes navFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          .orbit-topnav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            height: 56px;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e4e4e7;
+            font-family: 'Inter', sans-serif;
+            animation: navSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+          .orbit-topnav .tn-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: navFadeIn 0.5s ease 0.2s both;
+          }
+          .orbit-topnav .tn-breadcrumb {
+            font-size: 13px;
+            color: #71717a;
+          }
+          .orbit-topnav .tn-breadcrumb strong {
+            color: #18181b;
+            font-weight: 700;
+          }
+          .orbit-topnav .tn-search {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 16px;
+            background: #f4f4f5;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #a1a1aa;
+            min-width: 240px;
+            animation: navFadeIn 0.5s ease 0.3s both;
+          }
+          .orbit-topnav .tn-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: navFadeIn 0.5s ease 0.4s both;
+          }
+          .orbit-topnav .tn-badge {
+            padding: 4px 10px;
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 99px;
+          }
+          .orbit-topnav .tn-btn {
+            padding: 7px 16px;
+            background: #3b82f6;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+          }
+          .orbit-topnav .tn-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+          }
+        </style>
+        <header class="orbit-topnav">
+          <div class="tn-left">
+            <div class="tn-breadcrumb">🚀 Workspace OS &nbsp;›&nbsp; <strong>MASTER</strong></div>
+          </div>
+          <div class="tn-search">🔍 검색 또는 명령어 입력...</div>
+          <div class="tn-right">
+            <span class="tn-badge">● 실시간</span>
+            <button class="tn-btn">초대</button>
+            <div class="tn-avatar">K</div>
+          </div>
+        </header>
+      `,
+      attributes: { class: 'fa fa-window-maximize' },
+    })
+
     // ── 저장 로직 (Supabase 연동) ──
     editor.on('storage:store', async (data: Record<string, unknown>) => {
       try {
