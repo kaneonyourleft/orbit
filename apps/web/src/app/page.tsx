@@ -374,7 +374,10 @@ export default function Home() {
         </main>
 
         {/* Right Side Panel */}
-        <RightPanel />
+        <RightPanel 
+          totalRows={rows.length} 
+          completedRows={rows.filter(r => r.status?.toLowerCase().includes('complete')).length}
+        />
       </div>
     </div>
   );

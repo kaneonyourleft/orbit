@@ -8,14 +8,15 @@ interface RightPanelProps {
 /**
  * Clean Canvas Right Panel for ORBIT Workspace OS.
  */
-export function RightPanel() {
+export function RightPanel({ totalRows = 24, completedRows = 12 }: RightPanelProps) {
+  const utilization = Math.round((completedRows / totalRows) * 100) || 0;
   const progressBarRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (progressBarRef.current) {
-      progressBarRef.current.style.width = '84%';
+      progressBarRef.current.style.width = `${utilization}%`;
     }
-  }, []);
+  }, [utilization]);
 
   return (
     <aside className="fixed right-0 top-14 bottom-0 flex flex-col w-72 bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 z-40 transition-opacity duration-200 shadow-sm font-sans">
@@ -49,7 +50,7 @@ export function RightPanel() {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col">
                 <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight">Open Tasks</span>
-                <span className="text-lg font-bold text-zinc-800 dark:text-zinc-100">12</span>
+                <span className="text-lg font-bold text-zinc-800 dark:text-zinc-100">{totalRows - completedRows}</span>
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight">Efficiency</span>
