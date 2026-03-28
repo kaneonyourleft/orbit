@@ -54,8 +54,8 @@ export default function Home() {
     }
   }, [workspaces, allTables, activeTableId]);
 
-  // Auto-enable grouping by Status when fields load
-  const { fields, rows, loading: tableLoading, error: tableError, setRows } = useTable(supabase, activeTableId || '');
+  // Use the new refetch function from useTable
+  const { fields, rows, loading: tableLoading, error: tableError, setRows, refetch } = useTable(supabase, activeTableId || '');
 
   useEffect(() => {
     if (fields.length > 0 && groupByFieldId === null) {
@@ -63,12 +63,6 @@ export default function Home() {
       if (statusField) setGroupByFieldId(statusField.id);
     }
   }, [fields, groupByFieldId]);
-
-  const refreshTable = useCallback(() => {
-    const currentId = activeTableId;
-    setActiveTableId(null);
-    setTimeout(() => setActiveTableId(currentId), 1);
-  }, [activeTableId]);
 
   const { extraViews, fieldRenderers, menuItems } = usePlugins(plugins, {
     supabase,
@@ -153,12 +147,12 @@ export default function Home() {
 
   const handleAddField = async () => {
     if (!activeTableId) return;
-    try { await supabase.from('fields').insert({ table_id: activeTableId, name: `New Field ${fields.length + 1}`, type: 'text', order: fields.length }); refreshTable(); }
+    try { await supabase.from('fields').insert({ table_id: activeTableId, name: `New Field ${fields.length + 1}`, type: 'text', order: fields.length }); refetch(); }
     catch (err) { console.error('Add field failed:', err); }
   };
 
   const handleRenameField = async (fieldId: string, newName: string) => {
-    try { await supabase.from('fields').update({ name: newName }).eq('id', fieldId); refreshTable(); }
+    try { await supabase.from('fields').update({ name: newName }).eq('id', fieldId); refetch(); }
     catch (err) { console.error('Rename field failed:', err); }
   };
 
@@ -170,14 +164,14 @@ export default function Home() {
         delete newData[fieldId];
         await supabase.from('rows').update({ data: newData }).eq('id', row.id);
       }
-      refreshTable();
+      refetch();
     }
-  }, [rows, refreshTable]);
+  }, [rows, refetch]);
 
   const handleChangeFieldType = useCallback(async (fieldId: string, newType: string) => {
     const { error } = await supabase.from('fields').update({ type: newType }).eq('id', fieldId);
-    if (!error) refreshTable();
-  }, [refreshTable]);
+    if (!error) refetch();
+  }, [refetch]);
 
   const handleReorderField = useCallback(async (fieldId: string, direction: 'left' | 'right') => {
     const sorted = [...fields].sort((a, b) => a.order - b.order);
@@ -189,8 +183,8 @@ export default function Home() {
       supabase.from('fields').update({ order: b.order }).eq('id', a.id),
       supabase.from('fields').update({ order: a.order }).eq('id', b.id),
     ]);
-    refreshTable();
-  }, [fields, refreshTable]);
+    refetch();
+  }, [fields, refetch]);
 
   const handleDuplicateRow = useCallback(async (rowId: string) => {
     const row = rows.find(r => r.id === rowId);
@@ -200,8 +194,8 @@ export default function Home() {
       data: row.data,
       order: rows.length,
     });
-    if (!error) refreshTable();
-  }, [rows, activeTableId, refreshTable]);
+    if (!error) refetch();
+  }, [rows, activeTableId, refetch]);
 
   const handleReorderRow = useCallback(async (rowId: string, direction: 'up' | 'down') => {
     const sorted = [...rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -213,11 +207,11 @@ export default function Home() {
       supabase.from('rows').update({ order: b.order ?? swapIdx }).eq('id', a.id),
       supabase.from('rows').update({ order: a.order ?? idx }).eq('id', b.id),
     ]);
-    refreshTable();
-  }, [rows, refreshTable]);
+    refetch();
+  }, [rows, refetch]);
 
   const handleCreateWorkspace = async (name: string) => {
-    try { await supabase.from('workspaces').insert({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }); refreshTable(); }
+    try { await supabase.from('workspaces').insert({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }); refetch(); }
     catch (err) { console.error('Create workspace failed:', err); }
   };
 
@@ -271,9 +265,15 @@ export default function Home() {
                 </button>
               </div>
               <ViewSwitcher activeView={activeView as ViewType} onViewChange={setActiveView} extraViews={extraViews} />
-              <Toolbar fields={fields} filters={filters} sorts={sorts} groupBy={groupByFieldId}
+              <Toolbar 
+                fields={fields} filters={filters} sorts={sorts} groupBy={groupByFieldId}
                 onUpdateFilters={setFilters} onUpdateSorts={setSorts} onUpdateGroupBy={setGroupByFieldId}
-                activePanel={activePanel} onPanelChange={setActivePanel} onNewRow={() => handleAddRow()} />
+                activePanel={activePanel} onPanelChange={setActivePanel} 
+                onNewRow={() => {
+                  const statusField = fields.find(f => f.name.toLowerCase() === 'status');
+                  handleAddRow(statusField ? { [statusField.id]: 'Planned' } : {});
+                }} 
+              />
             </div>
             <div className="flex-1 p-6 pt-3">
               {activeTableId && activeView === 'Table' && (

@@ -230,8 +230,11 @@ function InlineCell({ field, value, onSave, renderers = {} }: {
     if (localVal !== value) onSave(field.type === 'number' ? Number(localVal) : localVal);
   }, [localVal, value, onSave, field.type]);
 
-  // Plugin Renderer Check
-  if (renderers[field.type]) {
+  // Select / Status / Priority 필드 식별
+  const isSelectLike = field.type === 'select' || field.name.toLowerCase() === 'status' || field.name.toLowerCase() === 'priority';
+
+  // Plugin Renderer Check - select 계열은 InlineCell 자체 드롭다운 우선
+  if (renderers[field.type] && !isSelectLike) {
     return React.createElement(renderers[field.type], { value, field, onChange: onSave });
   }
 
@@ -247,11 +250,10 @@ function InlineCell({ field, value, onSave, renderers = {} }: {
   }
 
   // Select / Status / Priority
-  const isSelect = field.type === 'select' || field.name.toLowerCase() === 'status' || field.name.toLowerCase() === 'priority';
-  if (isSelect) {
+  if (isSelectLike) {
     const isStatus = field.name.toLowerCase() === 'status';
     const isPriority = field.name.toLowerCase() === 'priority';
-    const options = isStatus ? STATUS_OPTIONS : isPriority ? PRIORITY_OPTIONS : (field.options?.values || ['Option A', 'Option B']);
+    const options = isStatus ? STATUS_OPTIONS : isPriority ? PRIORITY_OPTIONS : ((field.options as any)?.values || ['Option A', 'Option B']);
     const styleMap = isStatus ? STATUS_STYLES : isPriority ? PRIORITY_STYLES : {};
     const display = value || '—';
     const badgeStyle = styleMap[display.toLowerCase()] || 'bg-zinc-100 text-zinc-600 border border-zinc-200';
@@ -346,12 +348,16 @@ export function DataTable({
   const doneField = sortedFields.find(f => f.type === 'checkbox' || f.name.toLowerCase() === 'done');
   const displayFields = sortedFields.filter(f => f.id !== doneField?.id);
 
-  // 그룹핑 - 명시적 타입 지정으로 TS 에러 해결
+  const getCellValue = (row: Record<string, any>, fieldId: string) => {
+    return row[fieldId] ?? '';
+  };
+
+  // 그룹핑 
   const groupField = groupByFieldId ? fields.find(f => f.id === groupByFieldId) : null;
   const groups: [string, Record<string, any>[]][] = groupField ? (() => {
     const map: Record<string, Record<string, any>[]> = {};
     rows.forEach(r => {
-      const key = String(r.data?.[groupField.id] || r[groupField.id] || 'No Value');
+      const key = String(r[groupField.id] || 'No Value');
       if (!map[key]) map[key] = [];
       map[key].push(r);
     });
@@ -364,10 +370,6 @@ export function DataTable({
       next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
-  };
-
-  const getCellValue = (row: Record<string, any>, fieldId: string) => {
-    return row.data?.[fieldId] ?? row[fieldId] ?? '';
   };
 
   return (
@@ -434,7 +436,7 @@ export function DataTable({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {groupRows.map((row, idx) => {
+                  {groupRows.map((row) => {
                     const rowId = row.id;
                     const cellVal = getCellValue(row, doneField?.id || '');
                     const isCompleted = doneField && (cellVal === true || cellVal === 'true');

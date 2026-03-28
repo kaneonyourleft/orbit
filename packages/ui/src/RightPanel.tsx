@@ -50,7 +50,7 @@ export function RightPanel({ totalRows = 24, completedRows = 12, menuItems = [] 
               </div>
               <div className="flex flex-col">
                 <span className="text-[9px] text-zinc-400 font-black uppercase tracking-widest leading-loose">Eff.</span>
-                <span className="text-lg font-black text-[#006C49] tracking-tighter leading-none">92%</span>
+                <span className="text-lg font-black text-[#006C49] tracking-tighter leading-none">{utilization}%</span>
               </div>
             </div>
           </div>

@@ -18,13 +18,17 @@ export function KanbanBoard({ fields, rows, onUpdateCell, onAddRow }: KanbanBoar
   const ownerField = fields.find(f => f.name.toLowerCase() === 'owner');
   const dueDateField = fields.find(f => f.type === 'date');
 
-  const defaultStatuses = ['To Do', 'In Progress', 'Done'];
-  const statusOptions = statusField?.options as string[] || defaultStatuses;
+  // statusField.options can be { values: [...] } or an array
+  const statusOptions: string[] = (statusField?.options as any)?.values 
+    || (Array.isArray(statusField?.options) ? statusField.options : null)
+    || ['In Progress', 'Planned', 'Stuck', 'Completed'];
 
   const groupedRows = statusOptions.map(status => {
     const statusRows = rows.filter(r => {
       const rowStatus = String(r[statusField?.id || ''] || '').trim();
-      return rowStatus === status || (status === 'To Do' && !rowStatus);
+      // Map empty values to the first status option
+      if (!rowStatus) return status === statusOptions[0];
+      return rowStatus.toLowerCase() === status.toLowerCase();
     });
     return {
       status,
