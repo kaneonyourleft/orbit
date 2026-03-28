@@ -56,11 +56,11 @@ export function Toolbar({
         <div className="relative">
           <button 
             onClick={() => togglePanel('filter')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-black uppercase tracking-wider border rounded-lg transition-all shadow-sm ${activePanel === 'filter' ? 'bg-primary text-white border-primary shadow-blue-100 ring-4 ring-blue-50/50' : 'bg-white text-zinc-500 border-zinc-200 hover:text-zinc-800 hover:border-zinc-400'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border rounded-lg transition-all shadow-sm ${activePanel === 'filter' ? 'bg-primary text-white border-primary shadow-blue-100 ring-4 ring-blue-50/50' : 'bg-white text-zinc-500 border-zinc-200 hover:text-zinc-800 hover:border-zinc-400'}`}
           >
             <span className="material-symbols-outlined text-[18px]">filter_list</span>
             <span>Filter</span>
-            {filters.length > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${activePanel === 'filter' ? 'bg-white text-primary' : 'bg-primary text-white'}`}>{filters.length}</span>}
+            {filters.length > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${activePanel === 'filter' ? 'bg-white text-primary' : 'bg-primary text-white'}`}>{filters.length}</span>}
           </button>
           
           {activePanel === 'filter' && (
@@ -80,11 +80,11 @@ export function Toolbar({
         <div className="relative">
           <button 
             onClick={() => togglePanel('sort')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-black uppercase tracking-wider border rounded-lg transition-all shadow-sm ${activePanel === 'sort' ? 'bg-primary text-white border-primary shadow-blue-100 ring-4 ring-blue-50/50' : 'bg-white text-zinc-500 border-zinc-200 hover:text-zinc-800 hover:border-zinc-400'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border rounded-lg transition-all shadow-sm ${activePanel === 'sort' ? 'bg-primary text-white border-primary shadow-blue-100 ring-4 ring-blue-50/50' : 'bg-white text-zinc-500 border-zinc-200 hover:text-zinc-800 hover:border-zinc-400'}`}
           >
             <span className="material-symbols-outlined text-[18px]">swap_vert</span>
             <span>Sort</span>
-            {sorts.length > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${activePanel === 'sort' ? 'bg-white text-primary' : 'bg-primary text-white'}`}>{sorts.length}</span>}
+            {sorts.length > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${activePanel === 'sort' ? 'bg-white text-primary' : 'bg-primary text-white'}`}>{sorts.length}</span>}
           </button>
 
           {activePanel === 'sort' && (
@@ -104,7 +104,7 @@ export function Toolbar({
         <div className="relative">
           <button 
             onClick={() => togglePanel('group')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-black uppercase tracking-wider border rounded-lg transition-all shadow-sm ${activePanel === 'group' ? 'bg-primary text-white border-primary shadow-blue-100 ring-4 ring-blue-50/50' : 'bg-white text-zinc-500 border-zinc-200 hover:text-zinc-800 hover:border-zinc-400'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border rounded-lg transition-all shadow-sm ${activePanel === 'group' ? 'bg-primary text-white border-primary shadow-blue-100 ring-4 ring-blue-50/50' : 'bg-white text-zinc-500 border-zinc-200 hover:text-zinc-800 hover:border-zinc-400'}`}
           >
             <span className="material-symbols-outlined text-[18px]">account_tree</span>
             <span>Group</span>
@@ -127,7 +127,7 @@ export function Toolbar({
         <div className="w-px h-6 bg-zinc-100" />
         <button 
           onClick={onNewRow}
-          className="flex items-center gap-2 px-4 py-2 bg-[#006C49] border border-[#006C49] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-[#005a3d] transition-all shadow-lg shadow-emerald-100 active:scale-95"
+          className="flex items-center gap-2 px-4 py-2 bg-[#006C49] border border-[#006C49] text-white text-xs font-semibold uppercase tracking-widest rounded-xl hover:bg-[#005a3d] transition-all shadow-lg shadow-emerald-100 active:scale-95"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
           <span>New Task</span>
