@@ -29,11 +29,6 @@ export function DataTable({
   groupByFieldId,
   renderers = {}
 }: DataTableProps) {
-  console.log('--- DATA TABLE RENDER ---');
-  console.log('FIELDS RECEIVED:', fields.map(f => f.name));
-  console.log('ROWS RECEIVED:', rows.length);
-  if (rows.length > 0) console.log('FIRST ROW SAMPLE:', rows[0]);
-
   const [editingFieldId, setEditingFieldId] = React.useState<string | null>(null);
   const [tempFieldName, setTempFieldName] = React.useState('');
   const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
@@ -66,7 +61,10 @@ export function DataTable({
   };
 
   const renderRow = (row: Record<string, any>, rowIndex: number) => {
-    const isCompleted = String(row.status || '').toLowerCase().includes('completed') || row.done === true;
+    const statusField = fields.find(f => f.name.toLowerCase() === 'status');
+    const doneField = fields.find(f => f.type === 'checkbox');
+    const isCompleted = (doneField && row[doneField.id] === true) || 
+      (statusField && String(row[statusField.id] || '').toLowerCase().includes('completed'));
     
     return (
       <tr 
@@ -78,7 +76,9 @@ export function DataTable({
             type="checkbox" 
             className="rounded text-primary focus:ring-primary w-4 h-4 border-zinc-300 transition-all cursor-pointer"
             checked={isCompleted}
-            onChange={() => onUpdateCell(row.id, 'done', !row.done)}
+            onChange={() => {
+              if (doneField) onUpdateCell(row.id, doneField.id, !row[doneField.id]);
+            }}
             aria-label="Toggle task completion"
             title="Mark as complete"
           />
@@ -86,20 +86,20 @@ export function DataTable({
         {fields.map((field) => (
           <td
             key={field.id}
-            className={`px-4 py-3 text-sm truncate max-w-[240px] ${field.id === 'name' ? 'font-semibold text-zinc-800' : 'text-zinc-600'}`}
+            className={`px-4 py-3 text-sm truncate max-w-[240px] ${field.name.toLowerCase().includes('name') ? 'font-semibold text-zinc-800' : 'text-zinc-600'}`}
           >
-            {field.id === 'owner' ? (
+            {field.name.toLowerCase() === 'owner' ? (
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-zinc-100 ring-2 ring-white overflow-hidden shadow-sm flex items-center justify-center border border-zinc-200">
                   <span className="text-[10px] font-bold text-zinc-500">{String(row[field.id] || '?').charAt(0).toUpperCase()}</span>
                 </div>
                 <span className="text-xs font-medium text-zinc-600">{row[field.id] || 'Unassigned'}</span>
               </div>
-            ) : field.id === 'status' ? (
+            ) : field.name.toLowerCase() === 'status' ? (
               <div className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold w-fit shadow-sm border ${getStatusBadgeStyle(row[field.id])}`}>
                 {row[field.id]}
               </div>
-            ) : field.id === 'priority' ? (
+            ) : field.name.toLowerCase() === 'priority' ? (
               <div className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest w-fit border ${getPriorityBadgeStyle(row[field.id])}`}>
                 {row[field.id]}
               </div>
@@ -109,7 +109,7 @@ export function DataTable({
                   {isOverdue(row[field.id]) && <span className="text-[9px] font-black text-red-500 tracking-tighter uppercase">OVERDUE</span>}
                </div>
             ) : (
-              <span className={isCompleted && field.id === 'name' ? 'line-through decoration-zinc-400 decoration-2' : ''}>
+              <span className={isCompleted && field.name.toLowerCase().includes('name') ? 'line-through decoration-zinc-400 decoration-2' : ''}>
                 <EditableCell
                   value={row[field.id]}
                   type={field.type}

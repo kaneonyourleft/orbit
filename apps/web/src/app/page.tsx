@@ -74,21 +74,6 @@ export default function Home() {
   // 2. Load Table
   const { fields, rows, loading: tableLoading, error: tableError, setRows } = useTable(supabase, activeTableId || '');
 
-  // BUG 1 Debug Logs
-  useEffect(() => {
-    if (!tableLoading && activeTableId) {
-      console.log('--- ORBIT TABLE DEBUG ---');
-      console.log('ACTIVE TABLE:', activeTableId);
-      console.log('FIELDS:', fields.length);
-      console.log('ROWS:', rows.length);
-      if (rows.length > 0) {
-        console.log('RAW ROW SAMPLE:', rows[0]);
-        const sampleData = rows[0].data;
-        const processedSample = { id: rows[0].id, ...sampleData };
-        console.log('PROCESSED SAMPLE:', processedSample);
-      }
-    }
-  }, [tableLoading, activeTableId, fields, rows]);
 
   // 3. Plugin System
   const { extraViews, fieldRenderers, menuItems } = usePlugins(plugins, {
