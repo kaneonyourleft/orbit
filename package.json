@@ -7,7 +7,7 @@
     "start": "turbo start",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "deploy": "vercel --prod"
+    "deploy": "npx vercel --prod"
   },
   "devDependencies": {
     "turbo": "latest",
