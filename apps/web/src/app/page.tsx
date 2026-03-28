@@ -34,20 +34,32 @@ export default function Home() {
   const [workspacesLoading, setWorkspacesLoading] = useState(true);
 
   // Onboarding states
-  const [onboardingWsName, setOnboardingWsName] = useState('');
-  const [onboardingStep, setOnboardingStep] = useState<'idle' | 'creating'>('idle');
-  const [onboardingTableName, setOnboardingTableName] = useState('');
+  const [onboardingWsName, setOnboardingWsName] = useState("");
+  const [onboardingStep, setOnboardingStep] = useState<"idle" | "creating">("idle");
+  const [onboardingTableName, setOnboardingTableName] = useState("");
 
   // Plugin states (Stubs for now)
   const [isPluginsOpen, setIsPluginsOpen] = useState(false);
-  const [pluginRegistry, setPluginRegistry] = useState<any[]>([]);
-  const [fieldRenderers, setFieldRenderers] = useState<Record<string, any>>({});
-  const [extraViews, setExtraViews] = useState<any[]>([]);
+  
+  // Note: These will be populated as plugin architecture expands.
+  const pluginRegistryPlaceholder = useMemo(() => {
+    return {
+      getAll: () => [],
+      isActive: () => false,
+      register: () => {},
+      activate: () => {},
+      deactivate: () => {},
+      get: () => undefined
+    } as any;
+  }, []);
+  
+  const fieldRenderers: Record<string, unknown> = {};
+  const extraViews: unknown[] = [];
   
   // Initialize from localStorage directly to avoid cascading renders
   const [favorites, setFavorites] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('orbit_favs');
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("orbit_favs");
       try {
         return saved ? JSON.parse(saved) : [];
       } catch (e) {
@@ -64,11 +76,11 @@ export default function Home() {
   // Toolbar states
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [sorts, setSorts] = useState<SortCondition[]>([]);
-  const [activePanel, setActivePanel] = useState<'filter' | 'sort' | 'group' | null>(null);
+  const [activePanel, setActivePanel] = useState<"filter" | "sort" | "group" | null>(null);
 
   // Persistence effect for favorites
   useEffect(() => {
-    localStorage.setItem('orbit_favs', JSON.stringify(favorites));
+    localStorage.setItem("orbit_favs", JSON.stringify(favorites));
   }, [favorites]);
 
   const fetchWorkspaces = useCallback(async () => {
@@ -102,14 +114,14 @@ export default function Home() {
   // ── Handlers (Workspace CRUD) ──
   const handleCreateWorkspace = async (name: string) => {
     try {
-      const { error } = await supabase.from('workspaces').insert({
+      const { error } = await supabase.from("workspaces").insert({
         name,
-        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        slug: name.toLowerCase().replace(/\s+/g, "-"),
       });
       if (error) throw error;
       window.location.reload();
     } catch (err) {
-      console.error('Create workspace failed:', err);
+      console.error("Create workspace failed:", err);
     }
   };
 
@@ -134,11 +146,11 @@ export default function Home() {
     if (error || !data) return;
     
     const initialFields = [
-      { table_id: data.id, name: 'Task Name', type: 'text', order: 0 },
-      { table_id: data.id, name: 'Status', type: 'select', order: 1, options: { values: ['Planned', 'In Progress', 'Done'] } },
-      { table_id: data.id, name: 'Priority', type: 'select', order: 2, options: { values: ['High', 'Mid', 'Low'] } },
-      { table_id: data.id, name: 'Owner', type: 'text', order: 3 },
-      { table_id: data.id, name: 'Done', type: 'checkbox', order: 4 },
+      { table_id: data.id, name: "Task Name", type: "text", order: 0 },
+      { table_id: data.id, name: "Status", type: "select", order: 1, options: { values: ["Planned", "In Progress", "Done"] } },
+      { table_id: data.id, name: "Priority", type: "select", order: 2, options: { values: ["High", "Mid", "Low"] } },
+      { table_id: data.id, name: "Owner", type: "text", order: 3 },
+      { table_id: data.id, name: "Done", type: "checkbox", order: 4 },
     ];
     await supabase.from("fields").insert(initialFields);
     
@@ -225,8 +237,19 @@ export default function Home() {
     refetch();
   };
 
-  const handleReorderField = async (fieldId: string, order: number) => {
-    await supabase.from("fields").update({ order }).eq("id", fieldId);
+  const handleReorderField = async (fieldId: string, direction: "left" | "right") => {
+    const currentIdx = fields.findIndex(f => f.id === fieldId);
+    if (currentIdx === -1) return;
+    const targetIdx = direction === "left" ? currentIdx - 1 : currentIdx + 1;
+    if (targetIdx < 0 || targetIdx >= fields.length) return;
+    
+    const fieldA = fields[currentIdx];
+    const fieldB = fields[targetIdx];
+    
+    await Promise.all([
+      supabase.from("fields").update({ order: fieldB.order }).eq("id", fieldA.id),
+      supabase.from("fields").update({ order: fieldA.order }).eq("id", fieldB.id)
+    ]);
     refetch();
   };
 
@@ -241,14 +264,25 @@ export default function Home() {
     refetch();
   };
 
-  const handleReorderRow = async (id: string, order: number) => {
-    await supabase.from("rows").update({ order }).eq("id", id);
+  const handleReorderRow = async (rowId: string, direction: "up" | "down") => {
+    const currentIdx = rows.findIndex(r => r.id === rowId);
+    if (currentIdx === -1) return;
+    const targetIdx = direction === "up" ? currentIdx - 1 : currentIdx + 1;
+    if (targetIdx < 0 || targetIdx >= rows.length) return;
+    
+    const rowA = rows[currentIdx];
+    const rowB = rows[targetIdx];
+    
+    await Promise.all([
+      supabase.from("rows").update({ order: rowB.order }).eq("id", rowA.id),
+      supabase.from("rows").update({ order: rowA.order }).eq("id", rowB.id)
+    ]);
     refetch();
   };
 
   // ── Plugins ──
   const togglePlugin = (pluginId: string) => {
-    setPluginRegistry(prev => prev.map(p => p.id === pluginId ? { ...p, isEnabled: !p.isEnabled } : p));
+    console.log("Toggle plugin:", pluginId);
   };
 
   // ── Favorites ──
@@ -282,18 +316,18 @@ export default function Home() {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              if (!onboardingWsName.trim() || onboardingStep === 'creating') return;
-              setOnboardingStep('creating');
+              if (!onboardingWsName.trim() || onboardingStep === "creating") return;
+              setOnboardingStep("creating");
               try {
-                const { error } = await supabase.from('workspaces').insert({
+                const { error } = await supabase.from("workspaces").insert({
                   name: onboardingWsName.trim(),
-                  slug: onboardingWsName.trim().toLowerCase().replace(/\s+/g, '-'),
+                  slug: onboardingWsName.trim().toLowerCase().replace(/\s+/g, "-"),
                 });
                 if (error) throw error;
                 window.location.reload();
               } catch (err) {
-                console.error('Create workspace failed:', err);
-                setOnboardingStep('idle');
+                console.error("Create workspace failed:", err);
+                setOnboardingStep("idle");
               }
             }}
             className="max-w-sm mx-auto space-y-4"
@@ -304,8 +338,8 @@ export default function Home() {
                 <div className="absolute right-3 top-1/2 -translate-y-1/2"><span className="material-symbols-outlined text-emerald-500 text-[20px] animate-in fade-in">check_circle</span></div>
               )}
             </div>
-            <button type="submit" disabled={!onboardingWsName.trim() || onboardingStep === 'creating'} className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-blue-700 disabled:bg-zinc-300 text-white text-sm font-bold rounded-2xl shadow-lg shadow-blue-200 disabled:shadow-none transition-all active:scale-[0.98] hover:shadow-xl hover:shadow-blue-200/50">
-              {onboardingStep === 'creating' ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Creating...</span></>) : (<><span className="material-symbols-outlined text-[20px]">arrow_forward</span><span>Get Started</span></>)}
+            <button type="submit" disabled={!onboardingWsName.trim() || onboardingStep === "creating"} className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-blue-700 disabled:bg-zinc-300 text-white text-sm font-bold rounded-2xl shadow-lg shadow-blue-200 disabled:shadow-none transition-all active:scale-[0.98] hover:shadow-xl hover:shadow-blue-200/50">
+              {onboardingStep === "creating" ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Creating...</span></>) : (<><span className="material-symbols-outlined text-[20px]">arrow_forward</span><span>Get Started</span></>)}
             </button>
           </form>
           <p className="text-[11px] text-zinc-400 mt-8">Workspaces contain tables, views, and automations — all in one place.</p>
@@ -322,7 +356,7 @@ export default function Home() {
       <div className="flex flex-col w-full h-screen bg-white font-sans text-zinc-900 antialiased overflow-hidden">
         <TopNavBar workspaceName={workspaces[0]?.name} tableName="" searchQuery="" onSearchChange={() => {}} />
         <div className="flex flex-1 overflow-hidden">
-          <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} shrink-0 transition-all duration-300`}>
+          <div className={`${sidebarCollapsed ? "w-16" : "w-64"} shrink-0 transition-all duration-300`}>
             <Sidebar workspaces={workspaces} tables={[]} activeTableId={null} favorites={favorites} isCollapsed={sidebarCollapsed} onCreateWorkspace={handleCreateWorkspace} onRenameWorkspace={handleRenameWorkspace} onDeleteWorkspace={handleDeleteWorkspace} onSelectTable={() => {}} onCreateTable={handleCreateTable} onRenameTable={handleRenameTable} onDeleteTable={handleDeleteTable} onDuplicateTable={handleDuplicateTable} onToggleFavorite={handleToggleFavorite} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
           </div>
           <main className="flex-1 flex items-center justify-center bg-gradient-to-br from-white to-zinc-50/50">
@@ -337,7 +371,7 @@ export default function Home() {
                   e.preventDefault();
                   if (onboardingTableName.trim()) {
                     handleCreateTable(workspaces[0].id, onboardingTableName.trim());
-                    setOnboardingTableName('');
+                    setOnboardingTableName("");
                   }
                 }}
                 className="space-y-3"
@@ -368,7 +402,7 @@ export default function Home() {
       <TopNavBar workspaceName={workspaces[0]?.name} tableName={activeTableName} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} shrink-0 transition-all duration-300`}>
+        <div className={`${sidebarCollapsed ? "w-16" : "w-64"} shrink-0 transition-all duration-300`}>
           <Sidebar
             workspaces={workspaces} tables={allTables} activeTableId={activeTableId}
             favorites={favorites} isCollapsed={sidebarCollapsed}
@@ -377,7 +411,7 @@ export default function Home() {
             onSelectTable={(tableId) => {
               setActiveTableId(tableId);
               setFilters([]); setSorts([]); setGroupByFieldId(null);
-              setActivePanel(null); setActiveView('Table');
+              setActivePanel(null); setActiveView("Table");
             }}
             onCreateTable={handleCreateTable} onRenameTable={handleRenameTable}
             onDeleteTable={handleDeleteTable} onDuplicateTable={handleDuplicateTable}
@@ -387,7 +421,7 @@ export default function Home() {
 
         {/* Main Content — 전체 너비 사용, RightPanel 없음 */}
         <main className="flex-1 bg-white flex flex-col overflow-auto min-w-0">
-          <PluginPanel isOpen={isPluginsOpen} onClose={() => setIsPluginsOpen(false)} registry={pluginRegistry} onToggle={togglePlugin} />
+          <PluginPanel isOpen={isPluginsOpen} onClose={() => setIsPluginsOpen(false)} registry={pluginRegistryPlaceholder} onToggle={togglePlugin} />
           <div className="flex flex-col min-h-full">
             <div className="px-6 pt-5 pb-2 shrink-0 bg-white sticky top-0 z-20 border-b border-zinc-100">
               <div className="flex items-center justify-between mb-3">
@@ -395,7 +429,7 @@ export default function Home() {
                   <h1 className="text-xl font-black text-zinc-900 tracking-tight">{activeTableName}</h1>
                   {groupByFieldId && (
                     <span className="text-[10px] font-bold text-zinc-400 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-full">
-                      Grouped by: <span className="text-primary">{fields.find(f => f.id === groupByFieldId)?.name || 'Status'}</span>
+                      Grouped by: <span className="text-primary">{fields.find(f => f.id === groupByFieldId)?.name || "Status"}</span>
                     </span>
                   )}
                 </div>
@@ -409,13 +443,13 @@ export default function Home() {
                 onUpdateFilters={setFilters} onUpdateSorts={setSorts} onUpdateGroupBy={setGroupByFieldId}
                 activePanel={activePanel} onPanelChange={setActivePanel}
                 onNewRow={() => {
-                  const statusField = fields.find(f => f.name.toLowerCase() === 'status');
-                  handleAddRow(statusField ? { [statusField.id]: 'Planned' } : {});
+                  const statusField = fields.find(f => f.name.toLowerCase() === "status");
+                  handleAddRow(statusField ? { [statusField.id]: "Planned" } : {});
                 }}
               />
             </div>
             <div className="flex-1 p-6 pt-3">
-              {activeTableId && activeView === 'Table' && (
+              {activeTableId && activeView === "Table" && (
                 <DataTable
                   fields={fields} rows={processedRows}
                   onUpdateCell={handleUpdateCell} onAddRow={handleAddRow} onDeleteRow={handleDeleteRow}
@@ -423,17 +457,17 @@ export default function Home() {
                   onChangeFieldType={handleChangeFieldType} onReorderField={handleReorderField}
                   onDuplicateRow={handleDuplicateRow} onReorderRow={handleReorderRow}
                   groupByFieldId={groupByFieldId || undefined} onGroupBy={setGroupByFieldId}
-                  renderers={fieldRenderers}
+                  renderers={fieldRenderers as Record<string, any>}
                 />
               )}
-              {activeTableId && activeView === 'Kanban' && (
+              {activeTableId && activeView === "Kanban" && (
                 <KanbanBoard fields={fields} rows={processedRows} onUpdateCell={handleUpdateCell}
                   onAddRow={(status?: string) => {
-                    const statusField = fields.find(f => f.name.toLowerCase() === 'status');
+                    const statusField = fields.find(f => f.name.toLowerCase() === "status");
                     handleAddRow(statusField && status ? { [statusField.id]: status } : {});
                   }} />
               )}
-              {activeTableId && activeView === 'Calendar' && (
+              {activeTableId && activeView === "Calendar" && (
                 <CalendarView fields={fields} rows={processedRows} onUpdateCell={handleUpdateCell} />
               )}
             </div>
