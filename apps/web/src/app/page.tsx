@@ -32,6 +32,11 @@ export default function Home() {
   const [viewType, setViewType] = useState<string>("Table");
   const [groupBy, setGroupBy] = useState<string | null>(null);
   const [workspacesLoading, setWorkspacesLoading] = useState(true);
+
+  // Onboarding states
+  const [onboardingWsName, setOnboardingWsName] = useState('');
+  const [onboardingStep, setOnboardingStep] = useState<'idle' | 'creating'>('idle');
+  const [onboardingTableName, setOnboardingTableName] = useState('');
   
   // Initialize from localStorage directly to avoid cascading renders
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -90,8 +95,16 @@ export default function Home() {
 
   // ── Handlers (Workspace CRUD) ──
   const handleCreateWorkspace = async (name: string) => {
-    const { data, error } = await supabase.from("workspaces").insert([{ name }]).select().single();
-    if (!error && data) setWorkspaces(prev => [...prev, data]);
+    try {
+      const { error } = await supabase.from('workspaces').insert({
+        name,
+        slug: name.toLowerCase().replace(/\s+/g, '-'),
+      });
+      if (error) throw error;
+      window.location.reload();
+    } catch (err) {
+      console.error('Create workspace failed:', err);
+    }
   };
 
   const handleRenameWorkspace = async (id: string, name: string) => {
@@ -212,49 +225,89 @@ export default function Home() {
   const activeWorkspace = workspaces.find(w => w.id === activeTable?.workspace_id);
 
   // ══════════════════════════════════════════════
-  // 온보딩 1: 워크스페이스가 없을 때 — 풀스크린, 패널 없음
+  // 온보딩 1: 워크스페이스가 없을 때 — 풀스크린, 자체 입력 폼
   // ══════════════════════════════════════════════
   if (!workspacesLoading && workspaces.length === 0) {
     return (
       <div className="w-full h-screen bg-gradient-to-br from-white via-zinc-50 to-blue-50/30 flex items-center justify-center font-sans antialiased relative overflow-hidden">
-        {/* 배경 장식 */}
+        {/* 상단 그라데이션 바 */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-400 to-emerald-400" />
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-blue-100/20 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-emerald-100/20 blur-3xl" />
 
-        <div className="relative z-10 text-center space-y-8 max-w-md px-6">
+        <div className="relative z-10 text-center max-w-md px-6">
           {/* 로고 */}
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-blue-200">
-              <span className="material-symbols-outlined text-white text-[28px]">rocket_launch</span>
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-blue-200">
+              <span className="material-symbols-outlined text-white text-[32px]">rocket_launch</span>
             </div>
-            <span className="text-2xl font-black text-zinc-900 tracking-tight">ORBIT</span>
           </div>
 
           {/* 메인 카피 */}
-          <div className="space-y-3">
-            <h1 className="text-3xl font-black text-zinc-900 tracking-tight leading-tight">
-              Your Work, Your OS
-            </h1>
-            <p className="text-sm text-zinc-500 leading-relaxed max-w-xs mx-auto">
-              Create a workspace to start organizing projects, tasks, and everything in between.
-            </p>
-          </div>
+          <h1 className="text-4xl font-black text-zinc-900 tracking-tight leading-tight mb-3">
+            Your Work, Your OS
+          </h1>
+          <p className="text-sm text-zinc-500 leading-relaxed max-w-xs mx-auto mb-10">
+            Create a workspace to start organizing projects, tasks, and everything in between.
+          </p>
 
-          {/* CTA 버튼 */}
-          <button
-            onClick={() => {
-              const name = window.prompt('Enter workspace name:');
-              if (name?.trim()) handleCreateWorkspace(name.trim());
+          {/* 입력 폼 — 자체 UI */}
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!onboardingWsName.trim() || onboardingStep === 'creating') return;
+              setOnboardingStep('creating');
+              try {
+                const { error } = await supabase.from('workspaces').insert({
+                  name: onboardingWsName.trim(),
+                  slug: onboardingWsName.trim().toLowerCase().replace(/\s+/g, '-'),
+                });
+                if (error) throw error;
+                window.location.reload();
+              } catch (err) {
+                console.error('Create workspace failed:', err);
+                setOnboardingStep('idle');
+              }
             }}
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary hover:bg-blue-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95 hover:shadow-xl hover:shadow-blue-200/50"
+            className="max-w-sm mx-auto space-y-4"
           >
-            <span className="material-symbols-outlined text-[20px]">add</span>
-            Create Workspace
-          </button>
+            <div className="relative">
+              <input
+                autoFocus
+                type="text"
+                value={onboardingWsName}
+                onChange={e => setOnboardingWsName(e.target.value)}
+                placeholder="e.g. Design Team, Q1 Roadmap..."
+                className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-2xl text-sm font-semibold text-zinc-800 placeholder:text-zinc-300 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all shadow-sm"
+              />
+              {onboardingWsName.trim() && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] animate-in fade-in">check_circle</span>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={!onboardingWsName.trim() || onboardingStep === 'creating'}
+              className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-blue-700 disabled:bg-zinc-300 text-white text-sm font-bold rounded-2xl shadow-lg shadow-blue-200 disabled:shadow-none transition-all active:scale-[0.98] hover:shadow-xl hover:shadow-blue-200/50"
+            >
+              {onboardingStep === 'creating' ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                  <span>Get Started</span>
+                </>
+              )}
+            </button>
+          </form>
 
           {/* 하단 힌트 */}
-          <p className="text-[11px] text-zinc-400 pt-4">
+          <p className="text-[11px] text-zinc-400 mt-8">
             Workspaces contain tables, views, and automations — all in one place.
           </p>
         </div>
@@ -264,7 +317,6 @@ export default function Home() {
 
   // ══════════════════════════════════════════════
   // 온보딩 2: 워크스페이스는 있지만 테이블이 없을 때
-  // — Sidebar만 보이고, RightPanel은 숨김
   // ══════════════════════════════════════════════
   if (!workspacesLoading && workspaces.length > 0 && tables.length === 0) {
     return (
@@ -285,26 +337,40 @@ export default function Home() {
           </div>
           {/* 중앙 — 빈 테이블 안내 (RightPanel 없음) */}
           <main className="flex-1 flex items-center justify-center bg-gradient-to-br from-white to-zinc-50/50">
-            <div className="text-center space-y-6 max-w-sm">
+            <div className="text-center max-sm space-y-6 max-w-sm">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center shadow-sm">
                 <span className="material-symbols-outlined text-[40px] text-zinc-300">table_chart</span>
               </div>
               <div className="space-y-2">
-                <h2 className="text-xl font-black text-zinc-800 tracking-tight">No Tables Yet</h2>
-                <p className="text-sm text-zinc-500 leading-relaxed">
-                  Click <strong className="text-zinc-700">+ New Table</strong> in the sidebar, or create one here.
-                </p>
+                <h2 className="text-xl font-black text-zinc-800 tracking-tight">Create Your First Table</h2>
+                <p className="text-sm text-zinc-500">Tables hold your tasks, data, and views.</p>
               </div>
-              <button
-                onClick={() => {
-                  const name = window.prompt('Table name:');
-                  if (name?.trim()) handleCreateTable(workspaces[0].id, name.trim());
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (onboardingTableName.trim()) {
+                    handleCreateTable(workspaces[0].id, onboardingTableName.trim());
+                    setOnboardingTableName('');
+                  }
                 }}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all active:scale-95"
+                className="space-y-3"
               >
-                <span className="material-symbols-outlined text-[18px]">add</span>
-                Create First Table
-              </button>
+                <input
+                  autoFocus type="text"
+                  value={onboardingTableName}
+                  onChange={e => setOnboardingTableName(e.target.value)}
+                  placeholder="e.g. Sprint Board, Bug Tracker..."
+                  className="w-full px-4 py-3 bg-white border-2 border-zinc-200 rounded-xl text-sm font-semibold text-zinc-800 placeholder:text-zinc-300 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all"
+                />
+                <button
+                  type="submit"
+                  disabled={!onboardingTableName.trim()}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 disabled:bg-zinc-300 text-white text-sm font-bold rounded-xl shadow-sm disabled:shadow-none transition-all active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">add</span>
+                  Create Table
+                </button>
+              </form>
             </div>
           </main>
           {/* RightPanel 의도적으로 제거 */}
