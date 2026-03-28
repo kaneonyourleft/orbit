@@ -93,208 +93,253 @@ export default function OrbitBuilder() {
       attributes: { class: 'fa fa-bolt' },
     })
 
-    // 7. 애니메이션 사이드바
-    editor.BlockManager.add('orbit-sidebar', {
-      label: '사이드바',
+    // 7. Notion 스타일 사이드바 (개인화 & 팀스페이스)
+    editor.BlockManager.add('orbit-notion-sidebar', {
+      label: '노션 사이드바',
       category: 'Orbit Layouts',
       content: `
         <style>
-          .orbit-sidebar {
+          .notion-sidebar {
             width: 240px;
             height: 100vh;
-            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-            color: #fff;
-            padding: 0;
+            background: #fbfbfa;
+            border-right: 1px solid rgba(0,0,0,0.05);
             display: flex;
             flex-direction: column;
-            font-family: 'Inter', sans-serif;
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-            position: relative;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            color: #37352f;
           }
-          .orbit-sidebar.collapsed {
-            width: 64px;
-          }
-          .orbit-sidebar .sidebar-header {
-            padding: 20px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+          .notion-sidebar-header {
+            padding: 12px 14px;
             display: flex;
             align-items: center;
-            gap: 12px;
-          }
-          .orbit-sidebar .sidebar-logo {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: 900;
-            flex-shrink: 0;
-          }
-          .orbit-sidebar .sidebar-title {
-            font-size: 14px;
-            font-weight: 800;
-            letter-spacing: 0.02em;
-            white-space: nowrap;
-            opacity: 1;
-            transition: opacity 0.2s ease;
-          }
-          .orbit-sidebar .sidebar-subtitle {
-            font-size: 10px;
-            color: #64748b;
-            font-weight: 500;
-            white-space: nowrap;
-          }
-          .orbit-sidebar .sidebar-nav {
-            padding: 12px 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            flex: 1;
-          }
-          .orbit-sidebar .nav-section-label {
-            font-size: 10px;
-            font-weight: 600;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            padding: 12px 12px 6px;
-            white-space: nowrap;
-          }
-          .orbit-sidebar .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 9px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            color: #94a3b8;
+            gap: 8px;
             cursor: pointer;
-            transition: all 0.15s ease;
-            white-space: nowrap;
-            text-decoration: none;
+            transition: background 0.1s ease;
           }
-          .orbit-sidebar .nav-item:hover {
-            background: rgba(255,255,255,0.06);
-            color: #e2e8f0;
-          }
-          .orbit-sidebar .nav-item.active {
-            background: rgba(59,130,246,0.15);
-            color: #60a5fa;
-          }
-          .orbit-sidebar .nav-icon {
+          .notion-sidebar-header:hover { background: rgba(0,0,0,0.04); }
+          .notion-sidebar-avatar {
             width: 20px;
             height: 20px;
+            background: #3b82f6;
+            border-radius: 3px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
           }
-          .orbit-sidebar .nav-text {
-            opacity: 1;
-            transition: opacity 0.2s ease;
-          }
-          .orbit-sidebar .sidebar-footer {
-            padding: 12px 8px;
-            border-top: 1px solid rgba(255,255,255,0.06);
-          }
-          .orbit-sidebar .workspace-item {
+          .notion-sidebar-name { font-size: 14px; font-weight: 600; flex: 1; }
+          
+          .notion-menu-section { margin-top: 12px; }
+          .notion-menu-item {
+            padding: 4px 14px;
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            color: #cbd5e1;
+            font-size: 14px;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: background 0.1s ease;
+            color: rgba(55, 53, 47, 0.65);
           }
-          .orbit-sidebar .workspace-item:hover {
-            background: rgba(255,255,255,0.06);
+          .notion-menu-item:hover { background: rgba(0,0,0,0.04); }
+          .notion-menu-item.active { color: #37352f; font-weight: 500; }
+          .notion-menu-icon { font-size: 16px; width: 20px; text-align: center; }
+          
+          .notion-section-title {
+            padding: 20px 14px 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(55, 53, 47, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
           }
-          .orbit-sidebar .ws-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
+          
+          .notion-teamspace-item {
+            padding: 4px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            cursor: pointer;
           }
-
-          @keyframes slideIn {
-            from { transform: translateX(-100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+          .notion-teamspace-item:hover { background: rgba(0,0,0,0.04); }
+          .notion-teamspace-icon {
+            width: 18px;
+            height: 18px;
+            background: #e4e4e7;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
           }
-          @keyframes fadeInUp {
-            from { transform: translateY(8px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-          .orbit-sidebar {
-            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-          }
-          .orbit-sidebar .nav-item:nth-child(1) { animation: fadeInUp 0.3s ease 0.1s both; }
-          .orbit-sidebar .nav-item:nth-child(2) { animation: fadeInUp 0.3s ease 0.15s both; }
-          .orbit-sidebar .nav-item:nth-child(3) { animation: fadeInUp 0.3s ease 0.2s both; }
-          .orbit-sidebar .nav-item:nth-child(4) { animation: fadeInUp 0.3s ease 0.25s both; }
-          .orbit-sidebar .nav-item:nth-child(5) { animation: fadeInUp 0.3s ease 0.3s both; }
-          .orbit-sidebar .workspace-item:nth-child(1) { animation: fadeInUp 0.3s ease 0.35s both; }
-          .orbit-sidebar .workspace-item:nth-child(2) { animation: fadeInUp 0.3s ease 0.4s both; }
         </style>
-        <aside class="orbit-sidebar">
-          <div class="sidebar-header">
-            <div class="sidebar-logo">O</div>
-            <div>
-              <div class="sidebar-title">ORBIT</div>
-              <div class="sidebar-subtitle">WORKSPACE OS</div>
+        <aside class="notion-sidebar">
+          <div class="notion-sidebar-header">
+            <div class="notion-sidebar-avatar">O</div>
+            <div class="notion-sidebar-name">Orbit Workspace</div>
+          </div>
+          
+          <div class="notion-menu-section">
+            <div class="notion-menu-item">
+              <span class="notion-menu-icon">🔍</span> 검색
+            </div>
+            <div class="notion-menu-item">
+              <span class="notion-menu-icon">🏠</span> 홈
+            </div>
+            <div class="notion-menu-item active">
+              <span class="notion-menu-icon">📅</span> 캘린더
             </div>
           </div>
-
-          <nav class="sidebar-nav">
-            <a class="nav-item active">
-              <span class="nav-icon">🏠</span>
-              <span class="nav-text">홈</span>
-            </a>
-            <a class="nav-item">
-              <span class="nav-icon">📋</span>
-              <span class="nav-text">내 작업</span>
-            </a>
-            <a class="nav-item">
-              <span class="nav-icon">📥</span>
-              <span class="nav-text">알림함</span>
-            </a>
-            <a class="nav-item">
-              <span class="nav-icon">🎨</span>
-              <span class="nav-text">페이지 빌더</span>
-            </a>
-
-            <div class="nav-section-label">워크스페이스</div>
-
-            <div class="workspace-item">
-              <div class="ws-dot" style="background:#3b82f6;"></div>
-              <span>생산관리</span>
-            </div>
-            <div class="workspace-item">
-              <div class="ws-dot" style="background:#22c55e;"></div>
-              <span>거래처</span>
-            </div>
-            <div class="workspace-item">
-              <div class="ws-dot" style="background:#f59e0b;"></div>
-              <span>품질검사</span>
-            </div>
-          </nav>
-
-          <div class="sidebar-footer">
-            <a class="nav-item">
-              <span class="nav-icon">⚙️</span>
-              <span class="nav-text">설정</span>
-            </a>
+          
+          <div class="notion-section-title">팀스페이스</div>
+          <div class="notion-teamspace-item">
+            <div class="notion-teamspace-icon" style="background: #fee2e2; color: #dc2626;">E</div>
+            <span>Engineering</span>
+          </div>
+          <div class="notion-teamspace-item">
+            <div class="notion-teamspace-icon" style="background: #dcfce7; color: #15803d;">D</div>
+            <span>Design</span>
+          </div>
+          <div class="notion-teamspace-item">
+            <div class="notion-teamspace-icon" style="background: #dbeafe; color: #1d4ed8;">S</div>
+            <span>Sales & Marketing</span>
+          </div>
+          
+          <div class="notion-section-title">Private</div>
+          <div class="notion-menu-item">
+            <span class="notion-menu-icon">📄</span> 개인 메모
           </div>
         </aside>
       `,
-      attributes: { class: 'fa fa-bars' },
+      attributes: { class: 'fa fa-columns' },
+    })
+
+    // 8. Notion 스타일 전체 워크스페이스 레이아웃 (사이드바 + 콘텐츠 일체형)
+    editor.BlockManager.add('orbit-notion-full-layout', {
+      label: '노션 워크스페이스',
+      category: 'Orbit Layouts',
+      content: `
+        <style>
+          .orbit-notion-layout {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            background: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+          }
+          .notion-main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          }
+          .notion-top-bar {
+            height: 45px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            color: rgba(55, 53, 47, 0.65);
+          }
+          .notion-breadcrumb { display: flex; align-items: center; gap: 8px; }
+          .notion-breadcrumb span:last-child { color: #37352f; font-weight: 500; }
+          
+          .notion-page-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 0 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .notion-page-content {
+            width: 100%;
+            max-width: 900px;
+            padding: 0 96px;
+          }
+          .notion-page-title {
+            font-size: 40px;
+            font-weight: 700;
+            color: #37352f;
+            margin-bottom: 24px;
+            outline: none;
+          }
+          .notion-block {
+            min-height: 24px;
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #37352f;
+          }
+          .notion-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+            margin-top: 32px;
+          }
+          .notion-simple-card {
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 8px;
+            padding: 16px;
+            transition: background 0.1s ease;
+            cursor: pointer;
+          }
+          .notion-simple-card:hover { background: rgba(0,0,0,0.02); }
+        </style>
+        <div class="orbit-notion-layout">
+          <!-- Notion Sidebar Internal (For drag-and-drop combined layout) -->
+          <aside class="notion-sidebar">
+            <div class="notion-sidebar-header">
+              <div class="notion-sidebar-avatar" style="background: #18181b;">O</div>
+              <div class="notion-sidebar-name">Orbit OS</div>
+            </div>
+            <div class="notion-menu-section">
+              <div class="notion-menu-item">🔍 검색</div>
+              <div class="notion-menu-item">🏠 홈</div>
+              <div class="notion-menu-item">📥 알림함</div>
+            </div>
+            <div class="notion-section-title">팀스페이스</div>
+            <div class="notion-teamspace-item"><div class="notion-teamspace-icon">G</div> General</div>
+            <div class="notion-teamspace-item"><div class="notion-teamspace-icon" style="background:#e0f2fe; color:#0369a1;">P</div> Product Management</div>
+            <div class="notion-teamspace-item"><div class="notion-teamspace-icon" style="background:#fef3c7; color:#b45309;">M</div> Marketing</div>
+          </aside>
+
+          <!-- Main Content -->
+          <div class="notion-main-content">
+            <div class="notion-top-bar">
+              <div class="notion-breadcrumb">
+                <span>Teamspaces</span> / <span>Product Management</span> / <span>🚀 Roadmap</span>
+              </div>
+            </div>
+            <div class="notion-page-container">
+              <div class="notion-page-content">
+                <h1 class="notion-page-title">🚀 2026 Q1 Product Roadmap</h1>
+                <div class="notion-block">이곳에 주요 프로젝트 일정과 목표를 정리합니다.</div>
+                
+                <div class="notion-card-grid">
+                  <div class="notion-simple-card">
+                    <div style="font-size:11px; color:#1d4ed8; font-weight:700; margin-bottom:8px; text-transform:uppercase;">In Development</div>
+                    <div style="font-weight:600; margin-bottom:4px; font-size:15px;">Orbit Workspace OS UI</div>
+                    <div style="font-size:13px; color:rgba(55,53,47,0.6);">Finalizing the sidebar-focused workspace navigation.</div>
+                  </div>
+                  <div class="notion-simple-card">
+                    <div style="font-size:11px; color:#c2410c; font-weight:700; margin-bottom:8px; text-transform:uppercase;">Planning</div>
+                    <div style="font-weight:600; margin-bottom:4px; font-size:15px;">Supabase Realtime Sync</div>
+                    <div style="font-size:13px; color:rgba(55,53,47,0.6);">Implementing multi-user collaboration features.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      attributes: { class: 'fa fa-desktop' },
     })
 
     // 8. 애니메이션 탑 네비게이션
@@ -431,9 +476,19 @@ export default function OrbitBuilder() {
 
       if (data?.project_data) {
         editor.loadProjectData(JSON.parse(data.project_data))
+      } else {
+        // 첫 방문 또는 데이터 부재 시 기본 노션 레이아웃 자동 적용
+        const block = editor.BlockManager.get('orbit-notion-full-layout');
+        if (block) {
+          editor.setComponents(block.get('content') || '');
+        }
       }
     } catch {
-      // First time use - start with empty canvas
+      // First time use or error - auto insert default layout
+      const block = editor.BlockManager.get('orbit-notion-full-layout');
+      if (block) {
+        editor.setComponents(block.get('content') || '');
+      }
     }
   }, [supabase])
 
@@ -569,6 +624,8 @@ export default function OrbitBuilder() {
                     'orbit-hero': '히어로 섹션',
                     'orbit-navbar': '네비게이션',
                     'orbit-dashboard-grid': '대시보드 그리드',
+                    'orbit-notion-sidebar': '노션 사이드바',
+                    'orbit-notion-full-layout': '노션 워크스페이스',
                   },
                   categories: {
                     'Basic': '기본 블록',
