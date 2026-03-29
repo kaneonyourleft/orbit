@@ -560,6 +560,7 @@ export default function Home(){
                 />
               ) : (
                 <Editor 
+                  pageId={selectedId}
                   initialContent={selectedNode?.content?.editorContent} 
                   onChange={onContentChange} 
                   darkMode={isDark}

@@ -14,8 +14,10 @@ import {
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useEffect, useRef } from "react";
+import { databaseBlockSpec } from "./blocks/DatabaseBlockSpec";
 
 interface Props {
+  pageId: string;
   initialContent?: Block[];
   onChange?: (content: Block[]) => void;
   darkMode?: boolean;
@@ -194,9 +196,10 @@ const customBlockSpecs = {
   snStatus: SNStatusBlock,
   dashboard: DashboardBlock,
   pivotTable: PivotTableBlock,
+  database: databaseBlockSpec,
 };
 
-export default function Editor({ initialContent, onChange, darkMode = false }: Props) {
+export default function Editor({ pageId, initialContent, onChange, darkMode = false }: Props) {
   const editor = useCreateBlockNote({ 
     initialContent: Array.isArray(initialContent) ? initialContent : undefined,
     blockSpecs: customBlockSpecs
@@ -221,22 +224,29 @@ export default function Editor({ initialContent, onChange, darkMode = false }: P
               [
                 ...getDefaultReactSlashMenuItems(editor),
                 {
+                  title: "Inline Database",
+                  onItemClick: () => editor.insertBlocks([{ type: "database", props: { pageId } }] as any, editor.getTextCursorPosition().block, "after"),
+                  aliases: ["db", "table", "kanban", "calendar"],
+                  group: "Collections",
+                  icon: <span className="text-xl">▤</span>,
+                },
+                {
                   title: "Dashboard",
-                  onItemClick: () => editor.insertBlocks([{ type: "dashboard" }], editor.getTextCursorPosition().block, "after"),
+                  onItemClick: () => editor.insertBlocks([{ type: "dashboard" }] as any, editor.getTextCursorPosition().block, "after"),
                   aliases: ["chart", "stats"],
                   group: "Manufacturing",
                   icon: <span className="text-lg">🚀</span>,
                 },
                 {
                   title: "Pivot Table",
-                  onItemClick: () => editor.insertBlocks([{ type: "pivotTable" }], editor.getTextCursorPosition().block, "after"),
+                  onItemClick: () => editor.insertBlocks([{ type: "pivotTable" }] as any, editor.getTextCursorPosition().block, "after"),
                   aliases: ["pivot", "report"],
                   group: "Manufacturing",
                   icon: <span className="text-lg">📊</span>,
                 },
                 {
                   title: "SN Status",
-                  onItemClick: () => editor.insertBlocks([{ type: "snStatus" }], editor.getTextCursorPosition().block, "after"),
+                  onItemClick: () => editor.insertBlocks([{ type: "snStatus" }] as any, editor.getTextCursorPosition().block, "after"),
                   aliases: ["sn", "tracking"],
                   group: "Manufacturing",
                   icon: <span className="text-lg">🏷️</span>,
