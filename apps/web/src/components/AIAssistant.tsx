@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Icons } from "./Icons";
+import { type Row, type Column } from "../lib/formula";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -9,8 +10,8 @@ interface Message {
 
 interface ContextData {
   pageTitle?: string;
-  rows?: any[];
-  columns?: { name: string; type: string }[];
+  rows?: Row[];
+  columns?: Column[];
   type?: "editor" | "spreadsheet";
 }
 
@@ -18,7 +19,7 @@ interface AIAssistantProps {
   darkMode?: boolean;
   accentColor?: string;
   contextData?: ContextData; 
-  onApplyChanges?: (type: "editor" | "spreadsheet", data: any) => void;
+  onApplyChanges?: (type: "editor" | "spreadsheet", data: string) => void;
 }
 
 export default function AIAssistant({ darkMode, accentColor, contextData, onApplyChanges }: AIAssistantProps) {
@@ -234,6 +235,7 @@ export default function AIAssistant({ darkMode, accentColor, contextData, onAppl
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleSend()}
                 placeholder="AI에게 무엇이든 물어보세요..."
+                title="AI 질문 입력"
                 style={{ 
                   flex: 1, 
                   background: "transparent", 

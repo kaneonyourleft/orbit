@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { usePages } from "../lib/usePages";
 import { THEMES, type ThemeConfig } from "../lib/themes";
+import { type Row, type Column, type Sheet } from "../lib/formula";
 import { Icons } from "../components/Icons";
 import { 
   uid, findNode, findParentId, removeLocal, insertLocal, 
@@ -24,7 +25,7 @@ const RIBBON = [
   { id: "trash", label: "휴지통", icon: Icons.trash },
 ];
 
-function Accordion({ title, icon, children, defaultOpen = false, theme }: { title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean; theme: any }) {
+function Accordion({ title, icon, children, defaultOpen = false, theme }: { title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean; theme: ThemeConfig }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
     <div style={{ marginBottom: 4 }}>
@@ -123,7 +124,7 @@ export default function Home(){
   const [recentIds,setRecentIds]=useState<string[]>([]);
   const [searchQ,setSearchQ]=useState("");
   const [pageTitle,setPageTitle]=useState("");
-  const [spreadsheetData, setSpreadsheetData] = useState<{ columns: any[], rows: any[] } | null>(null);
+  const [spreadsheetData, setSpreadsheetData] = useState<{ columns: Column[], rows: Row[] } | null>(null);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
   const sidebarRef=useRef<HTMLDivElement>(null);
   const resizing=useRef(false);
@@ -164,7 +165,7 @@ export default function Home(){
   }, []);
 
   const baseTheme = THEMES[theme];
-  const t = customTheme ? { ...baseTheme, n: "커스텀", ...customTheme } : baseTheme;
+  const t = customTheme ? { ...baseTheme, ...customTheme, n: "커스텀" } : baseTheme;
   const isDark=theme!=="light";
 
   useEffect(()=>{
@@ -227,8 +228,23 @@ export default function Home(){
   const handleDelete=(id:string)=>{const nd=findNode(tree,id);if(nd)setTrashedNodes(p=>[...p,nd]);setTree(prev=>removeLocal(prev,id));if(selectedId===id)setSelectedId(null);dbDelete(id);};
   const restoreNode=(nd:TreeNode)=>{setTree(p=>[...p,nd]);setTrashedNodes(p=>p.filter(n=>n.id!==nd.id));saveNode(nd);};
   const duplicateNode=(nd:TreeNode)=>{const pid=findParentId(tree,nd.id);const dup:TreeNode={...nd,id:uid(),name:nd.name+" (복사)",parent_id:pid,children:[]};setTree(p=>pid?insertLocal(p,pid,dup):[...p,dup]);saveNode(dup);};
-  const toggleBookmark=(id:string)=>{setBookmarks(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);dbSyncBM(Array.from(s));return s;});};
-  const toggleFavorite=(id:string)=>{setFavorites(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);return s;});};
+  const toggleBookmark = (id: string) => {
+    setBookmarks(p => {
+      const s = new Set(p);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      dbSyncBM(Array.from(s));
+      return s;
+    });
+  };
+  const toggleFavorite = (id: string) => {
+    setFavorites(p => {
+      const s = new Set(p);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
+  };
 
   const onDragStart=(e:React.DragEvent,id:string)=>{setDragSrc(id);e.dataTransfer.effectAllowed="move";};
   const onDragOver = (e: React.DragEvent, id: string) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
@@ -238,7 +254,7 @@ export default function Home(){
     setTree(p => { const t = removeLocal(p, dragSrc); return insertLocal(t, dropParent, nd); }); saveNode({ ...nd, parent_id: dropParent }); setDragSrc(null);
   };
 
-  const onSpreadsheetUpdate = useCallback((data: { columns: any[], rows: any[], allSheets?: any[] }) => {
+  const onSpreadsheetUpdate = useCallback((data: { columns: Column[], rows: Row[], allSheets?: Sheet[] }) => {
     if (!selectedId) return;
     setSpreadsheetData(data);
     if (!data.allSheets) return;
@@ -264,7 +280,7 @@ export default function Home(){
     }, 800);
   }, [selectedId, tree, saveNode]);
 
-  const onContentChange = useCallback((content: any) => {
+  const onContentChange = useCallback((content: any[]) => {
     if (!selectedId) return;
     setSaveStatus("saving");
     setTree(prev => prev.map(n => n.id === selectedId ? { ...n, content: { ...n.content, editorContent: content } } : n));
@@ -279,11 +295,9 @@ export default function Home(){
         }).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error"));
       } 
     }, 800);
-      } 
-    }, 800);
   }, [selectedId, tree, saveNode]);
 
-  const onAIApply = useCallback((type: "editor" | "spreadsheet", data: any) => {
+  const onAIApply = useCallback((type: "editor" | "spreadsheet", data: string) => {
     if (!selectedId) return;
     setSaveStatus("saving");
 
@@ -316,7 +330,7 @@ export default function Home(){
         return n;
       }));
     }
-  }, [selectedId, tree, saveNode]);
+  }, [selectedId, saveNode]);
 
   const onTitleChange=(newTitle:string)=>{setPageTitle(newTitle);renameNode(selectedId!,newTitle);};
 
@@ -388,6 +402,7 @@ export default function Home(){
               <div style={{ padding: "8px 16px" }}>
                 <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
                   <input 
+                    title="새 할 일 입력"
                     value={newTodo}
                     onChange={e => setNewTodo(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && addTodo()}
@@ -399,7 +414,7 @@ export default function Home(){
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 180, overflowY: "auto", scrollbarWidth: "none" }}>
                   {todos.map(todo => (
                     <div key={todo.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: t.hv, border: `1px solid ${t.bd}30` }}>
-                      <input type="checkbox" checked={todo.completed} onChange={() => toggleTodo(todo.id)} style={{ cursor: "pointer" }} />
+                      <input type="checkbox" checked={todo.completed} onChange={() => toggleTodo(todo.id)} style={{ cursor: "pointer" }} title="완료 상태 변경" />
                       <span style={{ flex: 1, fontSize: 11, color: todo.completed ? `${t.tx}60` : t.tx, textDecoration: todo.completed ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis" }}>{todo.text}</span>
                       <button onClick={() => removeTodo(todo.id)} style={{ background: "transparent", border: "none", color: `${t.tx}40`, cursor: "pointer", fontSize: 10 }}>✕</button>
                     </div>
@@ -428,7 +443,7 @@ export default function Home(){
           </>)}
           {activePanel==="search"&&(<div style={{padding:"0 0"}}>
             <div style={{padding:"16px 16px 8px 16px"}}>
-              <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="검색..." style={{width:"100%",padding:8,background:t.hv,border:"none",borderRadius:6,color:t.tx,fontSize:13,outline:"none"}}/>
+              <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="검색..." title="문서 검색" style={{width:"100%",padding:8,background:t.hv,border:"none",borderRadius:6,color:t.tx,fontSize:13,outline:"none"}}/>
             </div>
             <Accordion title="검색 결과" icon={Icons.search(t.tx2)} defaultOpen={true} theme={t}>
               {searchResults.map(p=>(<div key={p.id} onClick={()=>setSelectedId(p.id)} style={{padding:"8px 16px 8px 36px",fontSize:13,cursor:"pointer",color:selectedId===p.id?t.ac:t.tx2}} onMouseEnter={e=>e.currentTarget.style.background=t.hv} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.name}</div>))}
@@ -459,7 +474,7 @@ export default function Home(){
                   {([{key:"bg",label:"배경"},{key:"sb",label:"사이드바"},{key:"ac",label:"강조"} ] as ColorItem[]).map(item=>(
                     <div key={item.key} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                       <span style={{fontSize:12}}>{item.label}</span>
-                      <input title={item.label} type="color" value={(customTheme as any)?.[item.key]||(t as any)[item.key]} onChange={e=>setCustomTheme({...t, ...customTheme, [item.key]:e.target.value})} />
+                      <input title={item.label} type="color" value={(customTheme as Record<string, string>)?.[item.key] || (t as Record<string, string>)[item.key]} onChange={e => setCustomTheme({ ...t, ...customTheme, [item.key]: e.target.value })} />
                     </div>
                   ))}
                 </>}
@@ -520,10 +535,10 @@ export default function Home(){
         darkMode={isDark} 
         accentColor={t.ac} 
         contextData={{
-          id: selectedId,
           pageTitle: selectedNode?.name,
-          type: showTable ? "spreadsheet" : "document",
-          ...spreadsheetData
+          rows: spreadsheetData?.rows,
+          columns: spreadsheetData?.columns,
+          type: showTable ? "spreadsheet" : "editor"
         }}
         onApplyChanges={onAIApply}
       />

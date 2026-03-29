@@ -1,15 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "../lib/supabase";
-import { evalFormula, type CellValue, type Row, type Column } from "../lib/formula";
-
-/* ── Additional Types ── */
-interface Sheet {
-  id: string;
-  name: string;
-  columns: Column[];
-  rows: Row[];
-}
+import { evalFormula, type CellValue, type Row, type Column, type Sheet } from "../lib/formula";
 
 interface FilterRule {
   columnId: string;
@@ -94,17 +86,20 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
       const supabase = createClient();
       (async () => {
         const { data, error } = await supabase.from("pages").select("content").eq("id", pageId).single();
-        if (!error && data?.content?.sheets) { 
+        if (!error && data?.content?.sheets && data.content.sheets.length > 0) { 
           setSheets(data.content.sheets); 
           setActiveSheet(data.content.sheets[0].id); 
-          if (onDataUpdate) onDataUpdate({ columns: data.content.sheets[0].columns, rows: data.content.sheets[0].rows });
+          if (onDataUpdate) {
+            const first = data.content.sheets[0];
+            queueMicrotask(() => onDataUpdate({ columns: first.columns, rows: first.rows, allSheets: data.content.sheets }));
+          }
         }
         setLoading(false);
       })();
     } else {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
     }
-  }, [pageId]);
+  }, [pageId, onDataUpdate]);
 
   const updateSheets = useCallback((fn: (s: Sheet[]) => Sheet[]) => {
     setSheets(prev => {
@@ -225,6 +220,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
         return (
           <div style={baseStyle}>
             <select
+              title="옵션 선택"
               value={String(val ?? "")}
               onChange={(e) => { updateCell(r.id, col.id, e.target.value); setEdit(null); }}
               autoFocus
@@ -241,6 +237,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
         return (
           <div style={baseStyle}>
             <input
+              title="날짜 선택"
               type="date"
               value={String(val ?? "")}
               onChange={(e) => updateCell(r.id, col.id, e.target.value)}
@@ -255,6 +252,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
       return (
         <div style={baseStyle}>
           <input
+            title="데이터 입력"
             value={String(val ?? "")}
             onChange={(e) => updateCell(r.id, col.id, e.target.value)}
             autoFocus
@@ -272,7 +270,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
     if (col.type === "formula") {
       extraStyle = { color: ac, fontWeight: 600 };
     } else if (col.type === "checkbox") {
-      content = <input type="checkbox" checked={!!val} onChange={e => updateCell(r.id, col.id, e.target.checked)} style={{ cursor: "pointer", width: 14, height: 14, accentColor: ac }} />;
+      content = <input title="완료 여부" type="checkbox" checked={!!val} onChange={e => updateCell(r.id, col.id, e.target.checked)} style={{ cursor: "pointer", width: 14, height: 14, accentColor: ac }} />;
       extraStyle = { justifyContent: "center" };
     } else if (col.type === "select" && val) {
       content = (
@@ -390,6 +388,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
         ))}
         {showGroup && (
           <select 
+            title="그룹화 기준 컬럼"
             aria-label="그룹화 기준 컬럼"
             value={groupByCol || ""} 
             onChange={e => setGroupByCol(e.target.value || null)}
@@ -411,13 +410,13 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
       {showFilter && <div style={{ padding: "8px 16px", borderBottom: `1px solid ${bd}`, background: hv }}>
         {filters.map((f, i) => (
           <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-            <select aria-label="필터 열" value={f.columnId} onChange={e => { const nf = [...filters]; nf[i] = { ...f, columnId: e.target.value }; setFilters(nf); }} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
+            <select title="필터 열" aria-label="필터 열" value={f.columnId} onChange={e => { const nf = [...filters]; nf[i] = { ...f, columnId: e.target.value }; setFilters(nf); }} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
               {columns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <select aria-label="연산자" value={f.operator} onChange={e => { const nf = [...filters]; nf[i] = { ...f, operator: e.target.value as FilterRule["operator"] }; setFilters(nf); }} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
+            <select title="연산자" aria-label="연산자" value={f.operator} onChange={e => { const nf = [...filters]; nf[i] = { ...f, operator: e.target.value as FilterRule["operator"] }; setFilters(nf); }} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
               {["contains", "equals", "gt", "lt", "isEmpty"].map(o => <option key={o} value={o}>{o}</option>)}
             </select>
-            <input aria-label="필터 값" value={f.value} onChange={e => { const nf = [...filters]; nf[i] = { ...f, value: e.target.value }; setFilters(nf); }} placeholder="값 입력..." style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6, width: 120 }} />
+            <input title="필터 값" aria-label="필터 값" value={f.value} onChange={e => { const nf = [...filters]; nf[i] = { ...f, value: e.target.value }; setFilters(nf); }} placeholder="값 입력..." style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6, width: 120 }} />
             <button onClick={() => setFilters(p => p.filter((_, j) => j !== i))} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer" }}>✕</button>
           </div>
         ))}
@@ -426,10 +425,10 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
 
       {showSort && <div style={{ padding: "8px 16px", borderBottom: `1px solid ${bd}`, background: hv, display: "flex", gap: 12, alignItems: "center" }}>
         <span style={{ fontSize: 11, color: tx2 }}>정렬 기준:</span>
-        <select value={sorts[0]?.columnId} onChange={e => setSorts([{ columnId: e.target.value, direction: sorts[0]?.direction || "asc" }])} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
+        <select title="정렬 기준" value={sorts[0]?.columnId} onChange={e => setSorts([{ columnId: e.target.value, direction: sorts[0]?.direction || "asc" }])} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
           {columns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select value={sorts[0]?.direction} onChange={e => setSorts([{ columnId: sorts[0]?.columnId || columns[0]?.id, direction: e.target.value as any }])} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
+        <select title="정렬 방향" value={sorts[0]?.direction} onChange={e => setSorts([{ columnId: sorts[0]?.columnId || columns[0]?.id, direction: e.target.value as any }])} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
           <option value="asc">오름차순</option>
           <option value="desc">내림차순</option>
         </select>
@@ -533,8 +532,8 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
         <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}>
           <div style={{ background: bg, width: 340, borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 16, border: `1px solid ${bd}` }}>
             <h3 style={{ margin: 0, fontSize: 16 }}>컬럼 설정</h3>
-            <input value={editColData.name} onChange={e => setEditColData({...editColData, name: e.target.value})} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${bd}`, background: cellBg, color: tx }} />
-            <select value={editColData.type} onChange={e => setEditColData({...editColData, type: e.target.value as any})} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${bd}`, background: cellBg, color: tx }}>
+            <input title="컬럼 이름" value={editColData.name} onChange={e => setEditColData({...editColData, name: e.target.value})} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${bd}`, background: cellBg, color: tx }} />
+            <select title="컬럼 타입" value={editColData.type} onChange={e => setEditColData({...editColData, type: e.target.value as any})} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${bd}`, background: cellBg, color: tx }}>
               {["text", "number", "date", "select", "checkbox", "formula", "percent"].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <div style={{ display: "flex", gap: 10 }}>

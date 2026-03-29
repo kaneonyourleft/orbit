@@ -11,6 +11,7 @@ export interface ThemeConfig {
   bd: string;
   hv: string;
   card: string;
+  [key: string]: string;
 }
 
 export const THEMES: Record<string, ThemeConfig> = {

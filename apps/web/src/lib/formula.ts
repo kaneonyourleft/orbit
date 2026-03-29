@@ -16,6 +16,13 @@ export interface Row {
   cells: Record<string, CellValue>;
 }
 
+export interface Sheet {
+  id: string;
+  name: string;
+  columns: Column[];
+  rows: Row[];
+}
+
 export function evalFormula(f: string, row: Row, allRows: Row[], cols: Column[]): CellValue {
   try {
     const expr = f.startsWith("=") ? f.slice(1).trim() : f.trim();
