@@ -171,6 +171,15 @@ export default function Home(){
   const [wordCount,setWordCount]=useState(0);
   const sidebarRef=useRef<HTMLDivElement>(null);
   const resizing=useRef(false);
+  const contentTimer=useRef<any>(null);
+
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const baseTheme = THEMES[theme];
   const t = customTheme ? { ...baseTheme, n: "커스텀", ...customTheme } : baseTheme;
