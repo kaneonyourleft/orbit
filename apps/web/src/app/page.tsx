@@ -32,6 +32,19 @@ const THEMES:Record<string,{n:string;bg:string;sb:string;rb:string;tx:string;tx2
   light:{n:"라이트",bg:"#ffffff",sb:"#f8f8f8",rb:"#f0f0f0",tx:"#37352f",tx2:"#999",ac:"#2383e2",bd:"rgba(0,0,0,0.06)",hv:"rgba(0,0,0,0.03)",card:"rgba(0,0,0,0.02)"},
 };
 
+const PALETTE_PRESETS: {name:string;colors:{bg:string;sb:string;rb:string;tx:string;tx2:string;ac:string;bd:string;hv:string;card:string}}[] = [
+  {name:"미드나잇 퍼플",colors:{bg:"#13111a",sb:"#1a1726",rb:"#110f1a",tx:"#e2dff0",tx2:"#8880a8",ac:"#a78bfa",bd:"rgba(167,139,250,0.12)",hv:"rgba(167,139,250,0.06)",card:"rgba(167,139,250,0.04)"}},
+  {name:"선셋 오렌지",colors:{bg:"#1a1210",sb:"#201714",rb:"#170f0d",tx:"#f0e0d8",tx2:"#a87860",ac:"#fb923c",bd:"rgba(251,146,60,0.12)",hv:"rgba(251,146,60,0.06)",card:"rgba(251,146,60,0.04)"}},
+  {name:"오션 블루",colors:{bg:"#0c1222",sb:"#101828",rb:"#0a0f1c",tx:"#d0e0f0",tx2:"#6888a8",ac:"#38bdf8",bd:"rgba(56,189,248,0.12)",hv:"rgba(56,189,248,0.06)",card:"rgba(56,189,248,0.04)"}},
+  {name:"체리 블로썸",colors:{bg:"#1a1018",sb:"#201520",rb:"#160d14",tx:"#f0dce8",tx2:"#a87898",ac:"#f472b6",bd:"rgba(244,114,182,0.12)",hv:"rgba(244,114,182,0.06)",card:"rgba(244,114,182,0.04)"}},
+  {name:"민트 그린",colors:{bg:"#0d1a16",sb:"#112018",rb:"#0a1612",tx:"#d0f0e0",tx2:"#68a888",ac:"#34d399",bd:"rgba(52,211,153,0.12)",hv:"rgba(52,211,153,0.06)",card:"rgba(52,211,153,0.04)"}},
+  {name:"골드 럭셔리",colors:{bg:"#1a1810",sb:"#201e14",rb:"#16140d",tx:"#f0e8d0",tx2:"#a89868",ac:"#fbbf24",bd:"rgba(251,191,36,0.12)",hv:"rgba(251,191,36,0.06)",card:"rgba(251,191,36,0.04)"}},
+  {name:"로즈 골드",colors:{bg:"#1a1214",sb:"#201618",rb:"#170f10",tx:"#f0dce0",tx2:"#a87880",ac:"#fb7185",bd:"rgba(251,113,133,0.12)",hv:"rgba(251,113,133,0.06)",card:"rgba(251,113,133,0.04)"}},
+  {name:"사이버펑크",colors:{bg:"#0a0a14",sb:"#10101c",rb:"#08080f",tx:"#e0f0f0",tx2:"#68a8a8",ac:"#22d3ee",bd:"rgba(34,211,238,0.12)",hv:"rgba(34,211,238,0.06)",card:"rgba(34,211,238,0.04)"}},
+  {name:"크림 화이트",colors:{bg:"#faf8f5",sb:"#f0ede8",rb:"#e8e4de",tx:"#37352f",tx2:"#9b9a97",ac:"#d97706",bd:"rgba(0,0,0,0.06)",hv:"rgba(0,0,0,0.03)",card:"rgba(0,0,0,0.02)"}},
+  {name:"노르딕 화이트",colors:{bg:"#f5f7fa",sb:"#ebeef3",rb:"#e0e4ea",tx:"#2e3440",tx2:"#7b8394",ac:"#5e81ac",bd:"rgba(0,0,0,0.06)",hv:"rgba(0,0,0,0.03)",card:"rgba(0,0,0,0.02)"}},
+];
+
 /* ── SVG Icons ── */
 const Icons = {
   files:(c:string)=><svg width="18" height="18" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H13L11 5H5C3.9 5 3 5.9 3 7Z"/></svg>,
@@ -123,6 +136,8 @@ export default function Home(){
   const [activePanel,setActivePanel]=useState<string>("files");
   const [sidebarOpen,setSidebarOpen]=useState(true);
   const [sidebarWidth,setSidebarWidth]=useState(248);
+  const [customTheme, setCustomTheme] = useState<{bg:string;sb:string;rb:string;tx:string;tx2:string;ac:string;bd:string;hv:string;card:string}|null>(null);
+  const [themeMode, setThemeMode] = useState<"preset"|"palette"|"custom">("preset");
   const [focusMode,setFocusMode]=useState(false);
   const [ctxMenu,setCtxMenu]=useState<{x:number;y:number;node:TreeNode}|null>(null);
   const [renameId,setRenameId]=useState<string|null>(null);
@@ -140,7 +155,8 @@ export default function Home(){
   const sidebarRef=useRef<HTMLDivElement>(null);
   const resizing=useRef(false);
 
-  const t=THEMES[theme];
+  const baseTheme = THEMES[theme];
+  const t = customTheme ? { ...baseTheme, n: "커스텀", ...customTheme } : baseTheme;
   const isDark=theme!=="light";
 
   useEffect(()=>{if(typeof window!=="undefined")localStorage.setItem("orbit-theme",theme);},[theme]);
@@ -233,7 +249,106 @@ export default function Home(){
         {activePanel==="bookmark"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{Array.from(bookmarks).map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.bookmark(t.ac)}{nd.name}</div>:null;})}{bookmarks.size===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>북마크가 없습니다</div>}</div>}
         {activePanel==="recent"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{recentIds.map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.recent(t.tx2)}{nd.name}</div>:null;})}{recentIds.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>최근 문서 없음</div>}</div>}
         {activePanel==="trash"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{trashedNodes.map(nd=><div key={nd.id} style={{padding:"6px 10px",fontSize:13,borderRadius:6,display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}><span style={{display:"flex",alignItems:"center",gap:6}}>{Icons.page(t.tx2)}{nd.name}</span><span onClick={()=>restoreNode(nd)} style={{cursor:"pointer",opacity:0.5,display:"flex"}} title="복원">{Icons.restore(t.ac)}</span></div>)}{trashedNodes.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>휴지통이 비어 있습니다</div>}</div>}
-        {activePanel==="settings"&&<div style={{flex:1,overflowY:"auto",padding:"16px 12px"}}><div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>테마</div><div style={{display:"flex",flexDirection:"column",gap:4}}>{Object.entries(THEMES).map(([key,val])=>(<div key={key} onClick={()=>setTheme(key)} style={{padding:"8px 10px",borderRadius:6,cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:theme===key?t.hv:"transparent",border:theme===key?`1px solid ${t.ac}`:`1px solid transparent`}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(theme!==key)e.currentTarget.style.background="transparent";}}><div style={{width:18,height:18,borderRadius:"50%",background:val.bg,border:`2px solid ${val.ac}`}}/><span style={{fontSize:13}}>{val.n}</span></div>))}</div><div style={{height:1,background:t.bd,margin:"16px 0"}}/><div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>단축키</div><div style={{fontSize:12,color:t.tx2,lineHeight:2}}><div>Ctrl+N — 새 페이지</div><div>Ctrl+P — 검색</div><div>Ctrl+\ — 사이드바 토글</div><div>Ctrl+Shift+F — 포커스 모드</div></div><div style={{height:1,background:t.bd,margin:"16px 0"}}/><div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>포커스 모드</div><div onClick={()=>setFocusMode(!focusMode)} style={{padding:"8px 10px",borderRadius:6,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:8,background:focusMode?t.hv:"transparent"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!focusMode)e.currentTarget.style.background="transparent";}}>{Icons.focus(t.ac)}{focusMode?"포커스 모드 끄기":"포커스 모드 켜기"}</div></div>}
+        {activePanel==="settings"&&<div style={{flex:1,overflowY:"auto",padding:"16px 12px"}}>
+  {/* Theme Mode Tabs */}
+  <div style={{display:"flex",gap:4,marginBottom:12,background:t.hv,borderRadius:8,padding:3}}>
+    {(["preset","palette","custom"] as const).map(m=>(
+      <div key={m} onClick={()=>setThemeMode(m)}
+        style={{flex:1,padding:"6px 0",textAlign:"center",fontSize:11,fontWeight:600,borderRadius:6,cursor:"pointer",
+          background:themeMode===m?t.ac:"transparent",color:themeMode===m?(theme==="light"||theme==="cream"?"#fff":"#fff"):t.tx2,
+          transition:"all 0.15s"}}>
+        {m==="preset"?"프리셋":m==="palette"?"팔레트":"커스텀"}
+      </div>
+    ))}
+  </div>
+
+  {/* Preset themes */}
+  {themeMode==="preset"&&<>
+    <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>기본 테마</div>
+    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+      {Object.entries(THEMES).map(([key,val])=>(
+        <div key={key} onClick={()=>{setTheme(key);setCustomTheme(null);}}
+          style={{padding:"8px 10px",borderRadius:6,cursor:"pointer",display:"flex",alignItems:"center",gap:10,
+            background:theme===key&&!customTheme?t.hv:"transparent",border:theme===key&&!customTheme?`1px solid ${t.ac}`:"1px solid transparent",transition:"all 0.15s"}}
+          onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!(theme===key&&!customTheme))e.currentTarget.style.background="transparent";}}>
+          <div style={{width:18,height:18,borderRadius:"50%",background:val.bg,border:`2px solid ${val.ac}`}}/>
+          <span style={{fontSize:13}}>{val.n}</span>
+        </div>
+      ))}
+    </div>
+  </>}
+
+  {/* Palette presets */}
+  {themeMode==="palette"&&<>
+    <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>추천 색조합</div>
+    <div style={{display:"flex",flexDirection:"column",gap:6}}>
+      {PALETTE_PRESETS.map((p,i)=>(
+        <div key={i} onClick={()=>setCustomTheme(p.colors)}
+          style={{padding:"8px 10px",borderRadius:8,cursor:"pointer",display:"flex",alignItems:"center",gap:10,
+            border:customTheme&&customTheme.ac===p.colors.ac?`1px solid ${p.colors.ac}`:"1px solid transparent",
+            background:customTheme&&customTheme.ac===p.colors.ac?"rgba(255,255,255,0.04)":"transparent",transition:"all 0.15s"}}
+          onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.04)";}} onMouseLeave={e=>{if(!(customTheme&&customTheme.ac===p.colors.ac))e.currentTarget.style.background="transparent";}}>
+          <div style={{display:"flex",gap:3}}>
+            <div style={{width:14,height:14,borderRadius:"50%",background:p.colors.bg,border:"1px solid rgba(255,255,255,0.1)"}}/>
+            <div style={{width:14,height:14,borderRadius:"50%",background:p.colors.sb}}/>
+            <div style={{width:14,height:14,borderRadius:"50%",background:p.colors.ac}}/>
+            <div style={{width:14,height:14,borderRadius:"50%",background:p.colors.tx}}/>
+          </div>
+          <span style={{fontSize:12,fontWeight:500}}>{p.name}</span>
+        </div>
+      ))}
+    </div>
+  </>}
+
+  {/* Custom color picker */}
+  {themeMode==="custom"&&<>
+    <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>영역별 색상 설정</div>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {([
+        {key:"bg",label:"배경"},
+        {key:"sb",label:"사이드바"},
+        {key:"rb",label:"리본"},
+        {key:"tx",label:"텍스트"},
+        {key:"tx2",label:"보조 텍스트"},
+        {key:"ac",label:"강조색"},
+        {key:"bd",label:"테두리"},
+      ] as {key:string;label:string}[]).map(item=>(
+        <div key={item.key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 0"}}>
+          <span style={{fontSize:12,color:t.tx}}>{item.label}</span>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <input type="color" value={(customTheme as any)?.[item.key] || (t as any)[item.key] || "#000000"}
+              onChange={e=>{
+                const prev = customTheme || {bg:t.bg,sb:t.sb,rb:t.rb,tx:t.tx,tx2:t.tx2,ac:t.ac,bd:t.bd,hv:t.hv,card:t.card};
+                setCustomTheme({...prev,[item.key]:e.target.value});
+              }}
+              style={{width:28,height:28,border:"none",borderRadius:6,cursor:"pointer",background:"transparent",padding:0}}/>
+            <span style={{fontSize:10,color:t.tx2,fontFamily:"monospace"}}>{(customTheme as any)?.[item.key] || (t as any)[item.key]}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+    <div onClick={()=>setCustomTheme(null)} style={{marginTop:12,padding:"8px",textAlign:"center",fontSize:12,color:t.tx2,borderRadius:6,cursor:"pointer",border:`1px dashed ${t.bd}`}}
+      onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+      기본 테마로 초기화
+    </div>
+  </>}
+
+  <div style={{height:1,background:t.bd,margin:"16px 0"}}/>
+  <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>단축키</div>
+  <div style={{fontSize:12,color:t.tx2,lineHeight:2}}>
+    <div>Ctrl+N — 새 페이지</div>
+    <div>Ctrl+P — 검색</div>
+    <div>Ctrl+\ — 사이드바 토글</div>
+    <div>Ctrl+Shift+F — 포커스 모드</div>
+  </div>
+  <div style={{height:1,background:t.bd,margin:"16px 0"}}/>
+  <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>포커스 모드</div>
+  <div onClick={()=>setFocusMode(!focusMode)}
+    style={{padding:"8px 10px",borderRadius:6,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:8,background:focusMode?t.hv:"transparent"}}
+    onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!focusMode)e.currentTarget.style.background="transparent";}}>
+    {Icons.focus(t.ac)}{focusMode?"포커스 모드 끄기":"포커스 모드 켜기"}
+  </div>
+</div>}
         <div onMouseDown={startResize} style={{position:"absolute",right:0,top:0,bottom:0,width:3,cursor:"col-resize",zIndex:10}} onMouseEnter={e=>{e.currentTarget.style.background=t.ac;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}/>
       </div>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
