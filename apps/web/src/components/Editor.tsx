@@ -14,11 +14,11 @@ import { layoutSlashMenuItems } from "./blocks/slashMenuItems";
 const schema = BlockNoteSchema.create({
   blockSpecs: {
     ...defaultBlockSpecs,
-    twoColumns: TwoColumns.config,
-    threeColumns: ThreeColumns.config,
-    fourColumns: FourColumns.config,
-    divider: Divider.config,
-    spacer: Spacer.config,
+    twoColumns: TwoColumns,
+    threeColumns: ThreeColumns,
+    fourColumns: FourColumns,
+    divider: Divider,
+    spacer: Spacer,
   },
 });
 
