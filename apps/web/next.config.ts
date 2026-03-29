@@ -1,20 +1,13 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false,
   transpilePackages: [
     '@orbit/core', 
     '@orbit/ui', 
     '@orbit/shared', 
-    '@orbit/database', 
-    '@blocksuite/presets', 
-    '@blocksuite/blocks', 
-    '@blocksuite/store',
-    '@blocksuite/data-view',
-    '@blocksuite/icons'
+    '@orbit/database'
   ],
-  // Next.js 16부터 eslint 설정은 더 이상 필요하지 않거나 다른 방식으로 다뤄집니다.
-  // 에러 발생을 방지하기 위해 제거합니다.
-  
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -25,9 +18,6 @@ const nextConfig: NextConfig = {
       ...config.module,
       exprContextCritical: false,
     };
-    config.ignoreWarnings = [
-      { module: /node_modules\/@blocksuite/ },
-    ];
     return config;
   },
 };
