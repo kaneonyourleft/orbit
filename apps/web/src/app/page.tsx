@@ -275,19 +275,94 @@ export default function Home(){
 
   return(
     <div className={focusMode?"focus-mode":""} style={{display:"flex",height:"100vh",background:t.bg,color:t.tx,fontFamily:"var(--font-main)",transition:"background 0.2s, color 0.2s"}}>
-      <div className="ribbon" style={{width:44,background:t.rb,borderRight:`1px solid ${t.bd}`,display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8,gap:2,flexShrink:0}}>
-        {RIBBON.map(r=>(<div key={r.id} title={r.label} onClick={()=>{if(activePanel===r.id&&sidebarOpen)setSidebarOpen(false);else{setActivePanel(r.id);setSidebarOpen(true);}}}
-            style={{width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,cursor:"pointer",background:activePanel===r.id&&sidebarOpen?t.hv:"transparent",transition:"background 0.15s"}}
-            onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!(activePanel===r.id&&sidebarOpen))e.currentTarget.style.background="transparent";}}>
-            {r.icon(activePanel===r.id&&sidebarOpen?t.ac:t.tx2)}
-          </div>))}
-        <div style={{flex:1}}/>
-        <div title="설정" onClick={()=>{setActivePanel("settings");setSidebarOpen(true);}} style={{width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,cursor:"pointer",marginBottom:8}}
-          onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.settings(t.tx2)}</div>
-      </div>
-      <div ref={sidebarRef} className="sidebar-wrap" style={{width:sidebarOpen?sidebarWidth:0,minWidth:sidebarOpen?sidebarWidth:0,background:t.sb,borderRight:`1px solid ${t.bd}`,overflow:"hidden",display:"flex",flexDirection:"column",position:"relative"}}>
-        <div style={{height:40,padding:"0 12px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${t.bd}`,flexShrink:0}}>
-          <span style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:t.tx2}}>{activePanel==="files"?"파일":activePanel==="search"?"검색":activePanel==="bookmark"?"북마크":activePanel==="recent"?"최근 문서":activePanel==="trash"?"휴지통":"설정"}</span>
+      {/* 모바일 상단 바 */}
+      {isMobile && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 48,
+          background: t.sb,
+          borderBottom: `1px solid ${t.bd}`,
+          display: "flex",
+          alignItems: "center",
+          padding: "0 12px",
+          zIndex: 999,
+          gap: 12,
+        }}>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            style={{
+              background: "none",
+              border: "none",
+              color: t.ac,
+              fontSize: 24,
+              cursor: "pointer",
+            }}
+          >☰</button>
+          <span style={{ color: t.tx, fontSize: 15, fontWeight: 600 }}>
+            {selectedNode?.name || "ORBIT"}
+          </span>
+        </div>
+      )}
+
+      {!isMobile && (
+        <div className="ribbon" style={{width:44,background:t.rb,borderRight:`1px solid ${t.bd}`,display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8,gap:2,flexShrink:0}}>
+          {RIBBON.map(r=>(<div key={r.id} title={r.label} onClick={()=>{if(activePanel===r.id&&sidebarOpen)setSidebarOpen(false);else{setActivePanel(r.id);setSidebarOpen(true);}}}
+              style={{width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,cursor:"pointer",background:activePanel===r.id&&sidebarOpen?t.hv:"transparent",transition:"background 0.15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!(activePanel===r.id&&sidebarOpen))e.currentTarget.style.background="transparent";}}>
+              {r.icon(activePanel===r.id&&sidebarOpen?t.ac:t.tx2)}
+            </div>))}
+          <div style={{flex:1}}/>
+          <div title="설정" onClick={()=>{setActivePanel("settings");setSidebarOpen(true);}} style={{width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,cursor:"pointer",marginBottom:8}}
+            onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.settings(t.tx2)}</div>
+        </div>
+      )}
+      <div ref={sidebarRef} className="sidebar-wrap" style={{
+        width: sidebarOpen ? (isMobile ? "85vw" : sidebarWidth) : 0,
+        minWidth: sidebarOpen ? (isMobile ? "85vw" : sidebarWidth) : 0,
+        position: isMobile ? "fixed" : "relative",
+        top: 0,
+        left: isMobile ? (sidebarOpen ? 0 : "-85vw") : undefined,
+        bottom: 0,
+        zIndex: isMobile ? 1000 : 1,
+        height: isMobile ? "100vh" : "100%",
+        transition: "all 0.25s ease",
+        background: t.sb,
+        borderRight: `1px solid ${t.bd}`,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: isMobile && sidebarOpen ? "4px 0 20px rgba(0,0,0,0.5)" : "none",
+      }}>
+        {/* 사이드바 상단 - 모바일 닫기 버튼 */}
+        <div style={{
+          height: 40,
+          padding: "0 12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: `1px solid ${t.bd}`,
+          flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: t.tx, opacity: 0.6 }}>
+            {activePanel === "files" ? "파일" : activePanel === "search" ? "검색" : activePanel === "bookmark" ? "북마크" : activePanel === "recent" ? "최근 문서" : activePanel === "trash" ? "휴지통" : "설정"}
+          </span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              background: "none",
+              border: "none",
+              color: t.tx,
+              fontSize: 22,
+              cursor: "pointer",
+              padding: "4px 8px",
+              borderRadius: 6,
+              display: "block",
+            }}
+            title="사이드바 닫기"
+          >✕</button>
         </div>
         {activePanel==="files"&&<div style={{flex:1,overflowY:"auto",padding:"4px 0"}}>
           {favPages.length>0&&<><div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>FAVORITES</div>{favPages.map(p=><div key={p.id} onClick={()=>setSelectedId(p.id)} style={{height:28,padding:"0 12px 0 20px",display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,borderRadius:6,margin:"0 4px",background:selectedId===p.id?t.hv:"transparent"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(selectedId!==p.id)e.currentTarget.style.background="transparent";}}>{Icons.star(t.ac)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span></div>)}<div style={{height:1,background:t.bd,margin:"6px 12px"}}/></>}
@@ -483,13 +558,21 @@ export default function Home(){
         </div>}
         <div onMouseDown={startResize} style={{position:"absolute",right:0,top:0,bottom:0,width:3,cursor:"col-resize",zIndex:10}} onMouseEnter={e=>{e.currentTarget.style.background=t.ac;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}/>
       </div>
-      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <div className="top-bar" style={{height:44,borderBottom:`1px solid ${t.bd}`,display:"flex",alignItems:"center",padding:"0 16px",gap:8,flexShrink:0}}>
+      <div style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        paddingTop: isMobile ? 48 : 0,
+      }}>
+        {!isMobile && (
+          <div className="top-bar" style={{height:44,borderBottom:`1px solid ${t.bd}`,display:"flex",alignItems:"center",padding:"0 16px",gap:8,flexShrink:0}}>
           {!sidebarOpen&&<span style={{cursor:"pointer",opacity:0.5,display:"flex"}} onClick={()=>setSidebarOpen(true)}>{Icons.menu(t.tx)}</span>}
           {sidebarOpen&&<span style={{cursor:"pointer",opacity:0.5,display:"flex"}} onClick={()=>setSidebarOpen(false)}><svg width="16" height="16" fill="none" stroke={t.tx} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></span>}
           <div style={{flex:1,display:"flex",alignItems:"center",gap:4,fontSize:12,color:t.tx2}}>{breadcrumb.map((b,i)=><span key={i} style={{display:"flex",alignItems:"center",gap:4}}>{i>0&&<span style={{opacity:0.3}}>/</span>}<span>{b}</span></span>)}</div>
           {selectedNode&&<span style={{fontSize:11,color:t.tx2}}>{wordCount} 단어</span>}
         </div>
+        )}
         <div style={{flex:1,overflow:"auto"}}>
           {selectedNode&&selectedNode.type==="page"?(<div className="fade-in editor-wrap"><div style={{maxWidth:"100%",margin:"0",padding:"32px 48px 0"}}><input value={pageTitle} onChange={e=>onTitleChange(e.target.value)} placeholder="제목 없음" style={{width:"100%",background:"transparent",border:"none",outline:"none",fontSize:32,fontWeight:700,color:t.tx,fontFamily:"var(--font-main)",marginBottom:4}}/></div><DynamicEditor key={selectedId!} initialContent={selectedNode.content?.editorContent || selectedNode.content} onChange={onContentChange} darkMode={isDark} />
           <div style={{maxWidth:"100%",padding:"0 48px 48px"}}>
