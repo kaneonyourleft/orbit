@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { usePages } from "../lib/usePages";
 import { THEMES, type ThemeConfig } from "../lib/themes";
