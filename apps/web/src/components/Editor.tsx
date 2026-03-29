@@ -25,7 +25,7 @@ export default function Editor({ initialContent, onChange, darkMode = false }: P
   }, [editor, onChange]);
 
   return (
-    <div className="fade-in" style={{ maxWidth: 720, margin: "0 auto", padding: "48px 24px", lineHeight: 1.6 }}>
+    <div className="fade-in" style={{ maxWidth: "100%", margin: "0", padding: "48px 48px", lineHeight: 1.6 }}>
       <BlockNoteView editor={editor} theme={darkMode ? "dark" : "light"} />
     </div>
   );

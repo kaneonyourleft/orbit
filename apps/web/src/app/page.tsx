@@ -13,6 +13,8 @@ const DynamicEditor = dynamic(() => import("../components/Editor"), {
   ),
 });
 
+import SpreadsheetTable from "../components/SpreadsheetTable";
+
 /* ── Helpers ── */
 const uid=()=>Math.random().toString(36).slice(2,10);
 function findNode(ns:TreeNode[],id:string):TreeNode|null{for(const n of ns){if(n.id===id)return n;const f=findNode(n.children,id);if(f)return f;}return null;}
@@ -138,6 +140,7 @@ export default function Home(){
   const [sidebarWidth,setSidebarWidth]=useState(248);
   const [customTheme, setCustomTheme] = useState<{bg:string;sb:string;rb:string;tx:string;tx2:string;ac:string;bd:string;hv:string;card:string}|null>(null);
   const [themeMode, setThemeMode] = useState<"preset"|"palette"|"custom">("preset");
+  const [showTable, setShowTable] = useState(false);
   const [focusMode,setFocusMode]=useState(false);
   const [ctxMenu,setCtxMenu]=useState<{x:number;y:number;node:TreeNode}|null>(null);
   const [renameId,setRenameId]=useState<string|null>(null);
@@ -359,7 +362,16 @@ export default function Home(){
           {selectedNode&&<span style={{fontSize:11,color:t.tx2}}>{wordCount} 단어</span>}
         </div>
         <div style={{flex:1,overflow:"auto"}}>
-          {selectedNode&&selectedNode.type==="page"?(<div className="fade-in editor-wrap"><div style={{maxWidth:720,margin:"0 auto",padding:"32px 24px 0"}}><input value={pageTitle} onChange={e=>onTitleChange(e.target.value)} placeholder="제목 없음" style={{width:"100%",background:"transparent",border:"none",outline:"none",fontSize:32,fontWeight:700,color:t.tx,fontFamily:"var(--font-main)",marginBottom:4}}/></div><DynamicEditor key={selectedId!} initialContent={selectedNode.content} onChange={onContentChange} darkMode={isDark} /></div>):(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",opacity:0.3}}><div style={{fontSize:48,marginBottom:16}}>🌑</div><div style={{fontSize:14}}>사이드바에서 페이지를 선택하거나</div><div style={{fontSize:14,marginTop:4}}>Ctrl+N으로 새 페이지를 만드세요</div></div>)}
+          {selectedNode&&selectedNode.type==="page"?(<div className="fade-in editor-wrap"><div style={{maxWidth:"100%",margin:"0",padding:"32px 48px 0"}}><input value={pageTitle} onChange={e=>onTitleChange(e.target.value)} placeholder="제목 없음" style={{width:"100%",background:"transparent",border:"none",outline:"none",fontSize:32,fontWeight:700,color:t.tx,fontFamily:"var(--font-main)",marginBottom:4}}/></div><DynamicEditor key={selectedId!} initialContent={selectedNode.content} onChange={onContentChange} darkMode={isDark} />
+          <div style={{maxWidth:"100%",padding:"0 48px 48px"}}>
+            <div onClick={()=>setShowTable(!showTable)}
+              style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:6,cursor:"pointer",fontSize:12,color:t.tx2,border:`1px dashed ${t.bd}`,marginBottom:showTable?12:0,transition:"all 0.15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.background=t.hv;e.currentTarget.style.borderColor=t.ac;e.currentTarget.style.color=t.ac;}}
+              onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor=t.bd;e.currentTarget.style.color=t.tx2;}}>
+              {showTable?"▾ 테이블 숨기기":"▸ 스프레드시트 테이블 열기"}
+            </div>
+            {showTable && <SpreadsheetTable darkMode={isDark} accentColor={t.ac} />}
+          </div></div>):(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",opacity:0.3}}><div style={{fontSize:48,marginBottom:16}}>🌑</div><div style={{fontSize:14}}>사이드바에서 페이지를 선택하거나</div><div style={{fontSize:14,marginTop:4}}>Ctrl+N으로 새 페이지를 만드세요</div></div>)}
         </div>
       </div>
       {ctxMenu&&<CtxMenu x={ctxMenu.x} y={ctxMenu.y} items={getCtxItems(ctxMenu.node)} onClose={()=>setCtxMenu(null)} t={t}/>}
