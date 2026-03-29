@@ -1,8 +1,8 @@
 "use client";
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { usePages } from "../lib/usePages";
-import { THEMES, PALETTE_PRESETS, type ThemeConfig } from "../lib/themes";
+import { THEMES, type ThemeConfig } from "../lib/themes";
 import { Icons } from "../components/Icons";
 import { 
   uid, findNode, findParentId, removeLocal, insertLocal, 
@@ -98,10 +98,13 @@ export default function Home(){
     if (typeof window !== "undefined") { return localStorage.getItem("orbit-theme") || "obsidian"; }
     return "obsidian";
   });
-  const [customThemeName, setCustomThemeName] = useState("");
 
-  useEffect(()=>{if(typeof window!=="undefined")localStorage.setItem("orbit-custom-themes",JSON.stringify(savedCustomThemes));},[savedCustomThemes]);
-  useEffect(()=>{if(typeof window!=="undefined")localStorage.setItem("orbit-theme",theme);},[theme]);
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("orbit-custom-themes", JSON.stringify(savedCustomThemes));
+  }, [savedCustomThemes]);
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("orbit-theme", theme);
+  }, [theme]);
   const [sidebarOpen,setSidebarOpen]=useState(true);
   const [sidebarWidth,setSidebarWidth]=useState(248);
   const [customTheme, setCustomTheme] = useState<ThemeConfig|null>(null);
@@ -120,7 +123,6 @@ export default function Home(){
   const [recentIds,setRecentIds]=useState<string[]>([]);
   const [searchQ,setSearchQ]=useState("");
   const [pageTitle,setPageTitle]=useState("");
-  const [wordCount,setWordCount]=useState(0);
   const [spreadsheetData, setSpreadsheetData] = useState<{ columns: any[], rows: any[] } | null>(null);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
   const sidebarRef=useRef<HTMLDivElement>(null);
@@ -277,12 +279,8 @@ export default function Home(){
         }).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error"));
       } 
     }, 800);
-    try { 
-      const txt = JSON.stringify(content); 
-      setWordCount(txt.replace(/[^가-힣a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).length); 
-    } catch { 
-      setWordCount(0); 
-    }
+      } 
+    }, 800);
   }, [selectedId, tree, saveNode]);
 
   const onAIApply = useCallback((type: "editor" | "spreadsheet", data: any) => {

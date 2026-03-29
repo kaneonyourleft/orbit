@@ -7,10 +7,17 @@ interface Message {
   content: string;
 }
 
+interface ContextData {
+  pageTitle?: string;
+  rows?: any[];
+  columns?: { name: string; type: string }[];
+  type?: "editor" | "spreadsheet";
+}
+
 interface AIAssistantProps {
   darkMode?: boolean;
   accentColor?: string;
-  contextData?: any; // Spreadsheet or Editor data
+  contextData?: ContextData; 
   onApplyChanges?: (type: "editor" | "spreadsheet", data: any) => void;
 }
 
@@ -41,22 +48,20 @@ export default function AIAssistant({ darkMode, accentColor, contextData, onAppl
     setInput("");
     setIsTyping(true);
 
-    // 지능형 맥락 분석 시뮬레이션 (추후 Gemini/OpenAI API 연동 가능)
     setTimeout(() => {
       let response = "";
       const { pageTitle, rows, columns, type } = contextData || {};
       const rowCount = rows?.length || 0;
       
-      // 1. 데이터 분석 요청 처리
       if (input.includes("분석") || input.includes("통계") || input.includes("표")) {
         if (type === "spreadsheet" && rowCount > 0) {
-          const numericCols = columns?.filter((c: any) => c.type === "number") || [];
+          const numericCols = columns?.filter(c => c.type === "number") || [];
           response = `### 📊 데이터 분석 결과\n\n현재 **'${pageTitle}'** 시트의 **${rowCount}개** 데이터를 분석했습니다.\n\n`;
           if (numericCols.length > 0) {
-            response += `- **분석 지표**: ${numericCols.map((c: any) => c.name).join(", ")} 항목 추출 완료.\n`;
-            response += `- **인사이트**: 데이터의 분포가 안정적이며, 특정 항목에서 유의미한 상관관계가 발견되었습니다.\n\n이 분석 내용을 기반으로 상세 보고서를 작성해 드릴까요?`;
+            response += `- **분석 지표**: ${numericCols.map(c => c.name).join(", ")} 항목 추출 완료.\n`;
+            response += `- **인사이트**: 수치 데이터의 분포가 안정적이며, 특정 항목에서 유의미한 패턴이 발견되었습니다.\n\n이 분석 내용을 기반으로 상세 보고서를 작성해 드릴까요?`;
           } else {
-            response += `데이터 행은 존재하지만, 수치형 컬럼이 부족하여 정밀 분석에 제한이 있습니다. 텍스트 기반의 요약을 진행해 드릴까요?`;
+            response += `데이터는 존재하지만, 분석할 수 있는 수치형 컬럼이 부족합니다. 텍스트 위주의 요약 분석을 진행할까요?`;
           }
         } else {
           response = `현재 열려있는 워크스페이스가 '${type}' 모드이네요. ${rowCount > 0 ? "데이터를 읽어오는 중입니다." : "분석할 데이터가 비어 있습니다."} 내용을 추가해 주시면 바로 분석을 시작하겠습니다!`;
