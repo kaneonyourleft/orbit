@@ -11,6 +11,7 @@ import {
 
 const Editor = dynamic(() => import("../components/Editor"), { ssr: false });
 const SpreadsheetTable = dynamic(() => import("../components/SpreadsheetTable"), { ssr: false });
+const AIAssistant = dynamic(() => import("../components/AIAssistant"), { ssr: false });
 
 type PanelType = "files" | "search" | "bookmark" | "recent" | "trash" | "settings";
 interface ColorItem { key: string; label: string; icon: string; }
@@ -22,6 +23,29 @@ const RIBBON = [
   { id: "recent", label: "최근 문서", icon: Icons.recent },
   { id: "trash", label: "휴지통", icon: Icons.trash },
 ];
+
+function Accordion({ title, icon, children, defaultOpen = false, theme }: { title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean; theme: any }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ 
+          display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", cursor: "pointer", 
+          background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${theme.bd}20`,
+          transition: "background 0.2s"
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = theme.hv}
+        onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+      >
+        <span style={{ transform: isOpen ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", opacity: 0.4 }}>{Icons.chevron(theme.tx2)}</span>
+        <span style={{ opacity: 0.7 }}>{icon}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: theme.tx2, textTransform: "uppercase", letterSpacing: "0.05em", flex: 1 }}>{title}</span>
+      </div>
+      {isOpen && <div>{children}</div>}
+    </div>
+  );
+}
 
 /* ── FileNode ── */
 function FileNode({node,depth,selectedId,onSelect,onToggle,onCtx,renameId,renameVal,setRenameVal,commitRename,dragSrc,onDragStart,onDragOver,onDrop,t}: {node:TreeNode;depth:number;selectedId:string|null;onSelect:(id:string)=>void;onToggle:(id:string)=>void;onCtx:(e:React.MouseEvent,n:TreeNode)=>void;renameId:string|null;renameVal:string;setRenameVal:(v:string)=>void;commitRename:()=>void;dragSrc:string|null;onDragStart:(e:React.DragEvent,id:string)=>void;onDragOver:(e:React.DragEvent,id:string)=>void;onDrop:(e:React.DragEvent,id:string)=>void;t:ThemeConfig}){
@@ -97,6 +121,8 @@ export default function Home(){
   const [searchQ,setSearchQ]=useState("");
   const [pageTitle,setPageTitle]=useState("");
   const [wordCount,setWordCount]=useState(0);
+  const [spreadsheetData, setSpreadsheetData] = useState<{ columns: any[], rows: any[] } | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
   const sidebarRef=useRef<HTMLDivElement>(null);
   const resizing=useRef(false);
   const contentTimer=useRef<NodeJS.Timeout|null>(null);
@@ -184,12 +210,76 @@ export default function Home(){
     setTree(p => { const t = removeLocal(p, dragSrc); return insertLocal(t, dropParent, nd); }); saveNode({ ...nd, parent_id: dropParent }); setDragSrc(null);
   };
 
+  const onSpreadsheetUpdate = useCallback((data: { columns: any[], rows: any[], allSheets?: any[] }) => {
+    if (!selectedId) return;
+    setSpreadsheetData(data);
+    if (!data.allSheets) return;
+
+    setSaveStatus("saving");
+    setTree(prev => prev.map(n => {
+      if (n.id === selectedId) {
+        return { ...n, content: { ...n.content, sheets: data.allSheets } };
+      }
+      return n;
+    }));
+
+    if (contentTimer.current) clearTimeout(contentTimer.current);
+    contentTimer.current = setTimeout(() => {
+      const nd = findNode(tree, selectedId);
+      if (nd) {
+        saveNode({ 
+          ...nd, 
+          content: { ...nd.content, sheets: data.allSheets },
+          parent_id: findParentId(tree, selectedId) 
+        }).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error"));
+      }
+    }, 800);
+  }, [selectedId, tree, saveNode]);
+
   const onContentChange = useCallback((content: any) => {
     if (!selectedId) return;
-    setTree(prev => prev.map(n => n.id === selectedId ? { ...n, content } : n));
+    setSaveStatus("saving");
+    setTree(prev => prev.map(n => n.id === selectedId ? { ...n, content: { ...n.content, editorContent: content } } : n));
     if (contentTimer.current) clearTimeout(contentTimer.current);
-    contentTimer.current = setTimeout(() => { const nd = findNode(tree, selectedId); if (nd) saveNode({ ...nd, content: { ...nd.content, editorContent: content }, parent_id: findParentId(tree, selectedId) }); }, 800);
+    contentTimer.current = setTimeout(() => { 
+      const nd = findNode(tree, selectedId); 
+      if (nd) {
+        saveNode({ 
+          ...nd, 
+          content: { ...nd.content, editorContent: content }, 
+          parent_id: findParentId(tree, selectedId) 
+        }).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error"));
+      } 
+    }, 800);
     try { const txt = JSON.stringify(content); setWordCount(txt.replace(/[^가-힣a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).length); } catch { setWordCount(0); }
+  }, [selectedId, tree, saveNode]);
+
+  const onAIApply = useCallback((type: "editor" | "spreadsheet", data: any) => {
+    if (!selectedId) return;
+    setSaveStatus("saving");
+
+    if (type === "editor") {
+      // 간단한 삽입 로직: 현재 에디터 내용 뒤에 추가 (실제 구현 시 에디터 API에 따라 다를 수 있음)
+      // 여기서는 텍스트 기반으로 예시 구현
+      setTree(prev => prev.map(n => {
+        if (n.id === selectedId) {
+          const oldContent = n.content?.editorContent || "";
+          const newContent = typeof oldContent === "string" ? oldContent + "\n\n" + data : data;
+          return { ...n, content: { ...n.content, editorContent: newContent } };
+        }
+        return n;
+      }));
+    }
+
+    // 변경사항 즉시 저장
+    setTimeout(() => {
+      const nd = findNode(tree, selectedId);
+      if (nd) {
+        saveNode(nd)
+          .then(() => setSaveStatus("saved"))
+          .catch(() => setSaveStatus("error"));
+      }
+    }, 100);
   }, [selectedId, tree, saveNode]);
 
   const onTitleChange=(newTitle:string)=>{setPageTitle(newTitle);renameNode(selectedId!,newTitle);};
@@ -256,51 +346,84 @@ export default function Home(){
           <button onClick={() => setSidebarOpen(false)} style={{ background: "none", border: "none", color: t.tx, fontSize: 22, cursor: "pointer", padding: "4px 8px", borderRadius: 6 }} title="사이드바 닫기">✕</button>
         </div>
 
-        {activePanel==="files"&&<div style={{flex:1,overflowY:"auto",padding: isMobile ? "4px 0 60px" : "4px 0"}}>
-          {favPages.length>0&&<><div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>FAVORITES</div>{favPages.map(p=><div key={p.id} onClick={()=>setSelectedId(p.id)} style={{height:28,padding:"0 12px 0 20px",display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,borderRadius:6,margin:"0 4px",background:selectedId===p.id?t.hv:"transparent"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(selectedId!==p.id)e.currentTarget.style.background="transparent";}}>{Icons.star(t.ac)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span></div>)}<div style={{height:1,background:t.bd,margin:"6px 12px"}}/></>}
-          <div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>PRIVATE</div>
-          <div style={{padding:"4px 8px 8px",display:"flex",gap:6}}>
-            <div onClick={()=>addNew(null,"page")} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"6px 0",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:500,color:t.tx2,background:t.hv,border:`1px solid ${t.bd}`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=t.ac;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=t.bd;}}>{Icons.page(t.tx2)} 새 노트</div>
-            <div onClick={()=>addNew(null,"folder")} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"6px 0",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:500,color:t.tx2,background:t.hv,border:`1px solid ${t.bd}`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=t.ac;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=t.bd;}}>{Icons.folder(t.tx2)} 새 폴더</div>
-          </div>
-          {loading && <div style={{padding:12,opacity:0.4,fontSize:12}}>불러오는 중...</div>}
-          {tree.map(n=><FileNode key={n.id} node={n} depth={0} selectedId={selectedId} onSelect={setSelectedId} onToggle={toggleCollapse} onCtx={(e,nd)=>setCtxMenu({x:e.clientX,y:e.clientY,node:nd})} renameId={renameId} renameVal={renameVal} setRenameVal={setRenameVal} commitRename={commitRename} dragSrc={dragSrc} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} t={t}/>)}
-        </div>}
-
-        {activePanel==="search"&&<div style={{flex:1,overflowY:"auto",padding:8}}><input title="검색어 입력" value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="검색..." autoFocus style={{width:"100%",padding:"8px 10px",background:t.hv,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,outline:"none"}}/><div style={{marginTop:8}}>{searchResults.map(p=><div key={p.id} onClick={()=>setSelectedId(p.id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6}} onMouseEnter={e=>e.currentTarget.style.background=t.hv} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{Icons.page(t.tx2)} <span style={{marginLeft:6}}>{p.name}</span></div>)}</div></div>}
-        {activePanel==="bookmark"&&<div style={{flex:1,overflowY:"auto",padding:8}}>{Array.from(bookmarks).map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>e.currentTarget.style.background=t.hv} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{Icons.bookmark(t.ac)}{nd.name}</div>:null;})}</div>}
-        {activePanel==="recent"&&<div style={{flex:1,overflowY:"auto",padding:8}}>{recentIds.map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>e.currentTarget.style.background=t.hv} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{Icons.recent(t.tx2)}{nd.name}</div>:null;})}</div>}
-        {activePanel==="trash"&&<div style={{flex:1,overflowY:"auto",padding:8}}>{trashedNodes.map(nd=><div key={nd.id} style={{padding:"6px 10px",fontSize:13,display:"flex",justifyContent:"space-between"}} onMouseEnter={e=>e.currentTarget.style.background=t.hv} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><span>{nd.name}</span><button onClick={()=>restoreNode(nd)}>복원</button></div>)}</div>}
-
-        {activePanel==="settings"&&<div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
-          <div style={{display:"flex",borderBottom:`1px solid ${t.bd}`}}>
-            {(["theme","shortcuts","general"] as const).map(tab=>(<div key={tab} onClick={()=>setSettingsTab(tab)} style={{flex:1,padding:"10px 0",textAlign:"center",fontSize:12,cursor:"pointer",color:settingsTab===tab?t.ac:t.tx2,borderBottom:settingsTab===tab?`2px solid ${t.ac}`:"2px solid transparent"}}>{tab==="theme"?"테마":tab==="shortcuts"?"단축키":"일반"}</div>))}
-          </div>
-          <div style={{padding:16}}>
-            {settingsTab==="theme"&&<>
-              <div style={{display:"flex",gap:4,marginBottom:16,background:t.hv,borderRadius:8,padding:3}}>
-                {(["preset","palette","custom"] as const).map(m=>(<div key={m} onClick={()=>setThemeMode(m)} style={{flex:1,padding:"6px 0",textAlign:"center",fontSize:11,borderRadius:6,cursor:"pointer",background:themeMode===m?t.ac:"transparent",color:themeMode===m?"#fff":t.tx2}}>{m==="preset"?"기본":m==="palette"?"추천":"커스텀"}</div>))}
+        <div style={{flex:1,overflowY:"auto",paddingBottom:60,scrollbarWidth:"none"}}>
+          {activePanel==="files"&&(<>
+            <Accordion title="가시성" icon={Icons.folder(t.tx2)} defaultOpen={true} theme={t}>
+              <div style={{padding:"8px 0"}}>
+                <div style={{margin:"0 16px 12px 16px",display:"flex",gap:6}}>
+                  <div onClick={()=>addNew(null,"page")} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"8px 0",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:500,color:t.tx2,background:t.hv,border:`1px solid ${t.bd}`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=t.ac;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=t.bd;}}>{Icons.page(t.tx2)} 새 노트</div>
+                  <div onClick={()=>addNew(null,"folder")} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"8px 0",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:500,color:t.tx2,background:t.hv,border:`1px solid ${t.bd}`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=t.ac;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=t.bd;}}>{Icons.folder(t.tx2)} 새 폴더</div>
+                </div>
+                {loading && <div style={{padding:12,opacity:0.4,fontSize:12}}>불러오는 중...</div>}
+                {tree.map(n=><FileNode key={n.id} node={n} depth={0} selectedId={selectedId} onSelect={setSelectedId} onToggle={toggleCollapse} onCtx={(e,nd)=>setCtxMenu({x:e.clientX,y:e.clientY,node:nd})} renameId={renameId} renameVal={renameVal} setRenameVal={setRenameVal} commitRename={commitRename} dragSrc={dragSrc} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} t={t}/>)}
               </div>
-              {themeMode==="preset"&&<div style={{display:"flex",flexDirection:"column",gap:4}}>
-                {Object.entries(THEMES).map(([key,val])=>(<div key={key} onClick={()=>{setTheme(key);setCustomTheme(null);}} style={{padding:10,borderRadius:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12,background:theme===key?t.hv:"transparent"}}>{val.n}</div>))}
-              </div>}
-              {themeMode==="custom"&&<>
-                {([{key:"bg",label:"배경"},{key:"sb",label:"사이드바"},{key:"ac",label:"강조"} ] as ColorItem[]).map(item=>(
-                  <div key={item.key} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-                    <span style={{fontSize:12}}>{item.label}</span>
-                    <input title={item.label} type="color" value={(customTheme as any)?.[item.key]||(t as any)[item.key]} onChange={e=>setCustomTheme({...t, ...customTheme, [item.key]:e.target.value})} />
-                  </div>
-                ))}
+            </Accordion>
+            {favPages.length > 0 && (
+              <Accordion title="즐겨찾기" icon={Icons.star(t.ac)} defaultOpen={false} theme={t}>
+                <div style={{padding:"4px 0"}}>
+                  {favPages.map(p=>(<div key={p.id} onClick={()=>setSelectedId(p.id)} style={{padding:"8px 16px 8px 36px",fontSize:13,cursor:"pointer",color:selectedId===p.id?t.ac:t.tx2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} onMouseEnter={e=>e.currentTarget.style.background=t.hv} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.name}</div>))}
+                </div>
+              </Accordion>
+            )}
+          </>)}
+          {activePanel==="search"&&(<div style={{padding:"0 0"}}>
+            <div style={{padding:"16px 16px 8px 16px"}}>
+              <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="검색..." style={{width:"100%",padding:8,background:t.hv,border:"none",borderRadius:6,color:t.tx,fontSize:13,outline:"none"}}/>
+            </div>
+            <Accordion title="검색 결과" icon={Icons.search(t.tx2)} defaultOpen={true} theme={t}>
+              {searchResults.map(p=>(<div key={p.id} onClick={()=>setSelectedId(p.id)} style={{padding:"8px 16px 8px 36px",fontSize:13,cursor:"pointer",color:selectedId===p.id?t.ac:t.tx2}} onMouseEnter={e=>e.currentTarget.style.background=t.hv} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.name}</div>))}
+            </Accordion>
+          </div>)}
+          {activePanel==="bookmark"&&(<Accordion title="북마크" icon={Icons.bookmark(t.ac)} defaultOpen={true} theme={t}>
+            {Array.from(bookmarks).map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"8px 16px 8px 36px",fontSize:13,cursor:"pointer",color:selectedId===id?t.ac:t.tx2}} onMouseEnter={e=>e.currentTarget.style.background=t.hv} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{nd.name}</div>:null;})}
+          </Accordion>)}
+          {activePanel==="recent"&&(<Accordion title="최근 문서" icon={Icons.recent(t.tx2)} defaultOpen={true} theme={t}>
+            {recentIds.map(id=>{const n=findNode(tree,id);return n?(<div key={id} onClick={()=>{setSelectedId(id);}} style={{padding:"8px 16px 8px 36px",fontSize:13,cursor:"pointer",color:selectedId===id?t.ac:t.tx2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} onMouseEnter={e=>e.currentTarget.style.background=t.hv} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{n.name}</div>):null;})}
+          </Accordion>)}
+          {activePanel==="trash"&&(<Accordion title="휴지통" icon={Icons.trash("#ef4444")} defaultOpen={true} theme={t}>
+            {trashedNodes.map(nd=>(<div key={nd.id} style={{padding:"6px 16px 6px 36px",display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13,color:t.tx2}}>{nd.name}<button onClick={()=>restoreNode(nd)} style={{background:"none",border:"none",color:t.ac,fontSize:11,cursor:"pointer"}}>복원</button></div>))}
+          </Accordion>)}
+          {activePanel==="settings"&&<div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+            <div style={{display:"flex",borderBottom:`1px solid ${t.bd}`}}>
+              {(["theme","shortcuts","general"] as const).map(tab=>(<div key={tab} onClick={()=>setSettingsTab(tab)} style={{flex:1,padding:"10px 0",textAlign:"center",fontSize:12,cursor:"pointer",color:settingsTab===tab?t.ac:t.tx2,borderBottom:settingsTab===tab?`2px solid ${t.ac}`:"2px solid transparent"}}>{tab==="theme"?"테마":tab==="shortcuts"?"단축키":"일반"}</div>))}
+            </div>
+            <div style={{padding:16}}>
+              {settingsTab==="theme"&&<>
+                <div style={{display:"flex",gap:4,marginBottom:16,background:t.hv,borderRadius:8,padding:3}}>
+                  {(["preset","palette","custom"] as const).map(m=>(<div key={m} onClick={()=>setThemeMode(m)} style={{flex:1,padding:"6px 0",textAlign:"center",fontSize:11,borderRadius:6,cursor:"pointer",background:themeMode===m?t.ac:"transparent",color:themeMode===m?"#fff":t.tx2}}>{m==="preset"?"기본":m==="palette"?"추천":"커스텀"}</div>))}
+                </div>
+                {themeMode==="preset"&&<div style={{display:"flex",flexDirection:"column",gap:4}}>
+                  {Object.entries(THEMES).map(([key,val])=>(<div key={key} onClick={()=>{setTheme(key);setCustomTheme(null);}} style={{padding:10,borderRadius:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12,background:theme===key?t.hv:"transparent"}}>{val.n}</div>))}
+                </div>}
+                {themeMode==="custom"&&<>
+                  {([{key:"bg",label:"배경"},{key:"sb",label:"사이드바"},{key:"ac",label:"강조"} ] as ColorItem[]).map(item=>(
+                    <div key={item.key} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                      <span style={{fontSize:12}}>{item.label}</span>
+                      <input title={item.label} type="color" value={(customTheme as any)?.[item.key]||(t as any)[item.key]} onChange={e=>setCustomTheme({...t, ...customTheme, [item.key]:e.target.value})} />
+                    </div>
+                  ))}
+                </>}
               </>}
-            </>}
-          </div>
-        </div>}
+            </div>
+          </div>}
+        </div>
       </div>
 
       <div style={{flex:1,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden"}}>
         {!isMobile && sidebarOpen && (<div onMouseDown={startResize} style={{position:"absolute",top:0,left:0,bottom:0,width:4,cursor:"col-resize",zIndex:10,background:resizing.current?t.ac:"transparent"}} onMouseEnter={e=>e.currentTarget.style.background=t.ac} onMouseLeave={e=>{if(!resizing.current)e.currentTarget.style.background="transparent"}}/>)}
         <div style={{height:40,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${t.bd}`,zIndex:5}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,opacity:0.6}}>{breadcrumb.map((n,i)=>(<span key={n.id} style={{display:"flex",alignItems:"center",gap:8}}>{i>0&&Icons.chevron(t.tx2)}<span onClick={()=>setSelectedId(n.id)} style={{cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.color=t.ac} onMouseLeave={e=>e.currentTarget.style.color="inherit"}>{n.name}</span></span>))}</div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,opacity:0.6}}>{breadcrumb.map((node, i)=>(<span key={node.id} style={{display:"flex",alignItems:"center",gap:8}}>{i>0&&Icons.chevron(t.tx2)}<span onClick={()=>setSelectedId(node.id)} style={{cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.color=t.ac} onMouseLeave={e=>e.currentTarget.style.color="inherit"}>{node.name}</span></span>))}</div>
+            <div style={{ fontSize: 11, color: saveStatus === "saving" ? t.ac : t.tx2, opacity: 0.6, display: "flex", alignItems: "center", gap: 4 }}>
+              {saveStatus === "saving" ? (
+                <><div style={{ width: 6, height: 6, borderRadius: "50%", background: t.ac, animation: "pulse 1s infinite" }} /> 저장 중...</>
+              ) : saveStatus === "error" ? (
+                <span style={{ color: "#ef4444" }}>⚠️ 저장 오류</span>
+              ) : (
+                <>{Icons.check(t.tx2)} 저장됨</>
+              )}
+            </div>
+          </div>
           <div style={{display:"flex",gap:12}}>
             <button onClick={() => setShowTable(!showTable)} style={{ background: "none", border: "none", color: showTable ? t.ac : t.tx2, cursor: "pointer" }}>{showTable ? "문서 모드" : "테이블 모드"}</button>
             <button onClick={() => setFocusMode(!focusMode)} style={{ background: "none", border: "none", color: t.tx2, cursor: "pointer" }}>포커스</button>
@@ -312,9 +435,18 @@ export default function Home(){
             <div style={{maxWidth:focusMode?800:1000,margin:"0 auto",padding:"0 40px"}}>
               <input title="제목 입력" value={pageTitle} onChange={e=>onTitleChange(e.target.value)} style={{width:"100%",fontSize:40,fontWeight:800,background:"transparent",border:"none",color:t.tx,outline:"none",marginBottom:30}} placeholder="Untitled"/>
               {showTable ? (
-                <SpreadsheetTable pageId={selectedId} darkMode={isDark} accentColor={t.ac}/>
+                <SpreadsheetTable 
+                  pageId={selectedId} 
+                  darkMode={isDark} 
+                  accentColor={t.ac}
+                  onDataUpdate={onSpreadsheetUpdate}
+                />
               ) : (
-                <Editor initialContent={selectedNode?.content?.editorContent} onChange={onContentChange} t={t} isDark={isDark}/>
+                <Editor 
+                  initialContent={selectedNode?.content?.editorContent} 
+                  onChange={onContentChange} 
+                  darkMode={isDark}
+                />
               )}
             </div>
           ) : (
@@ -322,6 +454,19 @@ export default function Home(){
           )}
         </div>
       </div>
+
+      {/* AI Assistant Integration */}
+      <AIAssistant 
+        darkMode={isDark} 
+        accentColor={t.ac} 
+        contextData={{
+          id: selectedId,
+          pageTitle: selectedNode?.name,
+          type: showTable ? "spreadsheet" : "document",
+          ...spreadsheetData
+        }}
+        onApplyChanges={onAIApply}
+      />
     </div>
   );
 }

@@ -110,11 +110,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
     setSheets(prev => {
       const next = fn(prev);
       const cur = next.find(s => s.id === activeSheet) || next[0];
-      if (onDataUpdate) onDataUpdate({ columns: cur.columns, rows: cur.rows });
-      if (pageId) {
-        const supabase = createClient();
-        supabase.from("pages").update({ content: { sheets: next } }).eq("id", pageId).then();
-      }
+      if (onDataUpdate) onDataUpdate({ columns: cur.columns, rows: cur.rows, allSheets: next });
       return next;
     });
   }, [pageId]);
