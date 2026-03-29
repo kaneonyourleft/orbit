@@ -586,6 +586,17 @@ export default function Home(){
           </div></div>):(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",opacity:0.3}}><div style={{fontSize:48,marginBottom:16}}>🌑</div><div style={{fontSize:14}}>사이드바에서 페이지를 선택하거나</div><div style={{fontSize:14,marginTop:4}}>Ctrl+N으로 새 페이지를 만드세요</div></div>)}
         </div>
       </div>
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: "fixed",
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.4)",
+            zIndex: 999,
+          }}
+        />
+      )}
       {ctxMenu&&<CtxMenu x={ctxMenu.x} y={ctxMenu.y} items={getCtxItems(ctxMenu.node)} onClose={()=>setCtxMenu(null)} t={t}/>}
     </div>
   );
