@@ -6,47 +6,74 @@
   <title>Orbit Editor</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; background: #fff; }
-    #editor { height: 100%; border: none; }
-    affine-editor { height: 100%; width: 100%; }
-  </style>
-  <script type="importmap">
-  {
-    "imports": {
-      "@blocksuite/presets": "https://esm.sh/@blocksuite/presets@0.19.5",
-      "@blocksuite/presets/": "https://esm.sh/@blocksuite/presets@0.19.5/",
-      "@blocksuite/blocks": "https://esm.sh/@blocksuite/blocks@0.19.5",
-      "@blocksuite/store": "https://esm.sh/@blocksuite/store@0.19.5"
+    html, body { height: 100%; background: #fff; overflow: hidden; }
+    #editor { height: 100%; width: 100%; }
+    .loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; font-family: system-ui; color: #94a3b8; font-size: 14px;
     }
-  }
-  </script>
+  </style>
 </head>
 <body>
-  <div id="editor"></div>
+  <div id="editor"><div class="loading">에디터 로딩 중...</div></div>
+
   <script type="module">
-    import { AffineEditorContainer } from '@blocksuite/presets';
-    import { AffineSchemas } from '@blocksuite/blocks';
-    import { Schema, DocCollection } from '@blocksuite/store';
+    // unpkg에서 UMD 번들 대신, jsdelivr ESM 번들 사용
+    // 0.17.0은 ESM export가 안정적으로 작동하는 마지막 버전
+    const CDN = 'https://cdn.jsdelivr.net/npm';
+    const VER = '0.17.0';
 
-    async function init() {
-      const schema = new Schema().register(AffineSchemas);
-      const collection = new DocCollection({ schema });
-      collection.meta.initialize();
-
-      const doc = collection.createDoc({ id: 'page1' });
-      doc.load(() => {
-        const pageBlockId = doc.addBlock('affine:page', {});
-        doc.addBlock('affine:surface', {}, pageBlockId);
-        const noteId = doc.addBlock('affine:note', {}, pageBlockId);
-        doc.addBlock('affine:paragraph', {}, noteId);
+    async function loadCSS(url) {
+      return new Promise((resolve, reject) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        link.onload = resolve;
+        link.onerror = reject;
+        document.head.appendChild(link);
       });
-
-      const editor = new AffineEditorContainer();
-      editor.doc = doc;
-      document.getElementById('editor').appendChild(editor);
     }
-    
-    init().catch(console.error);
+
+    try {
+      // CSS 로드
+      await loadCSS(`${CDN}/@blocksuite/editor@${VER}/themes/affine.css`);
+
+      // 모듈 로드 (jsdelivr의 +esm 빌드 사용)
+      const [storeModule, blocksModule, editorModule] = await Promise.all([
+        import(`${CDN}/@blocksuite/store@${VER}/+esm`),
+        import(`${CDN}/@blocksuite/blocks@${VER}/+esm`),
+        import(`${CDN}/@blocksuite/editor@${VER}/+esm`),
+      ]);
+
+      const { Workspace, Page } = storeModule;
+      const { AffineSchemas } = blocksModule;
+      const { EditorContainer } = editorModule;
+
+      // Workspace 초기화
+      const workspace = new Workspace({ id: 'orbit-workspace' });
+      workspace.register(AffineSchemas);
+
+      const page = workspace.createPage({ id: 'page1' });
+      await page.waitForLoaded();
+
+      const pageBlockId = page.addBlock('affine:page', {});
+      page.addBlock('affine:surface', {}, pageBlockId);
+      const noteId = page.addBlock('affine:note', {}, pageBlockId);
+      page.addBlock('affine:paragraph', {}, noteId);
+
+      // 에디터 생성
+      const editor = new EditorContainer();
+      editor.page = page;
+
+      const container = document.getElementById('editor');
+      container.innerHTML = '';
+      container.appendChild(editor);
+
+    } catch (err) {
+      console.error('BlockSuite load error:', err);
+      document.getElementById('editor').innerHTML =
+        '<div class="loading" style="color:#ef4444;">에디터 로드 실패: ' + err.message + '</div>';
+    }
   </script>
 </body>
 </html>
