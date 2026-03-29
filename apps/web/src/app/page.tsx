@@ -1,21 +1,12 @@
 "use client";
 import { useState, useRef, useEffect, useCallback, DragEvent } from "react";
 import dynamic from "next/dynamic";
+import { usePages, TreeNode } from "../lib/usePages";
 
 const DynamicEditor = dynamic(() => import("../components/Editor"), {
   ssr: false,
   loading: () => <div style={{ padding: 40, color: "#555" }}>로딩 중...</div>,
 });
-
-// ─── Types ──────────────────────────────────────────
-interface TreeNode {
-  id: string;
-  type: "folder" | "page";
-  name: string;
-  children: TreeNode[];
-  content?: any;
-  collapsed?: boolean;
-}
 
 // ─── Helpers ────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -38,16 +29,16 @@ function findParentId(nodes: TreeNode[], targetId: string, parentId: string | nu
   return null;
 }
 
-function removeNode(nodes: TreeNode[], id: string): TreeNode[] {
-  return nodes.filter((n) => n.id !== id).map((n) => ({ ...n, children: removeNode(n.children, id) }));
+function removeNodeLocal(nodes: TreeNode[], id: string): TreeNode[] {
+  return nodes.filter((n) => n.id !== id).map((n) => ({ ...n, children: removeNodeLocal(n.children, id) }));
 }
 
-function insertNode(nodes: TreeNode[], parentId: string | null, child: TreeNode): TreeNode[] {
+function insertNodeLocal(nodes: TreeNode[], parentId: string | null, child: TreeNode): TreeNode[] {
   if (parentId === null) return [...nodes, child];
   return nodes.map((n) => {
     if (n.id === parentId && n.type === "folder")
       return { ...n, children: [...n.children, child], collapsed: false };
-    return { ...n, children: insertNode(n.children, parentId, child) };
+    return { ...n, children: insertNodeLocal(n.children, parentId, child) };
   });
 }
 
@@ -166,6 +157,8 @@ const RIBBON_ITEMS = [
 
 // ═══════════════════════════════════════════════════════
 export default function Home() {
+  const { loading, loadTree, saveNode, deleteNode, loadBookmarks, syncBookmarks } = usePages();
+
   const [theme, setTheme] = useState("obsidian");
   const [activePanel, setActivePanel] = useState("files");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -178,19 +171,20 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const renameRef = useRef<HTMLInputElement>(null);
 
-  const [tree, setTree] = useState<TreeNode[]>([
-    { id: "f1", type: "folder", name: "프로젝트", collapsed: false, children: [
-      { id: "p1", type: "page", name: "시작하기", children: [] },
-      { id: "f2", type: "folder", name: "디자인", collapsed: true, children: [
-        { id: "p2", type: "page", name: "와이어프레임", children: [] },
-      ]},
-    ]},
-    { id: "f3", type: "folder", name: "메모", collapsed: false, children: [
-      { id: "p3", type: "page", name: "아이디어", children: [] },
-    ]},
-    { id: "p4", type: "page", name: "빠른 메모", children: [] },
-  ]);
-  const [selectedId, setSelectedId] = useState<string | null>("p1");
+  const [tree, setTree] = useState<TreeNode[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // ── 1. 초기 로딩 ──
+  useEffect(() => {
+    (async () => {
+      const initialTree = await loadTree();
+      setTree(initialTree);
+      if (initialTree.length > 0) setSelectedId(initialTree[0].id);
+      
+      const savedBookmarks = await loadBookmarks();
+      setBookmarks(savedBookmarks);
+    })();
+  }, [loadTree, loadBookmarks]);
 
   const t = THEMES[theme];
 
@@ -198,40 +192,60 @@ export default function Home() {
     if (renamingId && renameRef.current) renameRef.current.focus();
   }, [renamingId]);
 
-  // ── Tree Ops ──
-  const toggleCollapse = (id: string) => {
-    const up = (ns: TreeNode[]): TreeNode[] => ns.map((n) => n.id === id ? { ...n, collapsed: !n.collapsed } : { ...n, children: up(n.children) });
+  // ── Tree Ops (Supabase 동기화 포함) ──
+  const toggleCollapse = async (id: string) => {
+    const node = findNode(tree, id);
+    if (!node) return;
+
+    const newCollapsed = !node.collapsed;
+    const up = (ns: TreeNode[]): TreeNode[] => ns.map((n) => n.id === id ? { ...n, collapsed: newCollapsed } : { ...n, children: up(n.children) });
     setTree(up(tree));
+
+    await saveNode({ ...node, collapsed: newCollapsed });
   };
 
-  const renameNode = (id: string, name: string) => {
+  const renameNode = async (id: string, name: string) => {
     if (!name.trim()) return;
+    const node = findNode(tree, id);
+    if (!node) return;
+
     const up = (ns: TreeNode[]): TreeNode[] => ns.map((n) => n.id === id ? { ...n, name: name.trim() } : { ...n, children: up(n.children) });
     setTree(up(tree));
     setRenamingId(null);
+
+    await saveNode({ ...node, name: name.trim() });
   };
 
-  const deleteNode = (id: string) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
-    setTree(removeNode(tree, id));
+  const handleRemoveNode = async (id: string) => {
+    if (!confirm("정말 삭제하시겠습니까? (하위 항목도 모두 삭제됩니다)")) return;
+    setTree(removeNodeLocal(tree, id));
     if (selectedId === id) setSelectedId(null);
     setBookmarks((b) => b.filter((x) => x !== id));
+    
+    await deleteNode(id);
   };
 
-  const addNew = (parentId: string | null, type: "folder" | "page") => {
-    const child: TreeNode = { id: uid(), type, name: type === "folder" ? "새 폴더" : "새 페이지", children: [] };
-    if (parentId) setTree(insertNode(tree, parentId, child));
+  const addNew = async (parentId: string | null, type: "folder" | "page") => {
+    const child: TreeNode = {
+      id: uid(), type, name: type === "folder" ? "새 폴더" : "새 페이지",
+      parent_id: parentId, position: 0, collapsed: false, content: [], children: []
+    };
+    
+    if (parentId) setTree(insertNodeLocal(tree, parentId, child));
     else setTree([...tree, child]);
+    
     setRenamingId(child.id);
     setRenamingVal(child.name);
+    
+    await saveNode(child);
   };
 
-  // ── Drag & Drop ──
+  // ── Drag & Drop (Supabase 동기화) ──
   const handleDragOver = useCallback((_e: DragEvent, targetId: string) => {
     setDragOverId(targetId);
   }, []);
 
-  const handleDrop = useCallback((_e: DragEvent, targetId: string) => {
+  const handleDrop = useCallback(async (_e: DragEvent, targetId: string) => {
     if (!dragSourceId || dragSourceId === targetId) { setDragOverId(null); return; }
     const targetNode = findNode(tree, targetId);
     if (!targetNode) { setDragOverId(null); return; }
@@ -240,21 +254,44 @@ export default function Home() {
     const sourceNode = findNode(tree, dragSourceId);
     if (!sourceNode) { setDragOverId(null); return; }
 
-    const dropTarget = targetNode.type === "folder" ? targetId : findParentId(tree, targetId);
+    const dropTargetId = targetNode.type === "folder" ? targetId : findParentId(tree, targetId);
     const sourceParent = findParentId(tree, dragSourceId);
-    if (dropTarget === sourceParent) { setDragOverId(null); return; }
+    if (dropTargetId === sourceParent) { setDragOverId(null); return; }
 
-    const cleaned = removeNode(tree, dragSourceId);
-    const result = insertNode(cleaned, dropTarget, { ...sourceNode });
+    const cleaned = removeNodeLocal(tree, dragSourceId);
+    const updatedSource = { ...sourceNode, parent_id: dropTargetId };
+    const result = insertNodeLocal(cleaned, dropTargetId, updatedSource);
+    
     setTree(result);
     setDragOverId(null);
     setDragSourceId(null);
-  }, [dragSourceId, tree]);
+
+    await saveNode(updatedSource);
+  }, [dragSourceId, tree, saveNode]);
+
+  // ── 에디터 컨텐츠 변경 (디바운스 필요) ──
+  const contentTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const handleContentChange = (pageId: string, content: any[]) => {
+    if (contentTimers.current[pageId]) clearTimeout(contentTimers.current[pageId]);
+    
+    contentTimers.current[pageId] = setTimeout(async () => {
+      const node = findNode(tree, pageId);
+      if (node) {
+        await saveNode({ ...node, content });
+      }
+    }, 1000);
+  };
 
   // ── Context Menu ──
   const handleCtx = (e: React.MouseEvent, id: string, type: "folder" | "page") => {
     e.preventDefault();
     setCtxMenu({ x: e.clientX, y: e.clientY, nodeId: id, nodeType: type });
+  };
+
+  const toggleBookmark = async (id: string) => {
+    const newBookmarks = bookmarks.includes(id) ? bookmarks.filter((x) => x !== id) : [...bookmarks, id];
+    setBookmarks(newBookmarks);
+    await syncBookmarks(newBookmarks);
   };
 
   const ctxItems = ctxMenu ? [
@@ -264,11 +301,11 @@ export default function Home() {
       { label: "새 폴더", onClick: () => addNew(ctxMenu.nodeId, "folder") },
     ] : []),
     { label: bookmarks.includes(ctxMenu.nodeId) ? "북마크 해제" : "북마크 추가",
-      onClick: () => setBookmarks((b) => b.includes(ctxMenu.nodeId) ? b.filter((x) => x !== ctxMenu.nodeId) : [...b, ctxMenu.nodeId]) },
-    { label: "삭제", danger: true, onClick: () => deleteNode(ctxMenu.nodeId) },
+      onClick: () => toggleBookmark(ctxMenu.nodeId) },
+    { label: "삭제", danger: true, onClick: () => handleRemoveNode(ctxMenu.nodeId) },
   ] : [];
 
-  // ── Search ──
+  // ── Search & Render Name ──
   const collectPages = (nodes: TreeNode[]): TreeNode[] => {
     let result: TreeNode[] = [];
     for (const n of nodes) {
@@ -281,7 +318,6 @@ export default function Home() {
     ? collectPages(tree).filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];
 
-  // ── Inline Rename ──
   const renderName = (node: TreeNode, depth: number) => {
     if (renamingId === node.id) {
       return (
@@ -333,28 +369,29 @@ export default function Home() {
         overflow: "hidden", transition: "width 0.15s, min-width 0.15s",
         display: "flex", flexDirection: "column",
       }}>
-        {/* Panel header */}
         <div style={{ padding: "10px 12px 6px", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, opacity: 0.4 }}>
           {RIBBON_ITEMS.find((r) => r.id === activePanel)?.label}
         </div>
 
-        {/* ── Files Panel ── */}
         {activePanel === "files" && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ flex: 1, overflowY: "auto", padding: "2px 4px" }}
               onDragOver={(e) => { e.preventDefault(); setDragOverId(null); }}
-              onDrop={(e) => {
+              onDrop={async (e) => {
                 e.preventDefault();
                 if (dragSourceId) {
                   const src = findNode(tree, dragSourceId);
                   if (src) {
-                    const cleaned = removeNode(tree, dragSourceId);
-                    setTree([...cleaned, { ...src }]);
+                    const cleaned = removeNodeLocal(tree, dragSourceId);
+                    const updatedSource = { ...src, parent_id: null };
+                    setTree([...cleaned, updatedSource]);
+                    await saveNode(updatedSource);
                   }
                 }
                 setDragOverId(null); setDragSourceId(null);
               }}
             >
+              {loading && <div style={{ padding: 12, opacity: 0.4, fontSize: 12 }}>불러오는 중...</div>}
               {tree.map((node) => (
                 <div key={node.id}>
                   {renamingId === node.id ? renderName(node, 0) : (
@@ -372,7 +409,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ── Search Panel ── */}
         {activePanel === "search" && (
           <div style={{ flex: 1, padding: "4px 10px", display: "flex", flexDirection: "column" }}>
             <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
@@ -397,7 +433,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ── Bookmarks Panel ── */}
         {activePanel === "bookmarks" && (
           <div style={{ flex: 1, padding: "4px 10px", overflowY: "auto" }}>
             {bookmarks.length === 0 && <div style={{ opacity: 0.4, fontSize: 12, padding: 8 }}>북마크가 없습니다</div>}
@@ -417,7 +452,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ── Settings Panel ── */}
         {activePanel === "settings" && (
           <div style={{ flex: 1, padding: "8px 12px" }}>
             <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 10 }}>테마</div>
@@ -442,16 +476,18 @@ export default function Home() {
 
       {/* ── Main Area ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* Top bar */}
         <div style={{ height: 36, borderBottom: `1px solid ${t.bd}`, display: "flex", alignItems: "center", padding: "0 14px", gap: 8 }}>
           <span style={{ fontSize: 13, opacity: 0.6 }}>
             {selectedId ? findNode(tree, selectedId)?.name ?? "ORBIT" : "페이지를 선택하세요"}
           </span>
         </div>
-        {/* Editor */}
         <div style={{ flex: 1, overflow: "auto" }}>
           {selectedId && findNode(tree, selectedId)?.type === "page" ? (
-            <DynamicEditor key={selectedId} />
+            <DynamicEditor 
+              key={selectedId} 
+              initialContent={findNode(tree, selectedId)?.content} 
+              onChange={(c) => handleContentChange(selectedId, c)} 
+            />
           ) : (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", opacity: 0.25, fontSize: 14 }}>
               페이지를 선택하거나 새로 만드세요
