@@ -123,3 +123,14 @@
   min-height: 100vh;
   overflow: auto;
 }
+
+/* Loading Screen */
+.orbit-loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #0f172a;
+  color: #60a5fa;
+  font-size: 16px;
+}
