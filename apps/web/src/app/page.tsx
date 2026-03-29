@@ -176,8 +176,34 @@ export default function Home(){
   const t = customTheme ? { ...baseTheme, n: "커스텀", ...customTheme } : baseTheme;
   const isDark=theme!=="light";
 
-  useEffect(()=>{if(typeof window!=="undefined")localStorage.setItem("orbit-theme",theme);},[theme]);
-  useEffect(()=>{(async()=>{const t=await loadTree();if(t&&t.length>0){setTree(t);setSelectedId(t[0].id);}const b=await dbLoadBM();if(b)setBookmarks(new Set(b));})();}, [loadTree, dbLoadBM]);
+  useEffect(()=>{
+    if(typeof window!=="undefined") localStorage.setItem("orbit-theme",theme);
+    // Supabase에도 테마 저장
+    (async()=>{
+      try{
+        const {createClient}=await import("../lib/supabase");
+        const supabase=createClient();
+        await supabase.from("pages").upsert({id:"__user_settings__",type:"page",name:"__settings__",content:{theme,customTheme,savedCustomThemes}},{onConflict:"id"});
+      }catch{}
+    })();
+  },[theme,customTheme,savedCustomThemes]);
+  useEffect(()=>{(async()=>{
+    const t=await loadTree();
+    if(t&&t.length>0){
+      // __user_settings__ 제외하고 트리에 넣기
+      const filtered=t.filter(n=>n.id!=="__user_settings__");
+      setTree(filtered);
+      if(filtered[0])setSelectedId(filtered[0].id);
+      // 설정 로드
+      const settingsNode=t.find(n=>n.id==="__user_settings__");
+      if(settingsNode?.content){
+        if(settingsNode.content.theme) setTheme(settingsNode.content.theme);
+        if(settingsNode.content.customTheme) setCustomTheme(settingsNode.content.customTheme);
+        if(settingsNode.content.savedCustomThemes) setSavedCustomThemes(settingsNode.content.savedCustomThemes);
+      }
+    }
+    const b=await dbLoadBM();if(b)setBookmarks(new Set(b));
+  })();}, [loadTree, dbLoadBM]);
   useEffect(()=>{if(selectedId){setRecentIds(prev=>[selectedId,...prev.filter(x=>x!==selectedId)].slice(0,20));const nd=findNode(tree,selectedId);if(nd)setPageTitle(nd.name);}},[selectedId, tree]);
 
   useEffect(()=>{
