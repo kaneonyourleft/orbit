@@ -7,8 +7,11 @@ import {
 import {
   useCreateBlockNote,
   createReactBlockSpec,
+  SuggestionMenuController,
+  getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
+import { filterSuggestionItems } from "@blocknote/core";
 import { useEffect, useRef, useMemo } from "react";
 
 interface Props {
@@ -155,6 +158,53 @@ const customBlockSpecs = {
   dashboard: DashboardBlock,
 };
 
+// 3. 슬래시 메뉴 아이템 정의
+const insertSNStatusItem = (editor: any) => ({
+  title: "SN Status",
+  onItemClick: () => {
+    editor.insertBlocks(
+      [
+        {
+          type: "snStatus",
+          props: {
+            sn: "WN240330-PROD-L001",
+            process: "탈지",
+            status: "PROG",
+          },
+        },
+      ],
+      editor.getTextCursorPosition().block,
+      "after"
+    );
+  },
+  aliases: ["sn", "status", "process"],
+  group: "Business OS",
+  icon: <div style={{ fontSize: '18px' }}>🏷️</div>,
+  subtext: "상태 추적 블록 삽입",
+});
+
+const insertDashboardItem = (editor: any) => ({
+  title: "Dashboard",
+  onItemClick: () => {
+    editor.insertBlocks(
+      [
+        {
+          type: "dashboard",
+          props: {
+            title: "실시간 공정 대시보드",
+          },
+        },
+      ],
+      editor.getTextCursorPosition().block,
+      "after"
+    );
+  },
+  aliases: ["dash", "pivot", "chart"],
+  group: "Business OS",
+  icon: <div style={{ fontSize: '18px' }}>📊</div>,
+  subtext: "분석 대시보드 삽입",
+});
+
 export default function Editor({ initialContent, onChange, darkMode = false }: Props) {
   const validatedContent = useMemo(() => {
     if (Array.isArray(initialContent) && initialContent.length > 0) {
@@ -184,8 +234,22 @@ export default function Editor({ initialContent, onChange, darkMode = false }: P
       <BlockNoteView 
         editor={editor} 
         theme={darkMode ? "dark" : "light"}
-        // v0.47 대응: 슬래시 메뉴 등은 하위 컴포넌트로 자동 포함되거나 별도 설정 필요
-      />
+        slashMenu={false} // 커스텀 슬래시 메뉴를 위해 기본 메뉴 비활성화
+      >
+        <SuggestionMenuController
+          triggerCharacter={"/"}
+          getItems={async (query) =>
+            filterSuggestionItems(
+              [
+                ...getDefaultReactSlashMenuItems(editor),
+                insertSNStatusItem(editor),
+                insertDashboardItem(editor),
+              ],
+              query
+            )
+          }
+        />
+      </BlockNoteView>
     </div>
   );
 }
