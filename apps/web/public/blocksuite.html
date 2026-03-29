@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orbit Editor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: #fff; }
+    #editor { height: 100%; border: none; }
+    affine-editor { height: 100%; width: 100%; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "@blocksuite/presets": "https://esm.sh/@blocksuite/presets@0.19.5",
+      "@blocksuite/presets/": "https://esm.sh/@blocksuite/presets@0.19.5/",
+      "@blocksuite/blocks": "https://esm.sh/@blocksuite/blocks@0.19.5",
+      "@blocksuite/store": "https://esm.sh/@blocksuite/store@0.19.5"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="editor"></div>
+  <script type="module">
+    import { AffineEditorContainer } from '@blocksuite/presets';
+    import { AffineSchemas } from '@blocksuite/blocks';
+    import { Schema, DocCollection } from '@blocksuite/store';
+
+    async function init() {
+      const schema = new Schema().register(AffineSchemas);
+      const collection = new DocCollection({ schema });
+      collection.meta.initialize();
+
+      const doc = collection.createDoc({ id: 'page1' });
+      doc.load(() => {
+        const pageBlockId = doc.addBlock('affine:page', {});
+        doc.addBlock('affine:surface', {}, pageBlockId);
+        const noteId = doc.addBlock('affine:note', {}, pageBlockId);
+        doc.addBlock('affine:paragraph', {}, noteId);
+      });
+
+      const editor = new AffineEditorContainer();
+      editor.doc = doc;
+      document.getElementById('editor').appendChild(editor);
+    }
+    
+    init().catch(console.error);
+  </script>
+</body>
+</html>
