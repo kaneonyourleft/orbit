@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "../lib/supabase";
 
 /* ── Types ── */
 interface Column {
@@ -116,6 +116,7 @@ export default function SpreadsheetTable({ darkMode = true, accentColor = "#a78b
     if (!pageId) return;
     const load = async () => {
       setLoading(true);
+      const supabase = createClient();
       const { data } = await supabase.from("pages").select("content").eq("id", pageId).single();
       if (data?.content && Array.isArray(data.content)) {
         setSheets(data.content as Sheet[]);
@@ -128,6 +129,7 @@ export default function SpreadsheetTable({ darkMode = true, accentColor = "#a78b
 
   const saveToSupabase = useCallback(async (newSheets: Sheet[]) => {
     if (!pageId) return;
+    const supabase = createClient();
     await supabase.from("pages").update({ content: newSheets as any }).eq("id", pageId);
   }, [pageId]);
 
