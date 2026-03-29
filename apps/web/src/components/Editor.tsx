@@ -4,23 +4,11 @@ import "@blocknote/mantine/style.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 
-interface EditorProps {
-  initialContent?: any[];
-  onChange?: (content: any[]) => void;
-}
-
-export default function Editor({ initialContent, onChange }: EditorProps) {
-  const editor = useCreateBlockNote({
-    initialContent: initialContent && initialContent.length > 0 ? initialContent : undefined,
-  });
-
+export default function Editor() {
+  const editor = useCreateBlockNote();
   return (
-    <BlockNoteView
-      editor={editor}
-      theme="light"
-      onChange={() => {
-        if (onChange) onChange(editor.document as any);
-      }}
-    />
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 16px" }}>
+      <BlockNoteView editor={editor} theme="light" />
+    </div>
   );
 }
