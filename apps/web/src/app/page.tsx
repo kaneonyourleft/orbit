@@ -1,500 +1,253 @@
 "use client";
-import { useState, useRef, useEffect, useCallback, DragEvent } from "react";
+import "./globals.css";
+import { useState, useRef, useEffect, useCallback, DragEvent, KeyboardEvent } from "react";
 import dynamic from "next/dynamic";
 import { usePages, TreeNode } from "../lib/usePages";
 
 const DynamicEditor = dynamic(() => import("../components/Editor"), {
   ssr: false,
-  loading: () => <div style={{ padding: 40, color: "#555" }}>로딩 중...</div>,
+  loading: () => (
+    <div style={{ padding: 60, textAlign: "center" }}>
+      <div style={{ width: 200, height: 12, borderRadius: 6, background: "linear-gradient(90deg, rgba(128,128,128,0.08) 0%, rgba(128,128,128,0.18) 50%, rgba(128,128,128,0.08) 100%)", backgroundSize: "400px 12px", animation: "shimmer 1.5s infinite" }} />
+    </div>
+  ),
 });
 
-// ─── Helpers ────────────────────────────────────────
-const uid = () => Math.random().toString(36).slice(2, 10);
+/* ── Helpers ── */
+const uid=()=>Math.random().toString(36).slice(2,10);
+function findNode(ns:TreeNode[],id:string):TreeNode|null{for(const n of ns){if(n.id===id)return n;const f=findNode(n.children,id);if(f)return f;}return null;}
+function findParentId(ns:TreeNode[],tid:string,pid:string|null=null):string|null{for(const n of ns){if(n.id===tid)return pid;const f=findParentId(n.children,tid,n.id);if(f!==null)return f;}return null;}
+function removeLocal(ns:TreeNode[],id:string):TreeNode[]{return ns.filter(n=>n.id!==id).map(n=>({...n,children:removeLocal(n.children,id)}));}
+function insertLocal(ns:TreeNode[],pid:string|null,child:TreeNode):TreeNode[]{if(!pid)return[...ns,child];return ns.map(n=>n.id===pid&&n.type==="folder"?{...n,children:[...n.children,child],collapsed:false}:{...n,children:insertLocal(n.children,pid,child)});}
+function isDesc(ns:TreeNode[],aid:string,tid:string):boolean{const n=findNode(ns,aid);if(!n)return false;if(n.children.some(c=>c.id===tid))return true;return n.children.some(c=>isDesc([c],c.id,tid));}
+function collectPages(ns:TreeNode[]):TreeNode[]{let r:TreeNode[]=[];for(const n of ns){if(n.type==="page")r.push(n);r=r.concat(collectPages(n.children));}return r;}
+function getBreadcrumb(ns:TreeNode[],id:string):string[]{const pid=findParentId(ns,id);if(!pid)return[findNode(ns,id)?.name||""];const parent=findNode(ns,pid);return[...getBreadcrumb(ns,pid),findNode(ns,id)?.name||""];}
 
-function findNode(nodes: TreeNode[], id: string): TreeNode | null {
-  for (const n of nodes) {
-    if (n.id === id) return n;
-    const f = findNode(n.children, id);
-    if (f) return f;
-  }
-  return null;
-}
-
-function findParentId(nodes: TreeNode[], targetId: string, parentId: string | null = null): string | null {
-  for (const n of nodes) {
-    if (n.id === targetId) return parentId;
-    const f = findParentId(n.children, targetId, n.id);
-    if (f !== null) return f;
-  }
-  return null;
-}
-
-function removeNodeLocal(nodes: TreeNode[], id: string): TreeNode[] {
-  return nodes.filter((n) => n.id !== id).map((n) => ({ ...n, children: removeNodeLocal(n.children, id) }));
-}
-
-function insertNodeLocal(nodes: TreeNode[], parentId: string | null, child: TreeNode): TreeNode[] {
-  if (parentId === null) return [...nodes, child];
-  return nodes.map((n) => {
-    if (n.id === parentId && n.type === "folder")
-      return { ...n, children: [...n.children, child], collapsed: false };
-    return { ...n, children: insertNodeLocal(n.children, parentId, child) };
-  });
-}
-
-function isDescendant(nodes: TreeNode[], ancestorId: string, targetId: string): boolean {
-  const node = findNode(nodes, ancestorId);
-  if (!node) return false;
-  for (const c of node.children) {
-    if (c.id === targetId) return true;
-    if (isDescendant([c], c.id, targetId)) return true;
-  }
-  return false;
-}
-
-// ─── Theme ──────────────────────────────────────────
-const THEMES: Record<string, { n: string; bg: string; sb: string; rb: string; tx: string; ac: string; bd: string; hover: string }> = {
-  dark:     { n: "다크",    bg: "#1e1e1e", sb: "#252526", rb: "#1e1e1e", tx: "#ccc", ac: "#569cd6", bd: "#333",    hover: "rgba(255,255,255,0.06)" },
-  obsidian: { n: "옵시디언", bg: "#1a1a1a", sb: "#202020", rb: "#181818", tx: "#dcddde", ac: "#7f6df2", bd: "#2e2e2e", hover: "rgba(255,255,255,0.05)" },
-  navy:     { n: "네이비",  bg: "#1a1a2e", sb: "#16213e", rb: "#12192e", tx: "#c9d1d9", ac: "#4fc3f7", bd: "#2a2a4a", hover: "rgba(255,255,255,0.05)" },
-  forest:   { n: "포레스트", bg: "#1b2d1b", sb: "#142814", rb: "#0f200f", tx: "#b8d8b8", ac: "#66bb6a", bd: "#2a3d2a", hover: "rgba(255,255,255,0.05)" },
-  light:    { n: "라이트",  bg: "#fff",    sb: "#f6f6f6", rb: "#eee",    tx: "#333",    ac: "#1976d2", bd: "#e0e0e0", hover: "rgba(0,0,0,0.04)" },
+/* ── Themes ── */
+const THEMES:Record<string,{n:string;bg:string;sb:string;rb:string;tx:string;tx2:string;ac:string;bd:string;hv:string;card:string}> = {
+  dark:{n:"다크",bg:"#1e1e1e",sb:"#252526",rb:"#1c1c1c",tx:"#e0e0e0",tx2:"#888",ac:"#569cd6",bd:"rgba(255,255,255,0.06)",hv:"rgba(255,255,255,0.05)",card:"rgba(255,255,255,0.04)"},
+  obsidian:{n:"옵시디언",bg:"#1a1a1a",sb:"#202020",rb:"#181818",tx:"#dcddde",tx2:"#777",ac:"#7f6df2",bd:"rgba(255,255,255,0.06)",hv:"rgba(255,255,255,0.04)",card:"rgba(255,255,255,0.03)"},
+  navy:{n:"네이비",bg:"#1a1a2e",sb:"#16213e",rb:"#12192e",tx:"#c9d1d9",tx2:"#7788aa",ac:"#4fc3f7",bd:"rgba(255,255,255,0.06)",hv:"rgba(255,255,255,0.04)",card:"rgba(255,255,255,0.03)"},
+  forest:{n:"포레스트",bg:"#1b2d1b",sb:"#142814",rb:"#0f200f",tx:"#b8d8b8",tx2:"#6a8a6a",ac:"#66bb6a",bd:"rgba(255,255,255,0.06)",hv:"rgba(255,255,255,0.04)",card:"rgba(255,255,255,0.03)"},
+  light:{n:"라이트",bg:"#ffffff",sb:"#f8f8f8",rb:"#f0f0f0",tx:"#37352f",tx2:"#999",ac:"#2383e2",bd:"rgba(0,0,0,0.06)",hv:"rgba(0,0,0,0.03)",card:"rgba(0,0,0,0.02)"},
 };
 
-// ─── Context Menu ───────────────────────────────────
-function CtxMenu({ x, y, items, onClose }: {
-  x: number; y: number; items: { label: string; danger?: boolean; onClick: () => void }[]; onClose: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [onClose]);
+/* ── SVG Icons ── */
+const Icons = {
+  files:(c:string)=><svg width="18" height="18" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H13L11 5H5C3.9 5 3 5.9 3 7Z"/></svg>,
+  search:(c:string)=><svg width="18" height="18" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21L16.65 16.65"/></svg>,
+  bookmark:(c:string)=><svg width="18" height="18" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M5 5C5 3.9 5.9 3 7 3H17C18.1 3 19 3.9 19 5V21L12 17.5L5 21V5Z"/></svg>,
+  settings:(c:string)=><svg width="18" height="18" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+  recent:(c:string)=><svg width="18" height="18" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>,
+  trash:(c:string)=><svg width="18" height="18" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>,
+  folder:(c:string)=><svg width="14" height="14" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H13L11 5H5C3.9 5 3 5.9 3 7Z"/></svg>,
+  page:(c:string)=><svg width="14" height="14" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+  chevron:(c:string)=><svg width="10" height="10" fill="none" stroke={c} strokeWidth="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>,
+  plus:(c:string)=><svg width="14" height="14" fill="none" stroke={c} strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>,
+  dots:(c:string)=><svg width="14" height="14" fill={c} viewBox="0 0 24 24"><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>,
+  x:(c:string)=><svg width="12" height="12" fill="none" stroke={c} strokeWidth="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>,
+  menu:(c:string)=><svg width="18" height="18" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>,
+  focus:(c:string)=><svg width="18" height="18" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>,
+  dup:(c:string)=><svg width="14" height="14" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+  star:(c:string)=><svg width="14" height="14" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  restore:(c:string)=><svg width="14" height="14" fill="none" stroke={c} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
+};
 
-  return (
-    <div style={{
-      position: "fixed", left: x, top: y, zIndex: 9999,
-      background: "#2a2a2a", border: "1px solid #444", borderRadius: 6,
-      padding: "4px 0", minWidth: 160, boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
-    }} ref={ref}>
-      {items.map((item, i) => (
-        <div key={i} onClick={() => { item.onClick(); onClose(); }} style={{
-          padding: "7px 14px", fontSize: 12, cursor: "pointer",
-          color: item.danger ? "#e55" : "#ddd",
-        }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-        >{item.label}</div>
-      ))}
-    </div>
-  );
-}
-
-// ─── File Tree Node ─────────────────────────────────
-function FileNode({
-  node, depth, selectedId, dragOverId, onSelect, onToggle, onContextMenu, onDragStart, onDragOver, onDrop,
-  theme,
-}: {
-  node: TreeNode; depth: number; selectedId: string | null; dragOverId: string | null;
-  onSelect: (id: string) => void; onToggle: (id: string) => void;
-  onContextMenu: (e: React.MouseEvent, id: string, type: "folder" | "page") => void;
-  onDragStart: (id: string) => void; onDragOver: (e: DragEvent, id: string) => void; onDrop: (e: DragEvent, id: string) => void;
-  theme: typeof THEMES.dark;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const isFolder = node.type === "folder";
-  const isSelected = node.id === selectedId;
-  const isDragOver = node.id === dragOverId && isFolder;
-
-  return (
-    <div>
-      <div
-        draggable
-        onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; onDragStart(node.id); }}
-        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); onDragOver(e, node.id); }}
-        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); onDrop(e, node.id); }}
-        onClick={() => isFolder ? onToggle(node.id) : onSelect(node.id)}
-        onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, node.id, node.type); }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: "flex", alignItems: "center",
-          padding: `2px 6px 2px ${depth * 18 + 6}px`,
-          cursor: "pointer", borderRadius: 4, fontSize: 13, lineHeight: "26px",
-          background: isDragOver ? "rgba(127,109,242,0.15)" : isSelected ? theme.hover : hovered ? "rgba(255,255,255,0.02)" : "transparent",
-          border: isDragOver ? "1px dashed rgba(127,109,242,0.4)" : "1px solid transparent",
-          marginBottom: 1,
-        }}
-      >
-        <span style={{ width: 18, fontSize: 10, opacity: 0.5, flexShrink: 0, textAlign: "center" }}>
-          {isFolder ? (node.collapsed ? "▸" : "▾") : ""}
-        </span>
-        <span style={{ width: 16, fontSize: 12, opacity: 0.45, flexShrink: 0, textAlign: "center" }}>
-          {isFolder ? (node.collapsed ? "📁" : "📂") : "📄"}
-        </span>
-        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginLeft: 6,
-          fontWeight: isFolder ? 500 : 400, opacity: isFolder ? 1 : 0.85 }}>
-          {node.name}
-        </span>
-      </div>
-      {isFolder && !node.collapsed && node.children.map((c) => (
-        <FileNode key={c.id} node={c} depth={depth + 1} selectedId={selectedId} dragOverId={dragOverId}
-          onSelect={onSelect} onToggle={onToggle} onContextMenu={onContextMenu}
-          onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} theme={theme} />
-      ))}
-    </div>
-  );
-}
-
-// ─── Ribbon Icons ───────────────────────────────────
-const RIBBON_ITEMS = [
-  { id: "files",     icon: "📄", label: "파일 탐색기" },
-  { id: "search",    icon: "🔍", label: "검색" },
-  { id: "bookmarks", icon: "🔖", label: "북마크" },
-  { id: "settings",  icon: "⚙",  label: "설정" },
+const RIBBON = [
+  {id:"files",icon:Icons.files,label:"파일 탐색기"},
+  {id:"search",icon:Icons.search,label:"검색"},
+  {id:"bookmark",icon:Icons.bookmark,label:"북마크"},
+  {id:"recent",icon:Icons.recent,label:"최근 문서"},
+  {id:"trash",icon:Icons.trash,label:"휴지통"},
 ];
 
-// ═══════════════════════════════════════════════════════
-export default function Home() {
-  const { loading, loadTree, saveNode, deleteNode, loadBookmarks, syncBookmarks } = usePages();
+/* ── Context Menu ── */
+function CtxMenu({x,y,items,onClose,t}:{x:number;y:number;items:{label:string;icon?:any;danger?:boolean;divider?:boolean;action:()=>void}[];onClose:()=>void;t:any}){
+  const ref=useRef<HTMLDivElement>(null);
+  useEffect(()=>{const h=(e:any)=>{if(ref.current&&!ref.current.contains(e.target))onClose();};document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);},[onClose]);
+  return(
+    <div ref={ref} className="scale-in" style={{position:"fixed",left:x,top:y,zIndex:9999,background:t.sb,border:`1px solid ${t.bd}`,borderRadius:8,padding:"4px 0",minWidth:180,backdropFilter:"blur(12px)",boxShadow:"0 8px 30px rgba(0,0,0,0.3)"}}>
+      {items.map((it,i)=>it.divider?<div key={i} style={{height:1,background:t.bd,margin:"4px 0"}}/>:(
+        <div key={i} onClick={()=>{it.action();onClose();}} style={{padding:"6px 12px",fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:8,color:it.danger?"#e55":t.tx,borderRadius:4,margin:"0 4px",transition:"background 0.1s"}}
+          onMouseEnter={e=>(e.currentTarget.style.background=t.hv)} onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
+          {it.icon&&<span style={{opacity:0.6}}>{it.icon}</span>}{it.label}
+        </div>
+      ))}
+    </div>
+  );
+}
 
-  const [theme, setTheme] = useState("obsidian");
-  const [activePanel, setActivePanel] = useState("files");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; nodeId: string; nodeType: "folder" | "page" } | null>(null);
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renamingVal, setRenamingVal] = useState("");
-  const [dragSourceId, setDragSourceId] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
-  const [bookmarks, setBookmarks] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const renameRef = useRef<HTMLInputElement>(null);
+/* ── FileNode ── */
+function FileNode({node,depth,selectedId,onSelect,onToggle,onCtx,renameId,renameVal,setRenameVal,commitRename,dragSrc,onDragStart,onDragOver,onDrop,t}:any){
+  const isF=node.type==="folder";const isSel=node.id===selectedId;const isRename=renameId===node.id;
+  const inputRef=useRef<HTMLInputElement>(null);
+  useEffect(()=>{if(isRename&&inputRef.current){inputRef.current.focus();inputRef.current.select();}},[isRename]);
+  const indent=depth*14+8;
+  return(<div>
+    <div draggable onDragStart={e=>onDragStart(e,node.id)} onDragOver={e=>onDragOver(e,node.id)} onDrop={e=>onDrop(e,node.id)}
+      style={{display:"flex",alignItems:"center",height:30,padding:`0 8px 0 ${indent}px`,cursor:"pointer",borderRadius:6,margin:"0 4px",
+        background:isSel?t.hv:"transparent",borderLeft:isSel?`2px solid ${t.ac}`:"2px solid transparent",
+        transition:"all 0.1s",opacity:dragSrc===node.id?0.4:1}}
+      onClick={()=>{if(isF)onToggle(node.id);else onSelect(node.id);}}
+      onContextMenu={e=>{e.preventDefault();onCtx(e,node);}}
+      onMouseEnter={e=>{if(!isSel)e.currentTarget.style.background=t.hv;}}
+      onMouseLeave={e=>{if(!isSel)e.currentTarget.style.background="transparent";}}>
+      {isF&&<span onClick={e=>{e.stopPropagation();onToggle(node.id);}} style={{display:"inline-flex",transform:node.collapsed?"rotate(0deg)":"rotate(90deg)",transition:"transform 0.15s",marginRight:4,opacity:0.4}}>{Icons.chevron(t.tx)}</span>}
+      <span style={{marginRight:6,opacity:0.5}}>{isF?Icons.folder(t.tx):Icons.page(t.tx)}</span>
+      {isRename?(
+        <input ref={inputRef} value={renameVal} onChange={e=>setRenameVal(e.target.value)}
+          onBlur={()=>commitRename()} onKeyDown={e=>{if(e.key==="Enter")commitRename();if(e.key==="Escape")commitRename();}}
+          onClick={e=>e.stopPropagation()}
+          style={{flex:1,background:"transparent",border:`1px solid ${t.ac}`,color:t.tx,fontSize:13,padding:"2px 4px",borderRadius:4,outline:"none",fontFamily:"var(--font-main)"}}/>
+      ):(
+        <span style={{flex:1,fontSize:13,fontWeight:isF?500:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:isSel?t.tx:t.tx,opacity:isF?1:0.85}}>{node.name}</span>
+      )}
+      <span onClick={e=>{e.stopPropagation();onCtx(e as any,node);}} style={{opacity:0,padding:2,borderRadius:4,display:"flex",transition:"opacity 0.1s"}}
+        onMouseEnter={e=>{e.currentTarget.style.opacity="0.6";e.currentTarget.style.background=t.hv;}}
+        onMouseLeave={e=>{e.currentTarget.style.opacity="0";e.currentTarget.style.background="transparent";}}>
+        {Icons.dots(t.tx)}
+      </span>
+    </div>
+    {isF&&!node.collapsed&&<div style={{overflow:"hidden",transition:"max-height 0.2s"}}>{node.children.map((c:TreeNode)=>
+      <FileNode key={c.id} node={c} depth={depth+1} selectedId={selectedId} onSelect={onSelect} onToggle={onToggle} onCtx={onCtx}
+        renameId={renameId} renameVal={renameVal} setRenameVal={setRenameVal} commitRename={commitRename}
+        dragSrc={dragSrc} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} t={t}/>
+    )}</div>}
+  </div>);
+}
 
-  const [tree, setTree] = useState<TreeNode[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+/* ── Main ── */
+export default function Home(){
+  const {loading,loadTree,saveNode,deleteNode:dbDelete,loadBookmarks:dbLoadBM,syncBookmarks:dbSyncBM}=usePages();
+  const [theme,setTheme]=useState<string>(()=>{if(typeof window!=="undefined"){return localStorage.getItem("orbit-theme")||"obsidian";}return"obsidian";});
+  const [activePanel,setActivePanel]=useState<string>("files");
+  const [sidebarOpen,setSidebarOpen]=useState(true);
+  const [sidebarWidth,setSidebarWidth]=useState(248);
+  const [focusMode,setFocusMode]=useState(false);
+  const [ctxMenu,setCtxMenu]=useState<{x:number;y:number;node:TreeNode}|null>(null);
+  const [renameId,setRenameId]=useState<string|null>(null);
+  const [renameVal,setRenameVal]=useState("");
+  const [dragSrc,setDragSrc]=useState<string|null>(null);
+  const [tree,setTree]=useState<TreeNode[]>([]);
+  const [selectedId,setSelectedId]=useState<string|null>(null);
+  const [bookmarks,setBookmarks]=useState<Set<string>>(new Set());
+  const [favorites,setFavorites]=useState<Set<string>>(new Set());
+  const [trashedNodes,setTrashedNodes]=useState<TreeNode[]>([]);
+  const [recentIds,setRecentIds]=useState<string[]>([]);
+  const [searchQ,setSearchQ]=useState("");
+  const [pageTitle,setPageTitle]=useState("");
+  const [wordCount,setWordCount]=useState(0);
+  const sidebarRef=useRef<HTMLDivElement>(null);
+  const resizing=useRef(false);
 
-  // ── 1. 초기 로딩 ──
-  useEffect(() => {
-    (async () => {
-      const initialTree = await loadTree();
-      setTree(initialTree);
-      if (initialTree.length > 0) setSelectedId(initialTree[0].id);
-      
-      const savedBookmarks = await loadBookmarks();
-      setBookmarks(savedBookmarks);
-    })();
-  }, [loadTree, loadBookmarks]);
+  const t=THEMES[theme];
+  const isDark=theme!=="light";
 
-  const t = THEMES[theme];
+  useEffect(()=>{if(typeof window!=="undefined")localStorage.setItem("orbit-theme",theme);},[theme]);
+  useEffect(()=>{(async()=>{const t=await loadTree();if(t&&t.length>0){setTree(t);setSelectedId(t[0].id);}const b=await dbLoadBM();if(b)setBookmarks(new Set(b));})();}, [loadTree, dbLoadBM]);
+  useEffect(()=>{if(selectedId){setRecentIds(prev=>[selectedId,...prev.filter(x=>x!==selectedId)].slice(0,20));const nd=findNode(tree,selectedId);if(nd)setPageTitle(nd.name);}},[selectedId, tree]);
 
-  useEffect(() => {
-    if (renamingId && renameRef.current) renameRef.current.focus();
-  }, [renamingId]);
-
-  // ── Tree Ops (Supabase 동기화 포함) ──
-  const toggleCollapse = async (id: string) => {
-    const node = findNode(tree, id);
-    if (!node) return;
-
-    const newCollapsed = !node.collapsed;
-    const up = (ns: TreeNode[]): TreeNode[] => ns.map((n) => n.id === id ? { ...n, collapsed: newCollapsed } : { ...n, children: up(n.children) });
-    setTree(up(tree));
-
-    await saveNode({ ...node, collapsed: newCollapsed });
-  };
-
-  const renameNode = async (id: string, name: string) => {
-    if (!name.trim()) return;
-    const node = findNode(tree, id);
-    if (!node) return;
-
-    const up = (ns: TreeNode[]): TreeNode[] => ns.map((n) => n.id === id ? { ...n, name: name.trim() } : { ...n, children: up(n.children) });
-    setTree(up(tree));
-    setRenamingId(null);
-
-    await saveNode({ ...node, name: name.trim() });
-  };
-
-  const handleRemoveNode = async (id: string) => {
-    if (!confirm("정말 삭제하시겠습니까? (하위 항목도 모두 삭제됩니다)")) return;
-    setTree(removeNodeLocal(tree, id));
-    if (selectedId === id) setSelectedId(null);
-    setBookmarks((b) => b.filter((x) => x !== id));
-    
-    await deleteNode(id);
-  };
-
-  const addNew = async (parentId: string | null, type: "folder" | "page") => {
-    const child: TreeNode = {
-      id: uid(), type, name: type === "folder" ? "새 폴더" : "새 페이지",
-      parent_id: parentId, position: 0, collapsed: false, content: [], children: []
+  useEffect(()=>{
+    const h=(e:globalThis.KeyboardEvent)=>{
+      if((e.ctrlKey||e.metaKey)&&e.key==="n"){e.preventDefault();addNew(null,"page");}
+      if((e.ctrlKey||e.metaKey)&&e.key==="p"){e.preventDefault();setActivePanel("search");setSidebarOpen(true);}
+      if((e.ctrlKey||e.metaKey)&&e.key==="\\"){e.preventDefault();setSidebarOpen(p=>!p);}
+      if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==="F"){e.preventDefault();setFocusMode(p=>!p);}
     };
-    
-    if (parentId) setTree(insertNodeLocal(tree, parentId, child));
-    else setTree([...tree, child]);
-    
-    setRenamingId(child.id);
-    setRenamingVal(child.name);
-    
-    await saveNode(child);
-  };
+    window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);
+  },[tree]);
 
-  // ── Drag & Drop (Supabase 동기화) ──
-  const handleDragOver = useCallback((_e: DragEvent, targetId: string) => {
-    setDragOverId(targetId);
-  }, []);
+  const startResize=useCallback((e:React.MouseEvent)=>{
+    e.preventDefault();resizing.current=true;
+    const startX=e.clientX;const startW=sidebarWidth;
+    const move=(ev:MouseEvent)=>{if(resizing.current){const w=Math.max(180,Math.min(480,startW+(ev.clientX-startX)));setSidebarWidth(w);}};
+    const up=()=>{resizing.current=false;document.removeEventListener("mousemove",move);document.removeEventListener("mouseup",up);};
+    document.addEventListener("mousemove",move);document.addEventListener("mouseup",up);
+  },[sidebarWidth]);
 
-  const handleDrop = useCallback(async (_e: DragEvent, targetId: string) => {
-    if (!dragSourceId || dragSourceId === targetId) { setDragOverId(null); return; }
-    const targetNode = findNode(tree, targetId);
-    if (!targetNode) { setDragOverId(null); return; }
-    if (isDescendant(tree, dragSourceId, targetId)) { setDragOverId(null); return; }
+  const toggleCollapse=(id:string)=>{setTree(prev=>{const upd=(ns:TreeNode[]):TreeNode[]=>ns.map(n=>n.id===id?{...n,collapsed:!n.collapsed}:{...n,children:upd(n.children)});return upd(prev);});const nd=findNode(tree,id);if(nd)saveNode({...nd,collapsed:!nd.collapsed});};
+  const renameNode=(id:string,name:string)=>{if(!name.trim())return;setTree(prev=>{const upd=(ns:TreeNode[]):TreeNode[]=>ns.map(n=>n.id===id?{...n,name}:{...n,children:upd(n.children)});return upd(prev);});const nd=findNode(tree,id);if(nd)saveNode({...nd,name},findParentId(tree,id));};
+  const commitRename=()=>{if(renameId&&renameVal.trim())renameNode(renameId,renameVal);setRenameId(null);};
+  const handleDelete=(id:string)=>{const nd=findNode(tree,id);if(nd)setTrashedNodes(p=>[...p,nd]);setTree(prev=>removeLocal(prev,id));if(selectedId===id)setSelectedId(null);dbDelete(id);};
+  const restoreNode=(nd:TreeNode)=>{setTree(p=>[...p,nd]);setTrashedNodes(p=>p.filter(n=>n.id!==nd.id));saveNode(nd,null);};
+  const duplicateNode=(nd:TreeNode)=>{const dup:TreeNode={...nd,id:uid(),name:nd.name+" (복사)",children:[]};const pid=findParentId(tree,nd.id);setTree(p=>pid?insertLocal(p,pid,dup):[...p,dup]);saveNode(dup,pid);};
+  const addNew=(parentId:string|null,type:"folder"|"page")=>{const child:TreeNode={id:uid(),type,name:type==="folder"?"새 폴더":"새 페이지",children:[],content:null};setTree(p=>parentId?insertLocal(p,parentId,child):[...p,child]);saveNode(child,parentId);if(type==="page")setSelectedId(child.id);};
+  const toggleBookmark=(id:string)=>{setBookmarks(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);dbSyncBM(Array.from(s));return s;});};
+  const toggleFavorite=(id:string)=>{setFavorites(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);return s;});};
 
-    const sourceNode = findNode(tree, dragSourceId);
-    if (!sourceNode) { setDragOverId(null); return; }
+  const onDragStart=(e:DragEvent,id:string)=>{setDragSrc(id);e.dataTransfer.effectAllowed="move";};
+  const onDragOver=(e:DragEvent,id:string)=>{e.preventDefault();e.dataTransfer.dropEffect="move";};
+  const onDrop=(e:DragEvent,targetId:string)=>{e.preventDefault();if(!dragSrc||dragSrc===targetId)return;if(isDesc(tree,dragSrc,targetId))return;
+    const nd=findNode(tree,dragSrc);if(!nd)return;const targetNd=findNode(tree,targetId);const dropParent=targetNd?.type==="folder"?targetId:findParentId(tree,targetId);
+    setTree(p=>{let t=removeLocal(p,dragSrc);return insertLocal(t,dropParent,nd);});saveNode({...nd,parent_id:dropParent},dropParent);setDragSrc(null);};
 
-    const dropTargetId = targetNode.type === "folder" ? targetId : findParentId(tree, targetId);
-    const sourceParent = findParentId(tree, dragSourceId);
-    if (dropTargetId === sourceParent) { setDragOverId(null); return; }
+  const contentTimer=useRef<any>(null);
+  const onContentChange=useCallback((content:any)=>{if(!selectedId)return;
+    setTree(prev=>prev.map(n=>n.id===selectedId?{...n,content}:n));
+    if(contentTimer.current)clearTimeout(contentTimer.current);
+    contentTimer.current=setTimeout(()=>{const nd=findNode(tree,selectedId);if(nd)saveNode({...nd,content},findParentId(tree,selectedId));},800);
+    try{const txt=JSON.stringify(content);setWordCount(txt.replace(/[^가-힣a-zA-Z0-9\s]/g,"").split(/\s+/).filter(Boolean).length);}catch{setWordCount(0);}
+  },[selectedId, tree, saveNode]);
 
-    const cleaned = removeNodeLocal(tree, dragSourceId);
-    const updatedSource = { ...sourceNode, parent_id: dropTargetId };
-    const result = insertNodeLocal(cleaned, dropTargetId, updatedSource);
-    
-    setTree(result);
-    setDragOverId(null);
-    setDragSourceId(null);
+  const onTitleChange=(newTitle:string)=>{setPageTitle(newTitle);renameNode(selectedId!,newTitle);};
 
-    await saveNode(updatedSource);
-  }, [dragSourceId, tree, saveNode]);
+  const getCtxItems=(nd:TreeNode)=>[
+    {label:"이름 변경",icon:Icons.page(t.tx),action:()=>{setRenameId(nd.id);setRenameVal(nd.name);}},
+    {label:favorites.has(nd.id)?"즐겨찾기 해제":"즐겨찾기 추가",icon:Icons.star(t.tx),action:()=>toggleFavorite(nd.id)},
+    {label:bookmarks.has(nd.id)?"북마크 해제":"북마크 추가",icon:Icons.bookmark(t.tx),action:()=>toggleBookmark(nd.id)},
+    ...(nd.type==="page"?[{label:"복제",icon:Icons.dup(t.tx),action:()=>duplicateNode(nd)}]:[]),
+    ...(nd.type==="folder"?[{label:"새 페이지",icon:Icons.page(t.tx),action:()=>addNew(nd.id,"page")},{label:"새 폴더",icon:Icons.folder(t.tx),action:()=>addNew(nd.id,"folder")}]:[]),
+    {divider:true,label:"",action:()=>{}},
+    {label:"삭제",icon:Icons.trash("#e55"),danger:true,action:()=>handleDelete(nd.id)}
+  ];
 
-  // ── 에디터 컨텐츠 변경 (디바운스 필요) ──
-  const contentTimers = useRef<Record<string, NodeJS.Timeout>>({});
-  const handleContentChange = (pageId: string, content: any[]) => {
-    if (contentTimers.current[pageId]) clearTimeout(contentTimers.current[pageId]);
-    
-    contentTimers.current[pageId] = setTimeout(async () => {
-      const node = findNode(tree, pageId);
-      if (node) {
-        await saveNode({ ...node, content });
-      }
-    }, 1000);
-  };
+  const searchResults=searchQ?collectPages(tree).filter(p=>p.name.toLowerCase().includes(searchQ.toLowerCase())):[];
+  const favPages=collectPages(tree).filter(p=>favorites.has(p.id));
+  const selectedNode=selectedId?findNode(tree,selectedId):null;
+  const breadcrumb=selectedId?getBreadcrumb(tree,selectedId):[];
 
-  // ── Context Menu ──
-  const handleCtx = (e: React.MouseEvent, id: string, type: "folder" | "page") => {
-    e.preventDefault();
-    setCtxMenu({ x: e.clientX, y: e.clientY, nodeId: id, nodeType: type });
-  };
-
-  const toggleBookmark = async (id: string) => {
-    const newBookmarks = bookmarks.includes(id) ? bookmarks.filter((x) => x !== id) : [...bookmarks, id];
-    setBookmarks(newBookmarks);
-    await syncBookmarks(newBookmarks);
-  };
-
-  const ctxItems = ctxMenu ? [
-    { label: "이름 변경", onClick: () => { setRenamingId(ctxMenu.nodeId); setRenamingVal(findNode(tree, ctxMenu.nodeId)?.name || ""); } },
-    ...(ctxMenu.nodeType === "folder" ? [
-      { label: "새 페이지", onClick: () => addNew(ctxMenu.nodeId, "page") },
-      { label: "새 폴더", onClick: () => addNew(ctxMenu.nodeId, "folder") },
-    ] : []),
-    { label: bookmarks.includes(ctxMenu.nodeId) ? "북마크 해제" : "북마크 추가",
-      onClick: () => toggleBookmark(ctxMenu.nodeId) },
-    { label: "삭제", danger: true, onClick: () => handleRemoveNode(ctxMenu.nodeId) },
-  ] : [];
-
-  // ── Search & Render Name ──
-  const collectPages = (nodes: TreeNode[]): TreeNode[] => {
-    let result: TreeNode[] = [];
-    for (const n of nodes) {
-      if (n.type === "page") result.push(n);
-      result = [...result, ...collectPages(n.children)];
-    }
-    return result;
-  };
-  const searchResults = searchQuery
-    ? collectPages(tree).filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
-
-  const renderName = (node: TreeNode, depth: number) => {
-    if (renamingId === node.id) {
-      return (
-        <div style={{ padding: `2px 6px 2px ${depth * 18 + 40}px` }}>
-          <input ref={renameRef} value={renamingVal}
-            onChange={(e) => setRenamingVal(e.target.value)}
-            onBlur={() => renameNode(node.id, renamingVal)}
-            onKeyDown={(e) => { if (e.key === "Enter") renameNode(node.id, renamingVal); if (e.key === "Escape") setRenamingId(null); }}
-            style={{
-              width: "100%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(127,109,242,0.4)",
-              color: t.tx, fontSize: 13, padding: "2px 6px", borderRadius: 4, outline: "none",
-            }}
-          />
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // ── Render ──
-  return (
-    <div style={{ display: "flex", height: "100vh", background: t.bg, color: t.tx, fontFamily: "'Inter','Segoe UI',sans-serif", fontSize: 14 }}>
-      {ctxMenu && <CtxMenu x={ctxMenu.x} y={ctxMenu.y} items={ctxItems} onClose={() => setCtxMenu(null)} />}
-
-      {/* ── Ribbon ── */}
-      <div style={{
-        width: 44, background: t.rb, borderRight: `1px solid ${t.bd}`,
-        display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 8, gap: 2, flexShrink: 0,
-      }}>
-        {RIBBON_ITEMS.map((r) => (
-          <div key={r.id} title={r.label}
-            onClick={() => { if (activePanel === r.id && sidebarOpen) setSidebarOpen(false); else { setActivePanel(r.id); setSidebarOpen(true); } }}
-            style={{
-              width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center",
-              borderRadius: 6, cursor: "pointer", fontSize: 16,
-              background: activePanel === r.id && sidebarOpen ? t.hover : "transparent",
-              opacity: activePanel === r.id && sidebarOpen ? 1 : 0.5,
-            }}
-            onMouseEnter={(e) => { if (!(activePanel === r.id && sidebarOpen)) e.currentTarget.style.opacity = "0.8"; }}
-            onMouseLeave={(e) => { if (!(activePanel === r.id && sidebarOpen)) e.currentTarget.style.opacity = "0.5"; }}
-          >{r.icon}</div>
-        ))}
+  return(
+    <div className={focusMode?"focus-mode":""} style={{display:"flex",height:"100vh",background:t.bg,color:t.tx,fontFamily:"var(--font-main)",transition:"background 0.2s, color 0.2s"}}>
+      <div className="ribbon" style={{width:44,background:t.rb,borderRight:`1px solid ${t.bd}`,display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8,gap:2,flexShrink:0}}>
+        {RIBBON.map(r=>(<div key={r.id} title={r.label} onClick={()=>{if(activePanel===r.id&&sidebarOpen)setSidebarOpen(false);else{setActivePanel(r.id);setSidebarOpen(true);}}}
+            style={{width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,cursor:"pointer",background:activePanel===r.id&&sidebarOpen?t.hv:"transparent",transition:"background 0.15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!(activePanel===r.id&&sidebarOpen))e.currentTarget.style.background="transparent";}}>
+            {r.icon(activePanel===r.id&&sidebarOpen?t.ac:t.tx2)}
+          </div>))}
+        <div style={{flex:1}}/>
+        <div title="설정" onClick={()=>{setActivePanel("settings");setSidebarOpen(true);}} style={{width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,cursor:"pointer",marginBottom:8}}
+          onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.settings(t.tx2)}</div>
       </div>
-
-      {/* ── Sidebar ── */}
-      <div style={{
-        width: sidebarOpen ? 240 : 0, minWidth: sidebarOpen ? 240 : 0,
-        background: t.sb, borderRight: sidebarOpen ? `1px solid ${t.bd}` : "none",
-        overflow: "hidden", transition: "width 0.15s, min-width 0.15s",
-        display: "flex", flexDirection: "column",
-      }}>
-        <div style={{ padding: "10px 12px 6px", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, opacity: 0.4 }}>
-          {RIBBON_ITEMS.find((r) => r.id === activePanel)?.label}
+      <div ref={sidebarRef} className="sidebar-wrap" style={{width:sidebarOpen?sidebarWidth:0,minWidth:sidebarOpen?sidebarWidth:0,background:t.sb,borderRight:`1px solid ${t.bd}`,overflow:"hidden",display:"flex",flexDirection:"column",position:"relative"}}>
+        <div style={{height:40,padding:"0 12px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${t.bd}`,flexShrink:0}}>
+          <span style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:t.tx2}}>{activePanel==="files"?"파일":activePanel==="search"?"검색":activePanel==="bookmark"?"북마크":activePanel==="recent"?"최근 문서":activePanel==="trash"?"휴지통":"설정"}</span>
         </div>
-
-        {activePanel === "files" && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ flex: 1, overflowY: "auto", padding: "2px 4px" }}
-              onDragOver={(e) => { e.preventDefault(); setDragOverId(null); }}
-              onDrop={async (e) => {
-                e.preventDefault();
-                if (dragSourceId) {
-                  const src = findNode(tree, dragSourceId);
-                  if (src) {
-                    const cleaned = removeNodeLocal(tree, dragSourceId);
-                    const updatedSource = { ...src, parent_id: null };
-                    setTree([...cleaned, updatedSource]);
-                    await saveNode(updatedSource);
-                  }
-                }
-                setDragOverId(null); setDragSourceId(null);
-              }}
-            >
-              {loading && <div style={{ padding: 12, opacity: 0.4, fontSize: 12 }}>불러오는 중...</div>}
-              {tree.map((node) => (
-                <div key={node.id}>
-                  {renamingId === node.id ? renderName(node, 0) : (
-                    <FileNode node={node} depth={0} selectedId={selectedId} dragOverId={dragOverId}
-                      onSelect={setSelectedId} onToggle={toggleCollapse} onContextMenu={handleCtx}
-                      onDragStart={setDragSourceId} onDragOver={handleDragOver} onDrop={handleDrop} theme={t} />
-                  )}
-                </div>
-              ))}
-            </div>
-            <div style={{ padding: "6px 10px", borderTop: `1px solid ${t.bd}`, display: "flex", gap: 10, fontSize: 12 }}>
-              <span style={{ cursor: "pointer", opacity: 0.5 }} onClick={() => addNew(null, "page")}>+ 페이지</span>
-              <span style={{ cursor: "pointer", opacity: 0.5 }} onClick={() => addNew(null, "folder")}>+ 폴더</span>
-            </div>
-          </div>
-        )}
-
-        {activePanel === "search" && (
-          <div style={{ flex: 1, padding: "4px 10px", display: "flex", flexDirection: "column" }}>
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="검색..."
-              style={{
-                width: "100%", padding: "6px 10px", background: "rgba(255,255,255,0.06)",
-                border: `1px solid ${t.bd}`, borderRadius: 4, color: t.tx, fontSize: 13, outline: "none", marginBottom: 8,
-              }}
-            />
-            <div style={{ flex: 1, overflowY: "auto" }}>
-              {searchResults.map((p) => (
-                <div key={p.id} onClick={() => { setSelectedId(p.id); setActivePanel("files"); }}
-                  style={{ padding: "6px 8px", cursor: "pointer", borderRadius: 4, fontSize: 13 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = t.hover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >📄 {p.name}</div>
-              ))}
-              {searchQuery && searchResults.length === 0 && (
-                <div style={{ opacity: 0.4, fontSize: 12, padding: 8 }}>결과 없음</div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {activePanel === "bookmarks" && (
-          <div style={{ flex: 1, padding: "4px 10px", overflowY: "auto" }}>
-            {bookmarks.length === 0 && <div style={{ opacity: 0.4, fontSize: 12, padding: 8 }}>북마크가 없습니다</div>}
-            {bookmarks.map((bId) => {
-              const node = findNode(tree, bId);
-              if (!node) return null;
-              return (
-                <div key={bId} onClick={() => { setSelectedId(bId); setActivePanel("files"); }}
-                  style={{ padding: "6px 8px", cursor: "pointer", borderRadius: 4, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = t.hover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <span>📄</span><span>{node.name}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {activePanel === "settings" && (
-          <div style={{ flex: 1, padding: "8px 12px" }}>
-            <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 10 }}>테마</div>
-            {Object.entries(THEMES).map(([key, val]) => (
-              <div key={key} onClick={() => setTheme(key)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "7px 8px",
-                  cursor: "pointer", borderRadius: 6, fontSize: 13, marginBottom: 2,
-                  background: theme === key ? t.hover : "transparent",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = t.hover)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = theme === key ? t.hover : "transparent")}
-              >
-                <div style={{ width: 16, height: 16, borderRadius: "50%", background: val.bg, border: `1px solid ${val.bd}`, flexShrink: 0 }} />
-                <span>{val.n}</span>
-                {theme === key && <span style={{ marginLeft: "auto", opacity: 0.5, fontSize: 11 }}>✓</span>}
-              </div>
-            ))}
-          </div>
-        )}
+        {activePanel==="files"&&<div style={{flex:1,overflowY:"auto",padding:"4px 0"}}>
+          {favPages.length>0&&<><div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>FAVORITES</div>{favPages.map(p=><div key={p.id} onClick={()=>setSelectedId(p.id)} style={{height:28,padding:"0 12px 0 20px",display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,borderRadius:6,margin:"0 4px",background:selectedId===p.id?t.hv:"transparent"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(selectedId!==p.id)e.currentTarget.style.background="transparent";}}>{Icons.star(t.ac)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span></div>)}<div style={{height:1,background:t.bd,margin:"6px 12px"}}/></>}
+          <div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>PRIVATE</span><span style={{cursor:"pointer",display:"flex",gap:4}} onClick={()=>addNew(null,"page")}>{Icons.plus(t.tx2)}</span></div>
+          {loading && <div style={{padding:12,opacity:0.4,fontSize:12}}>불러오는 중...</div>}
+          {tree.map(n=><FileNode key={n.id} node={n} depth={0} selectedId={selectedId} onSelect={setSelectedId} onToggle={toggleCollapse} onCtx={(e:any,nd:TreeNode)=>setCtxMenu({x:e.clientX,y:e.clientY,node:nd})} renameId={renameId} renameVal={renameVal} setRenameVal={setRenameVal} commitRename={commitRename} dragSrc={dragSrc} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} t={t}/>)}
+          <div style={{padding:"8px 12px",display:"flex",gap:8}}><span onClick={()=>addNew(null,"folder")} style={{fontSize:12,cursor:"pointer",color:t.tx2,display:"flex",alignItems:"center",gap:4,borderRadius:4,padding:"4px 8px"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.folder(t.tx2)} 새 폴더</span></div>
+        </div>}
+        {activePanel==="search"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}><input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="페이지 검색..." autoFocus style={{width:"100%",padding:"8px 10px",fontSize:13,background:t.hv,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,outline:"none",fontFamily:"var(--font-main)"}}/><div style={{marginTop:8}}>{searchResults.map(p=><div key={p.id} onClick={()=>{setSelectedId(p.id);}} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.page(t.tx2)} <span style={{marginLeft:6}}>{p.name}</span></div>)}{searchQ&&searchResults.length===0&&<div style={{padding:12,fontSize:13,color:t.tx2}}>결과 없음</div>}</div></div>}
+        {activePanel==="bookmark"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{Array.from(bookmarks).map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.bookmark(t.ac)}{nd.name}</div>:null;})}{bookmarks.size===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>북마크가 없습니다</div>}</div>}
+        {activePanel==="recent"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{recentIds.map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.recent(t.tx2)}{nd.name}</div>:null;})}{recentIds.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>최근 문서 없음</div>}</div>}
+        {activePanel==="trash"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{trashedNodes.map(nd=><div key={nd.id} style={{padding:"6px 10px",fontSize:13,borderRadius:6,display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}><span style={{display:"flex",alignItems:"center",gap:6}}>{Icons.page(t.tx2)}{nd.name}</span><span onClick={()=>restoreNode(nd)} style={{cursor:"pointer",opacity:0.5,display:"flex"}} title="복원">{Icons.restore(t.ac)}</span></div>)}{trashedNodes.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>휴지통이 비어 있습니다</div>}</div>}
+        {activePanel==="settings"&&<div style={{flex:1,overflowY:"auto",padding:"16px 12px"}}><div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>테마</div><div style={{display:"flex",flexDirection:"column",gap:4}}>{Object.entries(THEMES).map(([key,val])=>(<div key={key} onClick={()=>setTheme(key)} style={{padding:"8px 10px",borderRadius:6,cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:theme===key?t.hv:"transparent",border:theme===key?`1px solid ${t.ac}`:`1px solid transparent`}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(theme!==key)e.currentTarget.style.background="transparent";}}><div style={{width:18,height:18,borderRadius:"50%",background:val.bg,border:`2px solid ${val.ac}`}}/><span style={{fontSize:13}}>{val.n}</span></div>))}</div><div style={{height:1,background:t.bd,margin:"16px 0"}}/><div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>단축키</div><div style={{fontSize:12,color:t.tx2,lineHeight:2}}><div>Ctrl+N — 새 페이지</div><div>Ctrl+P — 검색</div><div>Ctrl+\ — 사이드바 토글</div><div>Ctrl+Shift+F — 포커스 모드</div></div><div style={{height:1,background:t.bd,margin:"16px 0"}}/><div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>포커스 모드</div><div onClick={()=>setFocusMode(!focusMode)} style={{padding:"8px 10px",borderRadius:6,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:8,background:focusMode?t.hv:"transparent"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!focusMode)e.currentTarget.style.background="transparent";}}>{Icons.focus(t.ac)}{focusMode?"포커스 모드 끄기":"포커스 모드 켜기"}</div></div>}
+        <div onMouseDown={startResize} style={{position:"absolute",right:0,top:0,bottom:0,width:3,cursor:"col-resize",zIndex:10}} onMouseEnter={e=>{e.currentTarget.style.background=t.ac;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}/>
       </div>
-
-      {/* ── Main Area ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ height: 36, borderBottom: `1px solid ${t.bd}`, display: "flex", alignItems: "center", padding: "0 14px", gap: 8 }}>
-          <span style={{ fontSize: 13, opacity: 0.6 }}>
-            {selectedId ? findNode(tree, selectedId)?.name ?? "ORBIT" : "페이지를 선택하세요"}
-          </span>
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div className="top-bar" style={{height:44,borderBottom:`1px solid ${t.bd}`,display:"flex",alignItems:"center",padding:"0 16px",gap:8,flexShrink:0}}>
+          {!sidebarOpen&&<span style={{cursor:"pointer",opacity:0.5,display:"flex"}} onClick={()=>setSidebarOpen(true)}>{Icons.menu(t.tx)}</span>}
+          {sidebarOpen&&<span style={{cursor:"pointer",opacity:0.5,display:"flex"}} onClick={()=>setSidebarOpen(false)}><svg width="16" height="16" fill="none" stroke={t.tx} strokeWidth="1.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></span>}
+          <div style={{flex:1,display:"flex",alignItems:"center",gap:4,fontSize:12,color:t.tx2}}>{breadcrumb.map((b,i)=><span key={i} style={{display:"flex",alignItems:"center",gap:4}}>{i>0&&<span style={{opacity:0.3}}>/</span>}<span>{b}</span></span>)}</div>
+          {selectedNode&&<span style={{fontSize:11,color:t.tx2}}>{wordCount} 단어</span>}
         </div>
-        <div style={{ flex: 1, overflow: "auto" }}>
-          {selectedId && findNode(tree, selectedId)?.type === "page" ? (
-            <DynamicEditor 
-              key={selectedId} 
-              initialContent={findNode(tree, selectedId)?.content} 
-              onChange={(c) => handleContentChange(selectedId, c)} 
-            />
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", opacity: 0.25, fontSize: 14 }}>
-              페이지를 선택하거나 새로 만드세요
-            </div>
-          )}
+        <div style={{flex:1,overflow:"auto"}}>
+          {selectedNode&&selectedNode.type==="page"?(<div className="fade-in editor-wrap"><div style={{maxWidth:720,margin:"0 auto",padding:"32px 24px 0"}}><input value={pageTitle} onChange={e=>onTitleChange(e.target.value)} placeholder="제목 없음" style={{width:"100%",background:"transparent",border:"none",outline:"none",fontSize:32,fontWeight:700,color:t.tx,fontFamily:"var(--font-main)",marginBottom:4}}/></div><DynamicEditor key={selectedId!} initialContent={selectedNode.content} onChange={onContentChange} darkMode={isDark} /></div>):(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",opacity:0.3}}><div style={{fontSize:48,marginBottom:16}}>🌑</div><div style={{fontSize:14}}>사이드바에서 페이지를 선택하거나</div><div style={{fontSize:14,marginTop:4}}>Ctrl+N으로 새 페이지를 만드세요</div></div>)}
         </div>
       </div>
+      {ctxMenu&&<CtxMenu x={ctxMenu.x} y={ctxMenu.y} items={getCtxItems(ctxMenu.node)} onClose={()=>setCtxMenu(null)} t={t}/>}
     </div>
   );
 }
