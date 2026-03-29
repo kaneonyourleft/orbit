@@ -26,6 +26,7 @@ interface Props {
   darkMode?: boolean;
   accentColor?: string;
   pageId?: string;
+  onDataUpdate?: (data: { columns: Column[], rows: Row[] }) => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -55,7 +56,7 @@ function applyFilters(rows: Row[], filters: FilterRule[], cols: Column[]): Row[]
   return r;
 }
 
-export default function SpreadsheetTable({ darkMode, accentColor, pageId }: Props) {
+export default function SpreadsheetTable({ darkMode, accentColor, pageId, onDataUpdate }: Props) {
   const bg = darkMode ? "#16161a" : "#fff";
   const tx = darkMode ? "#ececf1" : "#111827";
   const tx2 = darkMode ? "#9ca3af" : "#6b7280";
@@ -96,6 +97,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId }: Prop
         if (!error && data?.content?.sheets) { 
           setSheets(data.content.sheets); 
           setActiveSheet(data.content.sheets[0].id); 
+          if (onDataUpdate) onDataUpdate({ columns: data.content.sheets[0].columns, rows: data.content.sheets[0].rows });
         }
         setLoading(false);
       })();
@@ -107,6 +109,8 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId }: Prop
   const updateSheets = useCallback((fn: (s: Sheet[]) => Sheet[]) => {
     setSheets(prev => {
       const next = fn(prev);
+      const cur = next.find(s => s.id === activeSheet) || next[0];
+      if (onDataUpdate) onDataUpdate({ columns: cur.columns, rows: cur.rows });
       if (pageId) {
         const supabase = createClient();
         supabase.from("pages").update({ content: { sheets: next } }).eq("id", pageId).then();
