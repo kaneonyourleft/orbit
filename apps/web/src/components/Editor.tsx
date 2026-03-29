@@ -3,6 +3,8 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import {
   defaultBlockSpecs,
+  filterSuggestionItems,
+  Block,
 } from "@blocknote/core";
 import {
   useCreateBlockNote,
@@ -11,139 +13,175 @@ import {
   getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
-import { filterSuggestionItems } from "@blocknote/core";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef } from "react";
 
 interface Props {
-  initialContent?: any;
-  onChange?: (content: any) => void;
+  initialContent?: Block[];
+  onChange?: (content: Block[]) => void;
   darkMode?: boolean;
 }
 
 /**
- * 1. 커스텀 S/N 상태 블록 정의 (v0.47 API)
- * 특정 제품의 현재 공정 및 상태를 실시간으로 보여주는 블록
- */
-const SNStatusBlock = createReactBlockSpec(
-  {
-    type: "snStatus",
-    propSchema: {
-      sn: { default: "WN-UNKNOWN" },
-      process: { default: "탈지" },
-      status: { default: "WAIT" },
-    },
-    content: "none",
-  },
-  {
-    render: ({ block }) => {
-      const { sn, process, status } = block.props;
-      const statusColors: Record<string, string> = {
-        WAIT: "bg-gray-100 text-gray-800",
-        PROG: "bg-blue-100 text-blue-800",
-        DONE: "bg-green-100 text-green-800",
-        SCRAP: "bg-red-100 text-red-800",
-      };
-
-      return (
-        <div className={`p-4 rounded-lg flex items-center justify-between border shadow-sm ${statusColors[status] || "bg-white"}`}>
-          <div className="flex flex-col">
-            <span className="text-xs font-bold uppercase opacity-60">S/N</span>
-            <span className="text-lg font-mono">{sn}</span>
-          </div>
-          <div className="flex flex-col items-end">
-            <span className="text-xs font-bold uppercase opacity-60">Process: {process}</span>
-            <span className="text-sm font-bold">{status === "PROG" ? "진행 중..." : status}</span>
-          </div>
-        </div>
-      );
-    },
-  }
-);
-
-/**
- * 2. 커스텀 분석 대시보드 블록 (Pivot)
- * 데이터 분석 및 차트를 시각화하는 범용 대시보드 블록
+ * 1. 실시간 생산 현황 대시보드 블록
  */
 const DashboardBlock = createReactBlockSpec(
   {
     type: "dashboard",
     propSchema: {
-      title: { default: "공정 현황 대시보드" },
-      viewType: { default: "status" }, // status, yield, equipment 등
+      title: { default: "실시간 생산 현황" },
+      theme: { default: "ocean" },
     },
     content: "none",
   },
   {
     render: ({ block }) => {
-      const stats = [
-        { name: "탈지", value: 80, color: "bg-blue-500" },
-        { name: "소성", value: 65, color: "bg-indigo-500" },
-        { name: "평탄화", value: 45, color: "bg-cyan-500" },
-        { name: "도금", value: 30, color: "bg-teal-500" },
-        { name: "열처리", value: 15, color: "bg-emerald-500" },
-      ];
+      const data = {
+        total: 1250,
+        yield: 98.4,
+        ng: 12,
+        processes: [
+          { name: "탈지 (Degreasing)", count: 450, color: "#3b82f6" },
+          { name: "소성 (Firing)", count: 320, color: "#6366f1" },
+          { name: "평탄화 (Flattening)", count: 280, color: "#06b6d4" },
+          { name: "도금 (Plating)", count: 180, color: "#14b8a6" },
+          { name: "열처리 (Annealing)", count: 20, color: "#10b981" },
+        ]
+      };
 
       return (
-        <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-lg my-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
-              📊 {block.props.title}
-            </h3>
-            {/* 슬라이서(필터) 인터페이스 */}
-            <div className="flex gap-2">
-              <select className="text-xs border rounded px-2 py-1 bg-slate-50">
-                <option>전체 카테고리</option>
-                <option>WN 시리즈</option>
-                <option>BL 시리즈</option>
-              </select>
-              <select className="text-xs border rounded px-2 py-1 bg-slate-50">
-                <option>최근 1주일</option>
-                <option>최근 1개월</option>
-              </select>
+        <div className="p-8 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-[2.5rem] border border-white/10 shadow-2xl my-10 font-sans relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full -mr-32 -mt-32"></div>
+          
+          <div className="relative z-10">
+            <div className="flex justify-between items-start mb-12">
+              <div>
+                <h3 className="text-3xl font-black tracking-tight">{block.props.title}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                  <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Global Live Intelligence</p>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 text-center">
-              <div className="text-3xl font-black text-blue-600">85%</div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Overall Progress</div>
+            <div className="grid grid-cols-3 gap-6 mb-12">
+              {[
+                { label: "Throughput", value: data.total, sub: "Total Units" },
+                { label: "Yield", value: `${data.yield}%`, sub: "Quality Rate" },
+                { label: "Critical NG", value: data.ng, sub: "Action Required" }
+              ].map((stat, i) => (
+                <div key={i} className="p-6 bg-white/5 rounded-3xl border border-white/5 backdrop-blur-md">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">{stat.label}</div>
+                  <div className="text-4xl font-black tabular-nums">{stat.value}</div>
+                  <div className="text-[9px] font-bold text-white/20 mt-1">{stat.sub}</div>
+                </div>
+              ))}
             </div>
-            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 text-center">
-              <div className="text-3xl font-black text-green-600">98.2%</div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Final Yield</div>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 text-center">
-              <div className="text-3xl font-black text-red-500">3</div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Active NG/Scrap</div>
-            </div>
-          </div>
 
-          {/* CSS 기반 실시간 막대 그래프 (Auto-Pivot 시각화) */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-500 px-1">
-              <span>Process Throughput</span>
-              <span>(Production + Archive)</span>
-            </div>
-            <div className="space-y-3">
-              {stats.map((s) => (
-                <div key={s.name} className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold text-slate-600">
-                    <span>{s.name}</span>
-                    <span>{s.value}%</span>
+            <div className="space-y-6 bg-black/20 p-8 rounded-[2rem] border border-white/5">
+              {data.processes.map((p) => (
+                <div key={p.name}>
+                  <div className="flex justify-between text-[11px] font-bold mb-2">
+                    <span className="text-white/70">{p.name}</span>
+                    <span className="text-white/30">{p.count} EA</span>
                   </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                     <div 
-                      className={`h-full ${s.color} transition-all duration-1000 ease-out`} 
-                      style={{ width: `${s.value}%` }}
+                      className="h-full rounded-full transition-all duration-1000 shadow-lg"
+                      style={{ width: `${(p.count/500)*100}%`, backgroundColor: p.color }}
                     />
                   </div>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+      );
+    },
+  }
+);
 
-          <div className="mt-6 pt-4 border-t border-slate-50 text-[10px] text-slate-300 text-center italic">
-            데이터는 Firestore Active/Archive 엔진을 통해 실시간으로 갱신됩니다.
+/**
+ * 2. 공정별 성과 피벗 테이블 블록
+ */
+const PivotTableBlock = createReactBlockSpec(
+  {
+    type: "pivotTable",
+    propSchema: {
+      title: { default: "Performance Metrics" },
+    },
+    content: "none",
+  },
+  {
+    render: ({ block }) => {
+      const rows = [
+        { model: "WN-240-PRO", wait: 45, prog: 12, done: 380, yield: "98.2%" },
+        { model: "WN-250-ULTRA", wait: 12, prog: 5, done: 120, yield: "97.5%" },
+        { model: "BL-100-ECO", wait: 5, prog: 2, done: 450, yield: "99.1%" },
+      ];
+
+      return (
+        <div className="my-8 rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
+          <div className="px-6 py-4 bg-slate-50 dark:bg-white/5 border-b border-inherit">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-50">{block.props.title}</span>
+          </div>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-[10px] font-black uppercase text-slate-400 dark:text-white/20 border-b border-inherit">
+                <th className="px-6 py-4">Model</th>
+                <th className="px-6 py-4 text-center">Wait</th>
+                <th className="px-6 py-4 text-center">Prog</th>
+                <th className="px-6 py-4 text-center">Done</th>
+                <th className="px-6 py-4 text-right">Rate</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {rows.map(r => (
+                <tr key={r.model} className="border-b border-inherit hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 font-bold">{r.model}</td>
+                  <td className="px-6 py-4 text-center opacity-40">{r.wait}</td>
+                  <td className="px-6 py-4 text-center text-blue-500 font-bold">{r.prog}</td>
+                  <td className="px-6 py-4 text-center text-emerald-500 font-bold">{r.done}</td>
+                  <td className="px-6 py-4 text-right font-black tracking-tight">{r.yield}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    },
+  }
+);
+
+/**
+ * 3. 제품 S/N 상태 추적 카드 블록
+ */
+const SNStatusBlock = createReactBlockSpec(
+  {
+    type: "snStatus",
+    propSchema: {
+      sn: { default: "WN-24-PRO-L001" },
+      process: { default: "최종 검사" },
+      status: { default: "DONE" },
+    },
+    content: "none",
+  },
+  {
+    render: ({ block }) => {
+      const { sn, process, status } = block.props;
+      const theme = status === 'DONE' ? 'emerald' : status === 'PROG' ? 'blue' : status === 'SCRAP' ? 'red' : 'slate';
+      
+      return (
+        <div className={`p-6 rounded-[2rem] border-2 flex items-center justify-between my-4 transition-all duration-300 dark:bg-slate-900 border-${theme}-100 dark:border-white/10`}>
+          <div className="flex flex-col gap-1">
+            <span className="text-[9px] font-black uppercase opacity-30 tracking-[0.2em]">Registration ID</span>
+            <span className="text-xl font-mono font-black tracking-tighter">{sn}</span>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+             <span className="text-[9px] font-black uppercase opacity-30 tracking-[0.2em]">{process}</span>
+             <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full border border-${theme}-200 bg-${theme}-50/50 dark:bg-white/5`}>
+               <span className={`w-2 h-2 rounded-full bg-${theme}-500 ${status === 'PROG' ? 'animate-pulse' : ''}`}></span>
+               <span className={`text-[10px] font-black font-mono text-${theme}-700 dark:text-white`}>{status}</span>
+             </div>
           </div>
         </div>
       );
@@ -151,99 +189,58 @@ const DashboardBlock = createReactBlockSpec(
   }
 );
 
-// 커스텀 블록 리스트 통합
 const customBlockSpecs = {
   ...defaultBlockSpecs,
   snStatus: SNStatusBlock,
   dashboard: DashboardBlock,
+  pivotTable: PivotTableBlock,
 };
 
-// 3. 슬래시 메뉴 아이템 정의
-const insertSNStatusItem = (editor: any) => ({
-  title: "SN Status",
-  onItemClick: () => {
-    editor.insertBlocks(
-      [
-        {
-          type: "snStatus",
-          props: {
-            sn: "WN240330-PROD-L001",
-            process: "탈지",
-            status: "PROG",
-          },
-        },
-      ],
-      editor.getTextCursorPosition().block,
-      "after"
-    );
-  },
-  aliases: ["sn", "status", "process"],
-  group: "Business OS",
-  icon: <div style={{ fontSize: '18px' }}>🏷️</div>,
-  subtext: "상태 추적 블록 삽입",
-});
-
-const insertDashboardItem = (editor: any) => ({
-  title: "Dashboard",
-  onItemClick: () => {
-    editor.insertBlocks(
-      [
-        {
-          type: "dashboard",
-          props: {
-            title: "실시간 공정 대시보드",
-          },
-        },
-      ],
-      editor.getTextCursorPosition().block,
-      "after"
-    );
-  },
-  aliases: ["dash", "pivot", "chart"],
-  group: "Business OS",
-  icon: <div style={{ fontSize: '18px' }}>📊</div>,
-  subtext: "분석 대시보드 삽입",
-});
-
 export default function Editor({ initialContent, onChange, darkMode = false }: Props) {
-  const validatedContent = useMemo(() => {
-    if (Array.isArray(initialContent) && initialContent.length > 0) {
-      return initialContent;
-    }
-    return undefined;
-  }, [initialContent]);
-
   const editor = useCreateBlockNote({ 
-    initialContent: validatedContent,
+    initialContent: Array.isArray(initialContent) ? initialContent : undefined,
     blockSpecs: customBlockSpecs
   });
 
   const isFirst = useRef(true);
-
   useEffect(() => {
     if (!onChange) return;
-    const handler = () => {
+    return editor.onEditorContentChange(() => {
       if (isFirst.current) { isFirst.current = false; return; }
       onChange(editor.document);
-    };
-    editor.onEditorContentChange(handler);
+    });
   }, [editor, onChange]);
 
   return (
-    <div className="fade-in" style={{ maxWidth: "100%", margin: "0", padding: "48px 24px", lineHeight: 1.6 }}>
-      <BlockNoteView 
-        editor={editor} 
-        theme={darkMode ? "dark" : "light"}
-        slashMenu={false} // 커스텀 슬래시 메뉴를 위해 기본 메뉴 비활성화
-      >
+    <div className="fade-in editor-container w-full py-8">
+      <BlockNoteView editor={editor} theme={darkMode ? "dark" : "light"} slashMenu={false}>
         <SuggestionMenuController
           triggerCharacter={"/"}
           getItems={async (query) =>
             filterSuggestionItems(
               [
                 ...getDefaultReactSlashMenuItems(editor),
-                insertSNStatusItem(editor),
-                insertDashboardItem(editor),
+                {
+                  title: "Dashboard",
+                  onItemClick: () => editor.insertBlocks([{ type: "dashboard" }], editor.getTextCursorPosition().block, "after"),
+                  aliases: ["chart", "stats"],
+                  group: "Manufacturing",
+                  icon: <span className="text-lg">🚀</span>,
+                },
+                {
+                  title: "Pivot Table",
+                  onItemClick: () => editor.insertBlocks([{ type: "pivotTable" }], editor.getTextCursorPosition().block, "after"),
+                  aliases: ["pivot", "report"],
+                  group: "Manufacturing",
+                  icon: <span className="text-lg">📊</span>,
+                },
+                {
+                  title: "SN Status",
+                  onItemClick: () => editor.insertBlocks([{ type: "snStatus" }], editor.getTextCursorPosition().block, "after"),
+                  aliases: ["sn", "tracking"],
+                  group: "Manufacturing",
+                  icon: <span className="text-lg">🏷️</span>,
+                },
               ],
               query
             )

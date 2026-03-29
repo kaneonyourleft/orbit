@@ -191,9 +191,39 @@ export default function Home(){
         if(settingsNode.content.customTheme) setCustomTheme(settingsNode.content.customTheme);
         if(settingsNode.content.savedCustomThemes) setSavedCustomThemes(settingsNode.content.savedCustomThemes);
       }
+    } else {
+      // 초기 샘플 데이터 생성 (Manufacturing OS 테마)
+      const dashboardId = uid();
+      const initialPage: TreeNode = {
+        id: dashboardId,
+        type: "page",
+        name: "📊 Smart Factory Intelligence",
+        parent_id: null,
+        position: 0,
+        collapsed: false,
+        content: {
+          editorContent: [
+            { type: "heading", props: { level: 1 }, content: [{ type: "text", text: "Global Operations Dashboard", styles: { bold: true } }] },
+            { type: "paragraph", content: [{ type: "text", text: "실시간 생산 공정 데이터와 품질 지표를 통합 관리합니다.", styles: { italic: true } }] },
+            { type: "dashboard", props: { title: "전공정 실시간 현황" } },
+            { type: "heading", props: { level: 2 }, content: [{ type: "text", text: "핵심 성과 지표 (KPI)", styles: {} }] },
+            { type: "pivotTable", props: { title: "Daily Target vs Performance" } },
+            { type: "heading", props: { level: 2 }, content: [{ type: "text", text: "긴급 추적 S/N", styles: {} }] },
+            { type: "snStatus", props: { sn: "WN240330-PROD-L001", process: "최종 검사", status: "DONE" } },
+            { type: "snStatus", props: { sn: "WN240330-PROD-L022", process: "도금 공정", status: "PROG" } },
+            { type: "snStatus", props: { sn: "WN240330-ERR-092", process: "평탄화", status: "SCRAP" } },
+            { type: "paragraph", content: [{ type: "text", text: "Tip: '/' 명령어를 사용하여 나만의 커스텀 제조 모듈을 추가하세요.", styles: { textColor: "blue", bold: true } }] },
+          ],
+          sheets: []
+        },
+        children: []
+      };
+      setTree([initialPage]);
+      setSelectedId(dashboardId);
+      saveNode(initialPage);
     }
     const b=await dbLoadBM();if(b)setBookmarks(new Set(b));
-  })();}, [loadTree, dbLoadBM]);
+  })();}, [loadTree, dbLoadBM, saveNode]);
 
   useEffect(()=>{if(selectedId){setRecentIds(prev=>[selectedId,...prev.filter(x=>x!==selectedId)].slice(0,20));const nd=findNode(tree,selectedId);if(nd)setPageTitle(nd.name);}},[selectedId, tree]);
 
