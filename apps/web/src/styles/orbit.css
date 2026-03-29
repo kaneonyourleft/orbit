@@ -134,3 +134,86 @@
   color: #60a5fa;
   font-size: 16px;
 }
+
+/* Base Editor Layout (BlockNote & Next.js integration) */
+.orbit-home-layout {
+  display: flex;
+  height: 100vh;
+  background: #0f172a;
+}
+
+.orbit-main-sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  padding: 20px;
+  color: #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.orbit-sidebar-footer-text {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: auto;
+}
+
+.orbit-brand-large {
+  font-size: 22px;
+  font-weight: 800;
+  color: #60a5fa;
+  letter-spacing: 2px;
+}
+
+.orbit-editor-viewport {
+  flex: 1;
+  background: #ffffff;
+  overflow: auto;
+  padding: 20px;
+}
+
+.orbit-editor-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Custom Blocks Layout Styles */
+.orbit-layout-container {
+  display: grid;
+  gap: 16px;
+  padding: 12px;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+  min-height: 80px;
+}
+
+.orbit-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.orbit-grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.orbit-grid-4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.orbit-column-cell {
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  min-height: 60px;
+  outline: none;
+}
+
+.orbit-divider {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 16px 0;
+}
+
+.orbit-spacer {
+  height: 40px;
+  background: transparent;
+}

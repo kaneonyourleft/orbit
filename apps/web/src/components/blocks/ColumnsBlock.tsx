@@ -2,56 +2,35 @@
 import { createReactBlockSpec } from "@blocknote/react";
 import React from "react";
 
-export const TwoColumns = createReactBlockSpec(
+// BlockNote 0.47.3 사양: createReactBlockSpec은 호출 가능한 함수가 아닌 BlockSpec 객체를 반환합니다.
+// 인라인 스타일 경고를 해결하기 위해 orbit.css에 정의된 그리드 클래스들을 적용했습니다.
+// '유추된 형식 이름' 관련 에러를 방지하기 위해 복잡한 제네릭 대신 범용 인터페이스 구조를 유지합니다.
+
+export const createTwoColumns = createReactBlockSpec(
   {
     type: "twoColumns",
-    propSchema: {
-      left: { default: "" },
-      right: { default: "" },
-    },
+    propSchema: {},
     content: "none",
   },
   {
     render: () => (
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 16,
-        padding: 12,
-        border: "1px dashed #e2e8f0",
-        borderRadius: 8,
-        minHeight: 80,
-      }}>
+      <div className="orbit-layout-container orbit-grid-2">
         <div
           contentEditable
           suppressContentEditableWarning
-          style={{
-            padding: 12,
-            background: "#f8fafc",
-            borderRadius: 6,
-            minHeight: 60,
-            outline: "none",
-          }}
-          data-placeholder="왼쪽 컬럼"
+          className="orbit-column-cell"
         />
         <div
           contentEditable
           suppressContentEditableWarning
-          style={{
-            padding: 12,
-            background: "#f8fafc",
-            borderRadius: 6,
-            minHeight: 60,
-            outline: "none",
-          }}
-          data-placeholder="오른쪽 컬럼"
+          className="orbit-column-cell"
         />
       </div>
     ),
   }
 );
 
-export const ThreeColumns = createReactBlockSpec(
+export const createThreeColumns = createReactBlockSpec(
   {
     type: "threeColumns",
     propSchema: {},
@@ -59,35 +38,16 @@ export const ThreeColumns = createReactBlockSpec(
   },
   {
     render: () => (
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr 1fr",
-        gap: 16,
-        padding: 12,
-        border: "1px dashed #e2e8f0",
-        borderRadius: 8,
-        minHeight: 80,
-      }}>
+      <div className="orbit-layout-container orbit-grid-3">
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            contentEditable
-            suppressContentEditableWarning
-            style={{
-              padding: 12,
-              background: "#f8fafc",
-              borderRadius: 6,
-              minHeight: 60,
-              outline: "none",
-            }}
-          />
+          <div key={i} contentEditable suppressContentEditableWarning className="orbit-column-cell" />
         ))}
       </div>
     ),
   }
 );
 
-export const FourColumns = createReactBlockSpec(
+export const createFourColumns = createReactBlockSpec(
   {
     type: "fourColumns",
     propSchema: {},
@@ -95,69 +55,37 @@ export const FourColumns = createReactBlockSpec(
   },
   {
     render: () => (
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr 1fr 1fr",
-        gap: 16,
-        padding: 12,
-        border: "1px dashed #e2e8f0",
-        borderRadius: 8,
-        minHeight: 80,
-      }}>
+      <div className="orbit-layout-container orbit-grid-4">
         {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            contentEditable
-            suppressContentEditableWarning
-            style={{
-              padding: 12,
-              background: "#f8fafc",
-              borderRadius: 6,
-              minHeight: 60,
-              outline: "none",
-            }}
-          />
+          <div key={i} contentEditable suppressContentEditableWarning className="orbit-column-cell" />
         ))}
       </div>
     ),
   }
 );
 
-export const Divider = createReactBlockSpec(
+export const createDivider = createReactBlockSpec(
   {
     type: "divider",
-    propSchema: {
-      style: { default: "solid" },
-    },
+    propSchema: {},
     content: "none",
   },
   {
-    render: ({ block }) => (
-      <hr style={{
-        border: "none",
-        borderTop: `2px ${block.props.style} #e2e8f0`,
-        margin: "16px 0",
-      }} />
+    render: () => (
+      <hr className="orbit-divider" />
     ),
   }
 );
 
-export const Spacer = createReactBlockSpec(
+export const createSpacer = createReactBlockSpec(
   {
     type: "spacer",
-    propSchema: {
-      height: { default: "40" },
-    },
+    propSchema: {},
     content: "none",
   },
   {
-    render: ({ block }) => (
-      <div style={{
-        height: parseInt(block.props.height),
-        background: "transparent",
-        borderLeft: "2px dashed #e2e8f0",
-        marginLeft: "50%",
-      }} />
+    render: () => (
+      <div className="orbit-spacer" />
     ),
   }
 );
