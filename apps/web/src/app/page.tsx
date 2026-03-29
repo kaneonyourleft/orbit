@@ -364,7 +364,7 @@ export default function Home(){
             title="사이드바 닫기"
           >✕</button>
         </div>
-        {activePanel==="files"&&<div style={{flex:1,overflowY:"auto",padding:"4px 0 60px" if isMobile else "4px 0", paddingBottom: isMobile ? 60 : 0}}>
+        {activePanel==="files"&&<div style={{flex:1,overflowY:"auto",padding: isMobile ? "4px 0 60px" : "4px 0", paddingBottom: isMobile ? 60 : 0}}>
           {favPages.length>0&&<><div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>FAVORITES</div>{favPages.map(p=><div key={p.id} onClick={()=>setSelectedId(p.id)} style={{height:28,padding:"0 12px 0 20px",display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,borderRadius:6,margin:"0 4px",background:selectedId===p.id?t.hv:"transparent"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(selectedId!==p.id)e.currentTarget.style.background="transparent";}}>{Icons.star(t.ac)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span></div>)}<div style={{height:1,background:t.bd,margin:"6px 12px"}}/></>}
           <div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>PRIVATE</div>
           <div style={{padding:"4px 8px 8px",display:"flex",gap:6}}>
