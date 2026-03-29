@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   description: "노션 + 옵시디언 + 엑셀을 하나로",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
-    apple: "/icon.svg",
+    icon: "/icon.svg",
+    apple: "/icon-192.svg",
   },
   appleWebApp: {
     capable: true,

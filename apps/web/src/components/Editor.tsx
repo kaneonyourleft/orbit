@@ -15,6 +15,8 @@ import {
 import { BlockNoteView } from "@blocknote/mantine";
 import { useEffect, useRef } from "react";
 import { databaseBlockSpec } from "./blocks/DatabaseBlockSpec";
+import ChartBlock from './blocks/ChartBlock';
+import KPIDashboardBlock from './blocks/KPIDashboardBlock';
 
 interface Props {
   pageId: string;
@@ -102,101 +104,14 @@ const DashboardBlock = createReactBlockSpec(
   }
 );
 
-/**
- * 2. 공정별 성과 피벗 테이블 블록
- */
-const PivotTableBlock = createReactBlockSpec(
-  {
-    type: "pivotTable",
-    propSchema: {
-      title: { default: "Performance Metrics" },
-    },
-    content: "none",
-  },
-  {
-    render: ({ block }) => {
-      const rows = [
-        { model: "WN-240-PRO", wait: 45, prog: 12, done: 380, yield: "98.2%" },
-        { model: "WN-250-ULTRA", wait: 12, prog: 5, done: 120, yield: "97.5%" },
-        { model: "BL-100-ECO", wait: 5, prog: 2, done: 450, yield: "99.1%" },
-      ];
-
-      return (
-        <div className="my-8 rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
-          <div className="px-6 py-4 bg-slate-50 dark:bg-white/5 border-b border-inherit">
-            <span className="text-[10px] font-black uppercase tracking-widest opacity-50">{block.props.title}</span>
-          </div>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-[10px] font-black uppercase text-slate-400 dark:text-white/20 border-b border-inherit">
-                <th className="px-6 py-4">Model</th>
-                <th className="px-6 py-4 text-center">Wait</th>
-                <th className="px-6 py-4 text-center">Prog</th>
-                <th className="px-6 py-4 text-center">Done</th>
-                <th className="px-6 py-4 text-right">Rate</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {rows.map(r => (
-                <tr key={r.model} className="border-b border-inherit hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 font-bold">{r.model}</td>
-                  <td className="px-6 py-4 text-center opacity-40">{r.wait}</td>
-                  <td className="px-6 py-4 text-center text-blue-500 font-bold">{r.prog}</td>
-                  <td className="px-6 py-4 text-center text-emerald-500 font-bold">{r.done}</td>
-                  <td className="px-6 py-4 text-right font-black tracking-tight">{r.yield}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    },
-  }
-);
-
-/**
- * 3. 제품 S/N 상태 추적 카드 블록
- */
-const SNStatusBlock = createReactBlockSpec(
-  {
-    type: "snStatus",
-    propSchema: {
-      sn: { default: "WN-24-PRO-L001" },
-      process: { default: "최종 검사" },
-      status: { default: "DONE" },
-    },
-    content: "none",
-  },
-  {
-    render: ({ block }) => {
-      const { sn, process, status } = block.props;
-      const theme = status === 'DONE' ? 'emerald' : status === 'PROG' ? 'blue' : status === 'SCRAP' ? 'red' : 'slate';
-      
-      return (
-        <div className={`p-6 rounded-[2rem] border-2 flex items-center justify-between my-4 transition-all duration-300 dark:bg-slate-900 border-${theme}-100 dark:border-white/10`}>
-          <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-black uppercase opacity-30 tracking-[0.2em]">Registration ID</span>
-            <span className="text-xl font-mono font-black tracking-tighter">{sn}</span>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-             <span className="text-[9px] font-black uppercase opacity-30 tracking-[0.2em]">{process}</span>
-             <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full border border-${theme}-200 bg-${theme}-50/50 dark:bg-white/5`}>
-               <span className={`w-2 h-2 rounded-full bg-${theme}-500 ${status === 'PROG' ? 'animate-pulse' : ''}`}></span>
-               <span className={`text-[10px] font-black font-mono text-${theme}-700 dark:text-white`}>{status}</span>
-             </div>
-          </div>
-        </div>
-      );
-    },
-  }
-);
-
 const customBlockSpecs = {
   ...defaultBlockSpecs,
   snStatus: SNStatusBlock,
   dashboard: DashboardBlock,
   pivotTable: PivotTableBlock,
   database: databaseBlockSpec,
+  chart: ChartBlockSpec,
+  kpiDashboard: KPIDashboardBlockSpec,
 };
 
 export default function Editor({ pageId, initialContent, onChange, darkMode = false }: Props) {
@@ -250,6 +165,20 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                   aliases: ["sn", "tracking"],
                   group: "Manufacturing",
                   icon: <span className="text-lg">🏷️</span>,
+                },
+                {
+                  title: "Chart",
+                  onItemClick: () => editor.insertBlocks([{ type: "chart", props: { pageId } }] as any, editor.getTextCursorPosition().block, "after"),
+                  aliases: ["chart", "graph", "차트", "시각화"],
+                  group: "Visualization",
+                  icon: <span className="text-lg">📈</span>,
+                },
+                {
+                  title: "KPI Dashboard",
+                  onItemClick: () => editor.insertBlocks([{ type: "kpiDashboard", props: { pageId } }] as any, editor.getTextCursorPosition().block, "after"),
+                  aliases: ["kpi", "metrics", "대시보드", "현황"],
+                  group: "Visualization",
+                  icon: <span className="text-lg">🎯</span>,
                 },
               ],
               query
