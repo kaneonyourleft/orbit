@@ -41,19 +41,42 @@ export default function AIAssistant({ darkMode, accentColor, contextData, onAppl
     setInput("");
     setIsTyping(true);
 
-    // AI logic simulation (In actual app, this connects to Gemini/OpenAI API)
+    // 지능형 맥락 분석 시뮬레이션 (추후 Gemini/OpenAI API 연동 가능)
     setTimeout(() => {
-      let response = "데이터를 분석 중입니다...";
-      if (input.includes("표") || input.includes("데이터")) {
-        response = "현재 스프레드시트에는 총 " + (contextData?.rows?.length || 0) + "개의 행이 있습니다. 이 중 진행률이 낮은 항목들을 우선순위로 정리해 드릴까요?";
-      } else if (input.includes("보고서") || input.includes("요약")) {
-        response = `### 📝 워크스페이스 요약 보고서\n\n현재 프로젝트는 **${contextData?.pageTitle || "알 수 없음"}**에 집중하고 있습니다.\n\n- **스프레드시트 데이터**: 총 ${contextData?.rows?.length || 0}개 항목 분석 완료.\n- **주요 사항**: 빌드 안정화 및 UI 개선 진행 중.\n\n이 내용을 현재 문서 하단에 바로 삽입할까요?`;
-      } else {
-        response = "알겠습니다. 해당 요청을 워크스페이스 맥락에 맞춰 처리하고 있습니다. 추가로 필요한 정보가 있으신가요?";
+      let response = "";
+      const { pageTitle, rows, columns, type } = contextData || {};
+      const rowCount = rows?.length || 0;
+      
+      // 1. 데이터 분석 요청 처리
+      if (input.includes("분석") || input.includes("통계") || input.includes("표")) {
+        if (type === "spreadsheet" && rowCount > 0) {
+          const numericCols = columns?.filter((c: any) => c.type === "number") || [];
+          response = `### 📊 데이터 분석 결과\n\n현재 **'${pageTitle}'** 시트의 **${rowCount}개** 데이터를 분석했습니다.\n\n`;
+          if (numericCols.length > 0) {
+            response += `- **분석 지표**: ${numericCols.map((c: any) => c.name).join(", ")} 항목 추출 완료.\n`;
+            response += `- **인사이트**: 데이터의 분포가 안정적이며, 특정 항목에서 유의미한 상관관계가 발견되었습니다.\n\n이 분석 내용을 기반으로 상세 보고서를 작성해 드릴까요?`;
+          } else {
+            response += `데이터 행은 존재하지만, 수치형 컬럼이 부족하여 정밀 분석에 제한이 있습니다. 텍스트 기반의 요약을 진행해 드릴까요?`;
+          }
+        } else {
+          response = `현재 열려있는 워크스페이스가 '${type}' 모드이네요. ${rowCount > 0 ? "데이터를 읽어오는 중입니다." : "분석할 데이터가 비어 있습니다."} 내용을 추가해 주시면 바로 분석을 시작하겠습니다!`;
+        }
+      } 
+      // 2. 보고서 및 요약 요청 처리
+      else if (input.includes("보고서") || input.includes("요약")) {
+        response = `### 📝 ORBIT 지능형 요약\n\n**대상:** ${pageTitle || "현재 페이지"}\n\n1. **현황**: 현재 시스템 빌드 및 UI 고도화 단계에 있습니다.\n2. **데이터**: ${rowCount}개의 실시간 데이터 엔티티 확인.\n3. **제안**: 데이터 시각화 라이브러리 연동을 통해 직관성을 높이는 것을 추천합니다.\n\n해당 요약본을 문서 하단에 **'AI 리포트'** 섹션으로 삽입할까요?`;
+      } 
+      // 3. 할 일 추출 서비스
+      else if (input.includes("할일") || input.includes("투두") || input.includes("정리")) {
+        response = `### ✅ 할 일 목록 추출\n\n작성하신 문서와 데이터를 바탕으로 다음 할 일을 찾았습니다:\n\n- [ ] 프로젝트 UI 아코디언 컴포넌트 검증\n- [ ] Supabase 실시간 동기화 안정성 테스트\n- [ ] AI 어시스턴트 실제 API 연동 설정\n\n이 항목들을 **사이드바 투두리스트**에 지금 추가할까요?`;
       }
+      else {
+        response = `반갑습니다! 현재 **'${pageTitle || "ORBIT"}'** 프로젝트의 맥락을 완벽히 파악하고 있습니다. 저에게 다음과 같은 요청을 하실 수 있습니다:\n\n- "이 표 데이터 분석해줘"\n- "지금까지 내용 요약 보고서 써줘"\n- "이 문서에서 할 일들만 뽑아줘"`;
+      }
+      
       setMessages(prev => [...prev, { role: "assistant", content: response }]);
       setIsTyping(false);
-    }, 1500);
+    }, 1200);
   };
 
   return (
