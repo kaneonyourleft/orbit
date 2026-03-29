@@ -1,6 +1,6 @@
 "use client";
 import "./globals.css";
-import { useState, useRef, useEffect, useCallback, DragEvent, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useCallback, DragEvent } from "react";
 import dynamic from "next/dynamic";
 import { usePages, TreeNode } from "../lib/usePages";
 
@@ -23,7 +23,7 @@ function removeLocal(ns:TreeNode[],id:string):TreeNode[]{return ns.filter(n=>n.i
 function insertLocal(ns:TreeNode[],pid:string|null,child:TreeNode):TreeNode[]{if(!pid)return[...ns,child];return ns.map(n=>n.id===pid&&n.type==="folder"?{...n,children:[...n.children,child],collapsed:false}:{...n,children:insertLocal(n.children,pid,child)});}
 function isDesc(ns:TreeNode[],aid:string,tid:string):boolean{const n=findNode(ns,aid);if(!n)return false;if(n.children.some(c=>c.id===tid))return true;return n.children.some(c=>isDesc([c],c.id,tid));}
 function collectPages(ns:TreeNode[]):TreeNode[]{let r:TreeNode[]=[];for(const n of ns){if(n.type==="page")r.push(n);r=r.concat(collectPages(n.children));}return r;}
-function getBreadcrumb(ns:TreeNode[],id:string):string[]{const pid=findParentId(ns,id);if(!pid)return[findNode(ns,id)?.name||""];const parent=findNode(ns,pid);return[...getBreadcrumb(ns,pid),findNode(ns,id)?.name||""];}
+function getBreadcrumb(ns:TreeNode[],id:string):string[]{const pid=findParentId(ns,id);if(!pid)return[findNode(ns,id)?.name||""];return[...getBreadcrumb(ns,pid),findNode(ns,id)?.name||""];}
 
 /* ── Themes ── */
 const THEMES:Record<string,{n:string;bg:string;sb:string;rb:string;tx:string;tx2:string;ac:string;bd:string;hv:string;card:string}> = {
@@ -77,9 +77,10 @@ const RIBBON = [
 ];
 
 /* ── Context Menu ── */
-function CtxMenu({x,y,items,onClose,t}:{x:number;y:number;items:{label:string;icon?:any;danger?:boolean;divider?:boolean;action:()=>void}[];onClose:()=>void;t:any}){
+interface CtxItem { label: string; icon?: React.ReactNode; danger?: boolean; divider?: boolean; action: () => void; }
+function CtxMenu({x,y,items,onClose,t}:{x:number;y:number;items:CtxItem[];onClose:()=>void;t:Record<string,string>}){
   const ref=useRef<HTMLDivElement>(null);
-  useEffect(()=>{const h=(e:any)=>{if(ref.current&&!ref.current.contains(e.target))onClose();};document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);},[onClose]);
+  useEffect(()=>{const h=(e:MouseEvent)=>{if(ref.current&&!ref.current.contains(e.target as Node))onClose();};document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);},[onClose]);
   return(
     <div ref={ref} className="scale-in" style={{position:"fixed",left:x,top:y,zIndex:9999,background:t.sb,border:`1px solid ${t.bd}`,borderRadius:8,padding:"4px 0",minWidth:180,backdropFilter:"blur(12px)",boxShadow:"0 8px 30px rgba(0,0,0,0.3)"}}>
       {items.map((it,i)=>it.divider?<div key={i} style={{height:1,background:t.bd,margin:"4px 0"}}/>:(
@@ -92,8 +93,13 @@ function CtxMenu({x,y,items,onClose,t}:{x:number;y:number;items:{label:string;ic
   );
 }
 
+interface ColorItem { key: string; label: string; icon: string; }
+interface ThemeConfig {
+  bg: string; sb: string; rb: string; tx: string; tx2: string; ac: string; bd: string; hv: string; card: string;
+}
+
 /* ── FileNode ── */
-function FileNode({node,depth,selectedId,onSelect,onToggle,onCtx,renameId,renameVal,setRenameVal,commitRename,dragSrc,onDragStart,onDragOver,onDrop,t}:any){
+function FileNode({node,depth,selectedId,onSelect,onToggle,onCtx,renameId,renameVal,setRenameVal,commitRename,dragSrc,onDragStart,onDragOver,onDrop,t}: {node:TreeNode;depth:number;selectedId:string|null;onSelect:(id:string)=>void;onToggle:(id:string)=>void;onCtx:(e:React.MouseEvent,n:TreeNode)=>void;renameId:string|null;renameVal:string;setRenameVal:(v:string)=>void;commitRename:()=>void;dragSrc:string|null;onDragStart:(e:DragEvent,id:string)=>void;onDragOver:(e:DragEvent,id:string)=>void;onDrop:(e:DragEvent,id:string)=>void;t:Record<string,string>}){
   const isF=node.type==="folder";const isSel=node.id===selectedId;const isRename=renameId===node.id;
   const inputRef=useRef<HTMLInputElement>(null);
   useEffect(()=>{if(isRename&&inputRef.current){inputRef.current.focus();inputRef.current.select();}},[isRename]);
@@ -117,7 +123,7 @@ function FileNode({node,depth,selectedId,onSelect,onToggle,onCtx,renameId,rename
       ):(
         <span style={{flex:1,fontSize:13,fontWeight:isF?500:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:isSel?t.tx:t.tx,opacity:isF?1:0.85}}>{node.name}</span>
       )}
-      <span onClick={e=>{e.stopPropagation();onCtx(e as any,node);}} style={{opacity:0,padding:2,borderRadius:4,display:"flex",transition:"opacity 0.1s"}}
+      <span onClick={e => { e.stopPropagation(); onCtx(e as React.MouseEvent, node); }} style={{ opacity: 0, padding: 2, borderRadius: 4, display: "flex", transition: "opacity 0.1s" }}
         onMouseEnter={e=>{e.currentTarget.style.opacity="0.6";e.currentTarget.style.background=t.hv;}}
         onMouseLeave={e=>{e.currentTarget.style.opacity="0";e.currentTarget.style.background="transparent";}}>
         {Icons.dots(t.tx)}
@@ -135,24 +141,23 @@ function FileNode({node,depth,selectedId,onSelect,onToggle,onCtx,renameId,rename
 export default function Home(){
   const {loading,loadTree,saveNode,deleteNode:dbDelete,loadBookmarks:dbLoadBM,syncBookmarks:dbSyncBM}=usePages();
   type PanelType = "files" | "search" | "bookmark" | "recent" | "trash" | "settings";
+  const [activePanel, setActivePanel] = useState<PanelType>("files");
+  const [settingsTab, setSettingsTab] = useState<"theme"|"shortcuts"|"general">("theme");
+  const [savedCustomThemes, setSavedCustomThemes] = useState<{name:string;colors:Record<string,string>}[]>(()=>{
+    if(typeof window!=="undefined"){const s=localStorage.getItem("orbit-custom-themes");if(s)try{return JSON.parse(s);}catch{}}return[];
+  });
   const [theme, setTheme] = useState<string>(() => {
     if (typeof window !== "undefined") { return localStorage.getItem("orbit-theme") || "obsidian"; }
     return "obsidian";
   });
-  const [activePanel, setActivePanel] = useState<PanelType>("files");
-  const [settingsTab, setSettingsTab] = useState<"theme"|"shortcuts"|"general">("theme");
-  const [savedCustomThemes, setSavedCustomThemes] = useState<{name:string;colors:any}[]>(()=>{
-    if(typeof window!=="undefined"){const s=localStorage.getItem("orbit-custom-themes");if(s)try{return JSON.parse(s);}catch{}}return[];
-  });
   const [customThemeName, setCustomThemeName] = useState("");
-  const [showRibbon, setShowRibbon] = useState(true);
 
   // savedCustomThemes persist
   useEffect(()=>{if(typeof window!=="undefined")localStorage.setItem("orbit-custom-themes",JSON.stringify(savedCustomThemes));},[savedCustomThemes]);
   useEffect(()=>{if(typeof window!=="undefined")localStorage.setItem("orbit-theme",theme);},[theme]);
   const [sidebarOpen,setSidebarOpen]=useState(true);
   const [sidebarWidth,setSidebarWidth]=useState(248);
-  const [customTheme, setCustomTheme] = useState<{bg:string;sb:string;rb:string;tx:string;tx2:string;ac:string;bd:string;hv:string;card:string}|null>(null);
+  const [customTheme, setCustomTheme] = useState<ThemeConfig|null>(null);
   const [themeMode, setThemeMode] = useState<"preset"|"palette"|"custom">("preset");
   const [showTable, setShowTable] = useState(false);
   const [focusMode,setFocusMode]=useState(false);
@@ -215,6 +220,13 @@ export default function Home(){
   })();}, [loadTree, dbLoadBM]);
   useEffect(()=>{if(selectedId){setRecentIds(prev=>[selectedId,...prev.filter(x=>x!==selectedId)].slice(0,20));const nd=findNode(tree,selectedId);if(nd)setPageTitle(nd.name);}},[selectedId, tree]);
 
+  function addNew(parentId: string | null, type: "folder" | "page") {
+    const child: TreeNode = { id: uid(), type, name: type === "folder" ? "새 폴더" : "새 페이지", parent_id: parentId, position: tree.length, collapsed: false, content: { editorContent: null, sheets: [] }, children: [] };
+    setTree(p => parentId ? insertLocal(p, parentId, child) : [...p, child]); 
+    saveNode(child); 
+    if (type === "page") setSelectedId(child.id);
+  }
+
   useEffect(()=>{
     const h=(e:globalThis.KeyboardEvent)=>{
       if((e.ctrlKey||e.metaKey)&&e.key==="n"){e.preventDefault();addNew(null,"page");}
@@ -223,7 +235,7 @@ export default function Home(){
       if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==="F"){e.preventDefault();setFocusMode(p=>!p);}
     };
     window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);
-  },[tree]);
+  },[tree, addNew]);
 
   const startResize=useCallback((e:React.MouseEvent)=>{
     e.preventDefault();resizing.current=true;
@@ -239,22 +251,24 @@ export default function Home(){
   const handleDelete=(id:string)=>{const nd=findNode(tree,id);if(nd)setTrashedNodes(p=>[...p,nd]);setTree(prev=>removeLocal(prev,id));if(selectedId===id)setSelectedId(null);dbDelete(id);};
   const restoreNode=(nd:TreeNode)=>{setTree(p=>[...p,nd]);setTrashedNodes(p=>p.filter(n=>n.id!==nd.id));saveNode(nd);};
   const duplicateNode=(nd:TreeNode)=>{const pid=findParentId(tree,nd.id);const dup:TreeNode={...nd,id:uid(),name:nd.name+" (복사)",parent_id:pid,children:[]};setTree(p=>pid?insertLocal(p,pid,dup):[...p,dup]);saveNode(dup);};
-  const addNew=(parentId:string|null,type:"folder"|"page")=>{const child:TreeNode={id:uid(),type,name:type==="folder"?"새 폴더":"새 페이지",parent_id:parentId,position:tree.length,collapsed:false,content:null,children:[]};setTree(p=>parentId?insertLocal(p,parentId,child):[...p,child]);saveNode(child);if(type==="page")setSelectedId(child.id);};
   const toggleBookmark=(id:string)=>{setBookmarks(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);dbSyncBM(Array.from(s));return s;});};
   const toggleFavorite=(id:string)=>{setFavorites(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);return s;});};
 
   const onDragStart=(e:DragEvent,id:string)=>{setDragSrc(id);e.dataTransfer.effectAllowed="move";};
-  const onDragOver=(e:DragEvent,id:string)=>{e.preventDefault();e.dataTransfer.dropEffect="move";};
-  const onDrop=(e:DragEvent,targetId:string)=>{e.preventDefault();if(!dragSrc||dragSrc===targetId)return;if(isDesc(tree,dragSrc,targetId))return;
-    const nd=findNode(tree,dragSrc);if(!nd)return;const targetNd=findNode(tree,targetId);const dropParent=targetNd?.type==="folder"?targetId:findParentId(tree,targetId);
-    setTree(p=>{let t=removeLocal(p,dragSrc);return insertLocal(t,dropParent,nd);});saveNode({...nd,parent_id:dropParent});setDragSrc(null);};
+  const onDragOver = (e: DragEvent, id: string) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
+  const onDrop = (e: DragEvent, targetId: string) => {
+    e.preventDefault(); if (!dragSrc || dragSrc === targetId) return; if (isDesc(tree, dragSrc, targetId)) return;
+    const nd = findNode(tree, dragSrc); if (!nd) return; const targetNd = findNode(tree, targetId); const dropParent = targetNd?.type === "folder" ? targetId : findParentId(tree, targetId);
+    setTree(p => { const t = removeLocal(p, dragSrc); return insertLocal(t, dropParent, nd); }); saveNode({ ...nd, parent_id: dropParent }); setDragSrc(null);
+  };
 
-  const onContentChange=useCallback((content:any)=>{if(!selectedId)return;
-    setTree(prev=>prev.map(n=>n.id===selectedId?{...n,content}:n));
-    if(contentTimer.current)clearTimeout(contentTimer.current);
-    contentTimer.current=setTimeout(()=>{const nd=findNode(tree,selectedId);if(nd)saveNode({...nd,content:{editorContent:content,sheets:nd.content?.sheets},parent_id:findParentId(tree,selectedId)});},800);
-    try{const txt=JSON.stringify(content);setWordCount(txt.replace(/[^가-힣a-zA-Z0-9\s]/g,"").split(/\s+/).filter(Boolean).length);}catch{setWordCount(0);}
-  },[selectedId, tree, saveNode]);
+  const onContentChange = useCallback((content: any) => {
+    if (!selectedId) return;
+    setTree(prev => prev.map(n => n.id === selectedId ? { ...n, content } : n));
+    if (contentTimer.current) clearTimeout(contentTimer.current);
+    contentTimer.current = setTimeout(() => { const nd = findNode(tree, selectedId); if (nd) saveNode({ ...nd, content: { ...nd.content, editorContent: content }, parent_id: findParentId(tree, selectedId) }); }, 800);
+    try { const txt = JSON.stringify(content); setWordCount(txt.replace(/[^가-힣a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).length); } catch { setWordCount(0); }
+  }, [selectedId, tree, saveNode]);
 
   const onTitleChange=(newTitle:string)=>{setPageTitle(newTitle);renameNode(selectedId!,newTitle);};
 
@@ -309,7 +323,7 @@ export default function Home(){
 
       {!isMobile && (
         <div className="ribbon" style={{width:44,background:t.rb,borderRight:`1px solid ${t.bd}`,display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8,gap:2,flexShrink:0}}>
-          {RIBBON.map(r=>(<div key={r.id} title={r.label} onClick={()=>{if(activePanel===r.id&&sidebarOpen)setSidebarOpen(false);else{setActivePanel(r.id);setSidebarOpen(true);}}}
+          {RIBBON.map(r=>(<div key={r.id} title={r.label} onClick={()=>{const rid=r.id as PanelType;if(activePanel===rid&&sidebarOpen)setSidebarOpen(false);else{setActivePanel(rid);setSidebarOpen(true);}}}
               style={{width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,cursor:"pointer",background:activePanel===r.id&&sidebarOpen?t.hv:"transparent",transition:"background 0.15s"}}
               onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!(activePanel===r.id&&sidebarOpen))e.currentTarget.style.background="transparent";}}>
               {r.icon(activePanel===r.id&&sidebarOpen?t.ac:t.tx2)}
@@ -385,7 +399,7 @@ export default function Home(){
           {tree.map(n=><FileNode key={n.id} node={n} depth={0} selectedId={selectedId} onSelect={setSelectedId} onToggle={toggleCollapse} onCtx={(e:any,nd:TreeNode)=>setCtxMenu({x:e.clientX,y:e.clientY,node:nd})} renameId={renameId} renameVal={renameVal} setRenameVal={setRenameVal} commitRename={commitRename} dragSrc={dragSrc} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} t={t}/>)}
 
         </div>}
-        {activePanel==="search"&&<div style={{flex:1,overflowY:"auto",padding:8,paddingBottom:isMobile?60:8}}><input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="페이지 검색..." autoFocus style={{width:"100%",padding:"8px 10px",fontSize:13,background:t.hv,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,outline:"none",fontFamily:"var(--font-main)"}}/><div style={{marginTop:8}}>{searchResults.map(p=><div key={p.id} onClick={()=>{setSelectedId(p.id);}} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.page(t.tx2)} <span style={{marginLeft:6}}>{p.name}</span></div>)}{searchQ&&searchResults.length===0&&<div style={{padding:12,fontSize:13,color:t.tx2}}>결과 없음</div>}</div></div>}
+        {activePanel==="search"&&<div style={{flex:1,overflowY:"auto",padding:8,paddingBottom:isMobile?60:8}}><input title="페이지 검색" value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="페이지 검색..." autoFocus style={{width:"100%",padding:"8px 10px",fontSize:13,background:t.hv,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,outline:"none",fontFamily:"var(--font-main)"}}/><div style={{marginTop:8}}>{searchResults.map(p=><div key={p.id} onClick={()=>{setSelectedId(p.id);}} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.page(t.tx2)} <span style={{marginLeft:6}}>{p.name}</span></div>)}{searchQ&&searchResults.length===0&&<div style={{padding:12,fontSize:13,color:t.tx2}}>결과 없음</div>}</div></div>}
         {activePanel==="bookmark"&&<div style={{flex:1,overflowY:"auto",padding:8,paddingBottom:isMobile?60:8}}>{Array.from(bookmarks).map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.bookmark(t.ac)}{nd.name}</div>:null;})}{bookmarks.size===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>북마크가 없습니다</div>}</div>}
         {activePanel==="recent"&&<div style={{flex:1,overflowY:"auto",padding:8,paddingBottom:isMobile?60:8}}>{recentIds.map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.recent(t.tx2)}{nd.name}</div>:null;})}{recentIds.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>최근 문서 없음</div>}</div>}
         {activePanel==="trash"&&<div style={{flex:1,overflowY:"auto",padding:8,paddingBottom:isMobile?60:8}}>{trashedNodes.map(nd=><div key={nd.id} style={{padding:"6px 10px",fontSize:13,borderRadius:6,display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}><span style={{display:"flex",alignItems:"center",gap:6}}>{Icons.page(t.tx2)}{nd.name}</span><span onClick={()=>restoreNode(nd)} style={{cursor:"pointer",opacity:0.5,display:"flex"}} title="복원">{Icons.restore(t.ac)}</span></div>)}{trashedNodes.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>휴지통이 비어 있습니다</div>}</div>}
@@ -451,14 +465,28 @@ export default function Home(){
               {themeMode==="custom"&&<>
                 <div style={{fontSize:11,color:t.tx2,marginBottom:12}}>각 영역의 색상을 직접 설정합니다</div>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {([{key:"bg",label:"배경",icon:"◼"},{key:"sb",label:"사이드바",icon:"◧"},{key:"rb",label:"리본",icon:"▮"},{key:"tx",label:"텍스트",icon:"A"},{key:"tx2",label:"보조 텍스트",icon:"a"},{key:"ac",label:"강조색",icon:"●"}] as any[]).map(item=>(
+                  {([
+                    {key:"bg",label:"배경",icon:"◼"},
+                    {key:"sb",label:"사이드바",icon:"◧"},
+                    {key:"rb",label:"리본",icon:"▮"},
+                    {key:"tx",label:"텍스트",icon:"A"},
+                    {key:"tx2",label:"보조 텍스트",icon:"a"},
+                    {key:"ac",label:"강조색",icon:"●"}
+                  ] as ColorItem[]).map(item => (
                     <div key={item.key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:6,background:t.hv}}>
                       <span style={{fontSize:12,display:"flex",alignItems:"center",gap:6}}><span style={{opacity:0.4}}>{item.icon}</span> {item.label}</span>
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{fontSize:10,color:t.tx2,fontFamily:"monospace"}}>{(customTheme as any)?.[item.key]||(t as any)[item.key]}</span>
-                        <input type="color" value={(customTheme as any)?.[item.key]||(t as any)[item.key]||"#000"}
-                          onChange={e=>{const prev=customTheme||{bg:t.bg,sb:t.sb,rb:t.rb,tx:t.tx,tx2:t.tx2,ac:t.ac,bd:t.bd,hv:t.hv,card:t.card};setCustomTheme({...prev,[item.key]:e.target.value});}}
-                          style={{width:24,height:24,border:`1px solid ${t.bd}`,borderRadius:6,cursor:"pointer",padding:0,background:"transparent"}}/>
+                        <span style={{fontSize:10,color:t.tx2,fontFamily:"monospace"}}>{((customTheme as any)?.[item.key] || (t as any)[item.key]) as string}</span>
+                        <input
+                          title={`${item.label} 색상 선택`}
+                          type="color"
+                          value={((customTheme?.[item.key as keyof ThemeConfig] || (t as any)[item.key]) || "#000") as string}
+                          onChange={e => {
+                            const prev = customTheme || { bg: t.bg, sb: t.sb, rb: t.rb, tx: t.tx, tx2: t.tx2, ac: t.ac, bd: t.bd, hv: t.hv, card: t.card };
+                            setCustomTheme({ ...prev, [item.key]: e.target.value }); 
+                          }}
+                          style={{width:24,height:24,border:`1px solid ${t.bd}`,borderRadius:6,cursor:"pointer",padding:0,background:"transparent"}}
+                        />
                       </div>
                     </div>
                   ))}
@@ -466,7 +494,7 @@ export default function Home(){
 
                 {/* Save custom theme */}
                 <div style={{marginTop:12,display:"flex",gap:6}}>
-                  <input value={customThemeName} onChange={e=>setCustomThemeName(e.target.value)} placeholder="테마 이름"
+                  <input title="테마 이름 입력" value={customThemeName} onChange={e=>setCustomThemeName(e.target.value)} placeholder="테마 이름"
                     style={{flex:1,padding:"6px 8px",fontSize:12,background:t.hv,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,outline:"none"}}/>
                   <div onClick={()=>{if(customTheme&&customThemeName.trim()){setSavedCustomThemes(p=>[...p,{name:customThemeName,colors:customTheme}]);setCustomThemeName("");}}}
                     style={{padding:"6px 12px",fontSize:12,borderRadius:6,background:t.ac,color:"#fff",cursor:"pointer",fontWeight:600}}>저장</div>
@@ -627,7 +655,7 @@ export default function Home(){
         </div>
         )}
         <div style={{flex:1,overflow:"auto"}}>
-          {selectedNode&&selectedNode.type==="page"?(<div className="fade-in editor-wrap"><div style={{maxWidth:"100%",margin:"0",padding:"32px 48px 0"}}><input value={pageTitle} onChange={e=>onTitleChange(e.target.value)} placeholder="제목 없음" style={{width:"100%",background:"transparent",border:"none",outline:"none",fontSize:32,fontWeight:700,color:t.tx,fontFamily:"var(--font-main)",marginBottom:4}}/></div><DynamicEditor key={selectedId!} initialContent={selectedNode.content?.editorContent || selectedNode.content} onChange={onContentChange} darkMode={isDark} />
+          {selectedNode&&selectedNode.type==="page"?(<div className="fade-in editor-wrap"><div style={{maxWidth:"100%",margin:"0",padding:"32px 48px 0"}}><input title="페이지 제목" value={pageTitle} onChange={e=>onTitleChange(e.target.value)} placeholder="제목 없음" style={{width:"100%",background:"transparent",border:"none",outline:"none",fontSize:32,fontWeight:700,color:t.tx,fontFamily:"var(--font-main)",marginBottom:4}}/></div><DynamicEditor key={selectedId!} initialContent={selectedNode.content?.editorContent || selectedNode.content} onChange={onContentChange} darkMode={isDark} />
           <div style={{maxWidth:"100%",padding:"0 48px 48px"}}>
             <div onClick={()=>setShowTable(!showTable)}
               style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:6,cursor:"pointer",fontSize:12,color:t.tx2,border:`1px dashed ${t.bd}`,marginBottom:showTable?12:0,transition:"all 0.15s"}}

@@ -14,7 +14,7 @@ interface Column {
 
 interface Row {
   id: string;
-  cells: Record<string, any>;
+  cells: Record<string, CellValue>;
 }
 
 interface Sheet {
@@ -23,6 +23,8 @@ interface Sheet {
   columns: Column[];
   rows: Row[];
 }
+
+type CellValue = string | number | boolean | null | undefined;
 
 interface FilterRule {
   columnId: string;
@@ -44,7 +46,7 @@ interface Props {
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 /* ── Formula Engine (VBA-like) ── */
-function evalFormula(f: string, row: Row, allRows: Row[], cols: Column[]): any {
+function evalFormula(f: string, row: Row, allRows: Row[], cols: Column[]): CellValue {
   try {
     const expr = f.startsWith("=") ? f.slice(1).trim() : f.trim();
     const getCol = (name: string) => cols.find(c => c.name.toLowerCase() === name.toLowerCase());
@@ -63,23 +65,23 @@ function evalFormula(f: string, row: Row, allRows: Row[], cols: Column[]): any {
     for (const [fn, reducer] of aggFns) {
       const re = new RegExp(`^${fn}\\(([^)]+)\\)$`, "i");
       const m = expr.match(re);
-      if (m) { const nums = getAllVals(m[1].trim()).map(v => parseFloat(v)).filter(v => !isNaN(v)); return Math.round(reducer(nums) * 100) / 100; }
+      if (m) { const nums = getAllVals(m[1].trim()).map(v => parseFloat(String(v || 0))).filter(v => !isNaN(v)); return Math.round(reducer(nums) * 100) / 100; }
     }
 
     // SUMIF(condCol, condVal, sumCol)
     const sumifM = expr.match(/^SUMIF\((\w+)\s*,\s*"?([^",]+)"?\s*,\s*(\w+)\)$/i);
-    if (sumifM) { const cc = getCol(sumifM[1]); const sc = getCol(sumifM[3]); if (cc && sc) return allRows.filter(r => String(r.cells[cc.id]) === sumifM[2]).reduce((a, r) => a + (parseFloat(r.cells[sc.id]) || 0), 0); }
+    if (sumifM) { const cc = getCol(sumifM[1]); const sc = getCol(sumifM[3]); if (cc && sc) return allRows.filter(r => String(r.cells[cc.id] || "") === sumifM[2]).reduce((a, r) => a + (parseFloat(String(r.cells[sc.id] || 0)) || 0), 0); }
 
     // COUNTIF(col, val)
     const countifM = expr.match(/^COUNTIF\((\w+)\s*,\s*"?([^",]+)"?\)$/i);
-    if (countifM) { const cc = getCol(countifM[1]); if (cc) return allRows.filter(r => String(r.cells[cc.id]) === countifM[2]).length; }
+    if (countifM) { const cc = getCol(countifM[1]); if (cc) return allRows.filter(r => String(r.cells[cc.id] || "") === countifM[2]).length; }
 
     // IF(cond, trueVal, falseVal)
     const ifM = expr.match(/^IF\((.+?)\s*,\s*(.+?)\s*,\s*(.+?)\)$/i);
     if (ifM) {
       const comp = ifM[1].trim().match(/(\w+)\s*(>=|<=|!=|==|>|<)\s*(.+)/);
       if (comp) {
-        const cv = parseFloat(String(getVal(comp[1]))) || 0;
+        const cv = parseFloat(String(getVal(comp[1]) || 0)) || 0;
         const rv = parseFloat(comp[3]) || 0;
         let result = false;
         if (comp[2]===">" ) result = cv > rv; else if (comp[2]==="<" ) result = cv < rv;
@@ -91,28 +93,28 @@ function evalFormula(f: string, row: Row, allRows: Row[], cols: Column[]): any {
 
     // CONCAT(col1, col2, ...)
     const concatM = expr.match(/^CONCAT\((.+)\)$/i);
-    if (concatM) return concatM[1].split(",").map(s => { const c = getCol(s.trim()); return c ? (row.cells[c.id]||"") : s.trim().replace(/"/g,""); }).join("");
+    if (concatM) return concatM[1].split(",").map(s => { const c = getCol(s.trim()); return c ? String(row.cells[c.id] || "") : s.trim().replace(/"/g,""); }).join("");
 
     // ROUND(expr, decimals)
     const roundM = expr.match(/^ROUND\((.+?)\s*,\s*(\d+)\)$/i);
-    if (roundM) { const inner = evalFormula("="+roundM[1], row, allRows, cols); const d = parseInt(roundM[2]); return Math.round(parseFloat(inner)*Math.pow(10,d))/Math.pow(10,d); }
+    if (roundM) { const inner = evalFormula("=" + roundM[1], row, allRows, cols); const d = parseInt(roundM[2]); return Math.round(parseFloat(String(inner || 0)) * Math.pow(10, d)) / Math.pow(10, d); }
 
     // ABS(col)
     const absM = expr.match(/^ABS\((.+)\)$/i);
-    if (absM) return Math.abs(parseFloat(String(getVal(absM[1])))||0);
+    if (absM) return Math.abs(parseFloat(String(getVal(absM[1]) || 0)) || 0);
 
     // Arithmetic: col1 op col2
     const arithM = expr.match(/^(\w+)\s*([+\-*/])\s*(\w+)$/);
     if (arithM) {
-      const v1 = parseFloat(String(getVal(arithM[1])))||0;
-      const v2 = parseFloat(String(getVal(arithM[3])))||0;
+      const v1 = parseFloat(String(getVal(arithM[1]) || 0)) || 0;
+      const v2 = parseFloat(String(getVal(arithM[3]) || 0)) || 0;
       if (arithM[2]==="+") return v1+v2; if (arithM[2]==="-") return v1-v2;
       if (arithM[2]==="*") return v1*v2; if (arithM[2]==="/") return v2 ? Math.round(v1/v2*100)/100 : "ERR";
     }
 
     // Direct column ref
     const ref = getCol(expr);
-    if (ref) return row.cells[ref.id]||"";
+    if (ref) return row.cells[ref.id] ?? "";
 
     // Numeric literal
     if (!isNaN(Number(expr))) return Number(expr);
@@ -129,16 +131,16 @@ function applyFilters(rows: Row[], filters: FilterRule[], cols: Column[]): Row[]
     r = r.filter(row => {
       const v = row.cells[col.id]; const fv = f.value;
       switch (f.operator) {
-        case "equals": return String(v)===fv;
-        case "contains": return String(v||"").toLowerCase().includes(fv.toLowerCase());
-        case "gt": return parseFloat(v)>parseFloat(fv);
-        case "lt": return parseFloat(v)<parseFloat(fv);
-        case "gte": return parseFloat(v)>=parseFloat(fv);
-        case "lte": return parseFloat(v)<=parseFloat(fv);
-        case "isEmpty": return v==null||v==="";
-        case "isNotEmpty": return v!=null&&v!=="";
-        case "startsWith": return String(v||"").toLowerCase().startsWith(fv.toLowerCase());
-        case "endsWith": return String(v||"").toLowerCase().endsWith(fv.toLowerCase());
+        case "equals": return String(v ?? "") === fv;
+        case "contains": return String(v || "").toLowerCase().includes(fv.toLowerCase());
+        case "gt": return parseFloat(String(v || 0)) > parseFloat(fv);
+        case "lt": return parseFloat(String(v || 0)) < parseFloat(fv);
+        case "gte": return parseFloat(String(v || 0)) >= parseFloat(fv);
+        case "lte": return parseFloat(String(v || 0)) <= parseFloat(fv);
+        case "isEmpty": return v == null || v === "";
+        case "isNotEmpty": return v != null && v !== "";
+        case "startsWith": return String(v || "").toLowerCase().startsWith(fv.toLowerCase());
+        case "endsWith": return String(v || "").toLowerCase().endsWith(fv.toLowerCase());
         default: return true;
       }
     });
@@ -154,10 +156,10 @@ function applySort(rows: Row[], sorts: SortRule[], cols: Column[]): Row[] {
       const col = cols.find(c => c.id === s.columnId); if (!col) continue;
       const av = a.cells[col.id]; const bv = b.cells[col.id];
       let diff: number;
-      if (col.type==="number"||col.type==="percent") diff=(parseFloat(av)||0)-(parseFloat(bv)||0);
-      else if (col.type==="date") diff=new Date(av||0).getTime()-new Date(bv||0).getTime();
-      else diff=String(av||"").localeCompare(String(bv||""));
-      if (diff!==0) return s.direction==="asc"?diff:-diff;
+      if (col.type === "number" || col.type === "percent") diff = (parseFloat(String(av || 0))) - (parseFloat(String(bv || 0)));
+      else if (col.type === "date") diff = new Date(String(av || 0)).getTime() - new Date(String(bv || 0)).getTime();
+      else diff = String(av || "").localeCompare(String(bv || ""));
+      if (diff !== 0) return s.direction === "asc" ? diff : -diff;
     }
     return 0;
   });
@@ -211,13 +213,12 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
   const [editSheetName, setEditSheetName] = useState("");
   const [formulaBarValue, setFormulaBarValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const saveTimer = useRef<any>(null);
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
   const loaded = useRef(false);
 
-  const sheet = sheets.find(s=>s.id===activeSheet)||sheets[0];
-  if (!sheet) return <div style={{padding:20,color:tx2}}>시트 로딩 중...</div>;
-  const columns = sheet.columns||[];
-  const rows = sheet.rows||[];
+  const sheet = useMemo(() => sheets.find(s => s.id === activeSheet) || sheets[0], [sheets, activeSheet]);
+  const columns = useMemo(() => sheet?.columns || [], [sheet]);
+  const rows = useMemo(() => sheet?.rows || [], [sheet]);
 
   useEffect(()=>{if(editCell&&inputRef.current)inputRef.current.focus();},[editCell]);
 
@@ -244,14 +245,14 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
     }catch(e){console.error("Table save error:",e);}
   },[pageId]);
 
-  const updateSheets = useCallback((updater:(prev:Sheet[])=>Sheet[])=>{
-    setSheets(prev=>{
-      const next=updater(prev);
-      if(saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current=setTimeout(()=>saveToDb(next),1000);
+  const updateSheets = useCallback((updater: (prev: Sheet[]) => Sheet[]) => {
+    setSheets(prev => {
+      const next = updater(prev);
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => saveToDb(next), 1000);
       return next;
     });
-  },[saveToDb]);
+  }, [saveToDb]);
 
   // Load
   useEffect(()=>{
@@ -262,7 +263,7 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
         const supabase=createClient();
         const {data}=await supabase.from("pages").select("content").eq("id",pageId).single();
         if(data?.content){
-          const raw=data.content as any;
+          const raw = data.content as { sheets?: Sheet[] };
           let s: Sheet[]|null=null;
           if(raw.sheets&&Array.isArray(raw.sheets)&&raw.sheets[0]?.columns) s=raw.sheets;
           else if(Array.isArray(raw)&&raw[0]?.columns) s=raw;
@@ -305,12 +306,12 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
     setFormulaBarValue(String(val));
   };
 
-  const commitEdit=()=>{
-    if(!editCell) return;
-    const col=columns.find(c=>c.id===editCell.colId);
-    let val:any=editValue;
-    if(col?.type==="number"||col?.type==="percent") val=parseFloat(editValue)||0;
-    updateSheets(p=>p.map(s=>s.id!==activeSheet?s:{...s,rows:s.rows.map(r=>r.id===editCell.rowId?{...r,cells:{...r.cells,[editCell.colId]:val}}:r)}));
+  const commitEdit = () => {
+    if (!editCell) return;
+    const col = columns.find(c => c.id === editCell.colId);
+    let val: CellValue = editValue;
+    if (col?.type === "number" || col?.type === "percent") val = parseFloat(editValue) || 0;
+    updateSheets(p => p.map(s => s.id !== activeSheet ? s : { ...s, rows: s.rows.map(r => r.id === editCell.rowId ? { ...r, cells: { ...r.cells, [editCell.colId]: val } } : r) }));
     setEditCell(null);
   };
 
@@ -402,7 +403,7 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
   const renderCell=(row:Row,col:Column,ri:number,ci:number)=>{
     const isEditing=editCell?.rowId===row.id&&editCell?.colId===col.id;
     const selected=isSel(ri,ci);
-    const base:any={width:col.width,minWidth:col.width,height:32,borderRight:`1px solid ${bd}`,overflow:"hidden",background:selected?selBg:"transparent",position:"relative"};
+    const base: React.CSSProperties = { width: col.width, minWidth: col.width, height: 32, borderRight: `1px solid ${bd}`, overflow: "hidden", background: selected ? selBg : "transparent", position: "relative" };
 
     if(col.type==="formula"){
       const val=col.formula?evalFormula(col.formula,row,rows,columns):"";
@@ -420,12 +421,12 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
     if(col.type==="select"&&!isEditing){
       const val=row.cells[col.id]||"";
       return <div style={base} onClick={()=>{startEdit(row.id,col.id);setSelection({sr:ri,sc:ci,er:ri,ec:ci});}}>
-        <div style={{padding:"4px 8px"}}>{val&&<span style={{padding:"2px 8px",borderRadius:10,fontSize:11,fontWeight:600,background:(statusColors[val]||ac)+"22",color:statusColors[val]||ac}}>{val}</span>}</div>
+        <div style={{ padding: "4px 8px" }}>{val && <span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 600, background: (statusColors[String(val)] || ac) + "22", color: statusColors[String(val)] || ac }}>{String(val)}</span>}</div>
       </div>;
     }
 
     if(col.type==="percent"&&!isEditing){
-      const val=parseFloat(row.cells[col.id])||0;
+      const val=parseFloat(String(row.cells[col.id] || 0))||0;
       return <div style={base} onClick={()=>{startEdit(row.id,col.id);setSelection({sr:ri,sc:ci,er:ri,ec:ci});}}>
         <div style={{padding:"6px 8px",display:"flex",alignItems:"center",gap:6}}>
           <div style={{flex:1,height:6,borderRadius:3,background:bd}}><div style={{width:`${Math.min(100,val)}%`,height:"100%",borderRadius:3,background:ac,transition:"width 0.3s"}}/></div>
@@ -437,18 +438,18 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
     if(col.type==="url"&&!isEditing){
       const val=row.cells[col.id]||"";
       return <div style={base} onClick={()=>{startEdit(row.id,col.id);setSelection({sr:ri,sc:ci,er:ri,ec:ci});}}>
-        <div style={{padding:"6px 8px",fontSize:13}}>{val&&<a href={val} target="_blank" rel="noopener" style={{color:ac,textDecoration:"none"}} onClick={e=>e.stopPropagation()}>{val}</a>}</div>
+        <div style={{ padding: "6px 8px", fontSize: 13 }}>{val && <a href={String(val)} target="_blank" rel="noopener" style={{ color: ac, textDecoration: "none" }} onClick={e => e.stopPropagation()}>{String(val)}</a>}</div>
       </div>;
     }
 
     if(isEditing){
       if(col.type==="select"){
-        return <div style={base}><select value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} autoFocus
+        return <div style={base}><select title="옵션 선택" value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} autoFocus
           style={{width:"100%",height:"100%",background:cellBg,color:tx,border:`1px solid ${ac}`,outline:"none",fontSize:13,padding:"0 6px",fontFamily:"inherit"}}>
           <option value="">선택...</option>{col.options?.map(o=><option key={o} value={o}>{o}</option>)}
         </select></div>;
       }
-      return <div style={base}><input ref={inputRef} type={col.type==="date"?"date":"text"} value={editValue}
+      return <div style={base}><input ref={inputRef} title="값 편집" type={col.type==="date"?"date":"text"} value={editValue}
         onChange={e=>{setEditValue(e.target.value);setFormulaBarValue(e.target.value);}}
         onBlur={commitEdit} onKeyDown={e=>{if(e.key==="Enter")commitEdit();if(e.key==="Escape")setEditCell(null);if(e.key==="Tab"){e.preventDefault();commitEdit();}}}
         style={{width:"100%",height:"100%",background:cellBg,color:tx,border:`1px solid ${ac}`,outline:"none",fontSize:13,padding:"0 8px",fontFamily:"inherit"}}/></div>;
@@ -460,7 +461,7 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
       onMouseDown={e=>{if(e.shiftKey&&selection)setSelection({...selection,er:ri,ec:ci});}}
       onContextMenu={e=>{e.preventDefault();setContextMenu({x:e.clientX,y:e.clientY,rowId:row.id,colId:col.id});}}>
       <div style={{padding:"6px 8px",fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-        {col.type==="number"?(parseFloat(row.cells[col.id])||0).toLocaleString():(row.cells[col.id]??"")}
+        {col.type === "number" ? (parseFloat(String(row.cells[col.id] || 0)) || 0).toLocaleString() : String(row.cells[col.id] ?? "")}
       </div>
     </div>;
   };
@@ -477,6 +478,8 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
       {columns.map((col,ci)=>renderCell(row,col,idx,ci))}
     </div>
   );
+
+  if (!sheet) return <div style={{padding:20,color:tx2}}>시트 로딩 중...</div>;
 
   return(
     <div style={{background:bg,borderRadius:8,border:`1px solid ${bd}`,overflow:"hidden",fontSize:13,color:tx,fontFamily:"var(--font-main)"}}>
@@ -536,7 +539,7 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
         <select title="정렬 열" value={sorts[0]?.columnId} onChange={e=>setSorts([{...sorts[0],columnId:e.target.value}])} style={{padding:"2px 4px",fontSize:11,background:cellBg,color:tx,border:`1px solid ${bd}`,borderRadius:3,fontFamily:"inherit"}}>
           {columns.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select title="정렬 방향" value={sorts[0]?.direction} onChange={e=>setSorts([{...sorts[0],direction:e.target.value as any}])} style={{padding:"2px 4px",fontSize:11,background:cellBg,color:tx,border:`1px solid ${bd}`,borderRadius:3,fontFamily:"inherit"}}>
+        <select title="정렬 방향" value={sorts[0]?.direction} onChange={e=>setSorts([{...sorts[0],direction:e.target.value as "asc"|"desc"}])} style={{padding:"2px 4px",fontSize:11,background:cellBg,color:tx,border:`1px solid ${bd}`,borderRadius:3,fontFamily:"inherit"}}>
           <option value="asc">오름차순</option><option value="desc">내림차순</option>
         </select>
         <span onClick={()=>setSorts([])} style={{cursor:"pointer",color:"#e55",fontSize:11}}>제거</span>
@@ -612,7 +615,7 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
           <div style={{width:36,flexShrink:0,padding:"5px 0",textAlign:"center",fontSize:9,color:tx2,borderRight:`1px solid ${bd}`}}>Σ</div>
           {columns.map(col=>(
             <div key={col.id} style={{width:col.width,minWidth:col.width,padding:"5px 8px",fontSize:11,color:ac,fontWeight:600,borderRight:`1px solid ${bd}`}}>
-              {(col.type==="number"||col.type==="percent")&&rows.reduce((a,r)=>a+(parseFloat(r.cells[col.id])||0),0).toLocaleString()}
+              {(col.type === "number" || col.type === "percent") && rows.reduce((a, r) => a + (parseFloat(String(r.cells[col.id] || 0)) || 0), 0).toLocaleString()}
               {col.type==="formula"&&col.formula&&rows.reduce((a,r)=>a+(parseFloat(String(evalFormula(col.formula!,r,rows,columns)))||0),0).toLocaleString()}
               {col.type==="checkbox"&&`${rows.filter(r=>r.cells[col.id]).length}/${rows.length}`}
             </div>
