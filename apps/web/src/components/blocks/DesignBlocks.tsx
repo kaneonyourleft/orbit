@@ -12,13 +12,7 @@ export const ColorPanel = createReactBlockSpec(
   },
   {
     render: (props) => (
-      <div style={{
-        background: props.block.props.color,
-        borderRadius: 12,
-        padding: "20px 24px",
-        color: "#fff",
-        fontWeight: 600,
-      }}>
+      <div className="orbit-color-panel" style={{ background: props.block.props.color }}>
         <div ref={props.contentRef} />
       </div>
     ),
@@ -35,15 +29,7 @@ export const Banner = createReactBlockSpec(
   },
   {
     render: (props) => (
-      <div style={{
-        background: props.block.props.gradient,
-        borderRadius: 16,
-        padding: "40px 32px",
-        color: "#fff",
-        fontSize: 24,
-        fontWeight: 800,
-        textAlign: "center",
-      }}>
+      <div className="orbit-banner" style={{ background: props.block.props.gradient }}>
         <div ref={props.contentRef} />
       </div>
     ),
@@ -61,15 +47,7 @@ export const IconCard = createReactBlockSpec(
   },
   {
     render: (props) => (
-      <div style={{
-        background: props.block.props.cardColor,
-        borderRadius: 12,
-        padding: "20px 24px",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 16,
-        border: "1px solid #e2e8f0",
-      }}>
+      <div className="orbit-icon-card" style={{ background: props.block.props.cardColor }}>
         <span style={{ fontSize: 32 }}>{props.block.props.icon}</span>
         <div style={{ flex: 1 }}>
           <div ref={props.contentRef} />
@@ -91,15 +69,7 @@ export const CalloutBlock = createReactBlockSpec(
   },
   {
     render: (props) => (
-      <div style={{
-        background: props.block.props.bgColor,
-        borderLeft: `4px solid ${props.block.props.borderColor}`,
-        borderRadius: 8,
-        padding: "16px 20px",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
-      }}>
+      <div className="orbit-callout" style={{ background: props.block.props.bgColor, borderLeftColor: props.block.props.borderColor }}>
         <span style={{ fontSize: 24 }}>{props.block.props.emoji}</span>
         <div style={{ flex: 1 }}>
           <div ref={props.contentRef} />

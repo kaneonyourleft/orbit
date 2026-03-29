@@ -10,13 +10,9 @@ export const TwoColumns = createReactBlockSpec(
   },
   {
     render: () => (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, padding: "8px 0" }}>
-        <div style={{ minHeight: 40, border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, background: "#f9fafb" }}>
-          컬럼 1
-        </div>
-        <div style={{ minHeight: 40, border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, background: "#f9fafb" }}>
-          컬럼 2
-        </div>
+      <div className="orbit-column-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="orbit-column-item">컬럼 1</div>
+        <div className="orbit-column-item">컬럼 2</div>
       </div>
     ),
   }
@@ -30,16 +26,10 @@ export const ThreeColumns = createReactBlockSpec(
   },
   {
     render: () => (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, padding: "8px 0" }}>
-        <div style={{ minHeight: 40, border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, background: "#f9fafb" }}>
-          컬럼 1
-        </div>
-        <div style={{ minHeight: 40, border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, background: "#f9fafb" }}>
-          컬럼 2
-        </div>
-        <div style={{ minHeight: 40, border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, background: "#f9fafb" }}>
-          컬럼 3
-        </div>
+      <div className="orbit-column-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+        <div className="orbit-column-item">컬럼 1</div>
+        <div className="orbit-column-item">컬럼 2</div>
+        <div className="orbit-column-item">컬럼 3</div>
       </div>
     ),
   }
@@ -53,19 +43,11 @@ export const FourColumns = createReactBlockSpec(
   },
   {
     render: () => (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, padding: "8px 0" }}>
-        <div style={{ minHeight: 40, border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, background: "#f9fafb" }}>
-          컬럼 1
-        </div>
-        <div style={{ minHeight: 40, border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, background: "#f9fafb" }}>
-          컬럼 2
-        </div>
-        <div style={{ minHeight: 40, border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, background: "#f9fafb" }}>
-          컬럼 3
-        </div>
-        <div style={{ minHeight: 40, border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, background: "#f9fafb" }}>
-          컬럼 4
-        </div>
+      <div className="orbit-column-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
+        <div className="orbit-column-item">컬럼 1</div>
+        <div className="orbit-column-item">컬럼 2</div>
+        <div className="orbit-column-item">컬럼 3</div>
+        <div className="orbit-column-item">컬럼 4</div>
       </div>
     ),
   }

@@ -15,16 +15,7 @@ export const KpiCard = createReactBlockSpec(
   },
   {
     render: (props) => (
-      <div style={{
-        background: "#fff",
-        border: "1px solid #e4e4e7",
-        borderRadius: 16,
-        padding: 24,
-        minWidth: 200,
-        width: "100%",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-        fontFamily: "system-ui, sans-serif",
-      }}>
+      <div className="orbit-kpi-card">
         <p style={{ fontSize: 12, color: "#71717a", margin: "0 0 8px 0", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
           {props.block.props.label}
         </p>
@@ -53,28 +44,21 @@ export const StatusBoard = createReactBlockSpec(
   },
   {
     render: (props) => (
-      <div style={{
-        background: "#fff",
-        border: "1px solid #e4e4e7",
-        borderRadius: 16,
-        padding: 24,
-        width: "100%",
-        fontFamily: "system-ui, sans-serif",
-      }}>
+      <div className="orbit-status-board">
         <h3 style={{ fontSize: 14, fontWeight: 800, color: "#18181b", margin: "0 0 16px 0", textTransform: "uppercase", letterSpacing: "0.02em" }}>
           {props.block.props.title}
         </h3>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700, background: "#dbeafe", color: "#1d4ed8", border: "1px solid #bfdbfe" }}>
+          <span className="orbit-status-badge" style={{ background: "#dbeafe", color: "#1d4ed8", borderColor: "#bfdbfe" }}>
             Planned: {props.block.props.planned}
           </span>
-          <span style={{ padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700, background: "#fef3c7", color: "#b45309", border: "1px solid #fde68a" }}>
+          <span className="orbit-status-badge" style={{ background: "#fef3c7", color: "#b45309", borderColor: "#fde68a" }}>
             In Progress: {props.block.props.inProgress}
           </span>
-          <span style={{ padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700, background: "#dcfce7", color: "#15803d", border: "1px solid #bbf7d0" }}>
+          <span className="orbit-status-badge" style={{ background: "#dcfce7", color: "#15803d", borderColor: "#bbf7d0" }}>
             Completed: {props.block.props.completed}
           </span>
-          <span style={{ padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700, background: "#fee2e2", color: "#dc2626", border: "1px solid #fecaca" }}>
+          <span className="orbit-status-badge" style={{ background: "#fee2e2", color: "#dc2626", borderColor: "#fecaca" }}>
             Stuck: {props.block.props.stuck}
           </span>
         </div>
@@ -97,15 +81,7 @@ export const EscProduction = createReactBlockSpec(
     render: (props) => {
       const yieldNum = parseFloat(props.block.props.yieldRate) || 0;
       return (
-        <div style={{
-          background: "linear-gradient(135deg, #001B3E, #0058BE)",
-          borderRadius: 20,
-          padding: 28,
-          color: "#fff",
-          width: "100%",
-          fontFamily: "system-ui, sans-serif",
-          boxShadow: "0 20px 25px -5px rgba(0, 88, 190, 0.1)",
-        }}>
+        <div className="orbit-esc-monitor" style={{ background: "linear-gradient(135deg, #001B3E, #0058BE)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
             <div style={{
               width: 44, height: 44,
@@ -160,19 +136,12 @@ export const ProgressBar = createReactBlockSpec(
     render: (props) => {
       const pct = parseFloat(props.block.props.percent) || 0;
       return (
-        <div style={{
-          background: "#fff",
-          border: "1px solid #e4e4e7",
-          borderRadius: 12,
-          padding: "16px 20px",
-          width: "100%",
-          fontFamily: "system-ui, sans-serif",
-        }}>
+        <div className="orbit-progress-container">
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "#18181b" }}>{props.block.props.label}</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: props.block.props.color }}>{pct}%</span>
           </div>
-          <div style={{ background: "#f1f5f9", borderRadius: 99, height: 8, overflow: "hidden" }}>
+          <div className="orbit-progress-bg">
             <div style={{ width: `${pct}%`, height: "100%", background: props.block.props.color, borderRadius: 99, transition: "width 0.3s ease" }} />
           </div>
         </div>

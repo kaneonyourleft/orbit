@@ -1,6 +1,7 @@
 "use client";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
+import "../styles/blocks.css"; // 커스텀 블록 스타일 임포트
 import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
