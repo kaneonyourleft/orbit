@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import './DataTable.css';
 
 // ── 타입 ──
 interface OrbitField {
@@ -95,10 +96,17 @@ function FieldHeaderMenu({ field, anchor, onRename, onDelete, onChangeType, onRe
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, onClose);
 
+  useEffect(() => {
+    if (menuRef.current) {
+      menuRef.current.style.setProperty('--menu-top', `${anchor.top}px`);
+      menuRef.current.style.setProperty('--menu-left', `${anchor.left}px`);
+    }
+  }, [anchor]);
+
   return (
     <Portal>
-      <div ref={menuRef} style={{ top: anchor.top, left: anchor.left }}
-        className="fixed w-52 bg-white border border-zinc-200 rounded-xl shadow-2xl z-[300] py-1.5 text-[13px] text-zinc-700">
+      <div ref={menuRef}
+        className="portal-menu w-52 bg-white border border-zinc-200 rounded-xl shadow-2xl z-[300] py-1.5 text-[13px] text-zinc-700">
         {view === 'main' && (
           <>
             <button onClick={() => setView('rename')} className="w-full text-left px-3 py-2 hover:bg-zinc-50 flex items-center gap-2.5">
@@ -168,10 +176,17 @@ function SelectDropdown({ value, options, styles, anchor, onChange, onClose }: {
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, onClose);
 
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.setProperty('--dropdown-top', `${anchor.top}px`);
+      ref.current.style.setProperty('--dropdown-left', `${anchor.left}px`);
+    }
+  }, [anchor]);
+
   return (
     <Portal>
-      <div ref={ref} style={{ top: anchor.top, left: anchor.left }}
-        className="fixed w-48 bg-white border border-zinc-200 rounded-xl shadow-2xl z-[300] py-1.5">
+      <div ref={ref}
+        className="portal-dropdown w-48 bg-white border border-zinc-200 rounded-xl shadow-2xl z-[300] py-1.5">
         {options.map(opt => (
           <button key={opt} onClick={() => { onChange(opt); onClose(); }}
             className={`w-full text-left px-3 py-1.5 text-[13px] hover:bg-zinc-50 flex items-center gap-2 ${opt.toLowerCase() === value?.toLowerCase() ? 'bg-zinc-50 font-medium' : ''}`}>
@@ -203,10 +218,17 @@ function RowMenu({ rowId, anchor, onDelete, onDuplicate, onReorder, onClose }: {
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, onClose);
 
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.setProperty('--row-top', `${anchor.top}px`);
+      ref.current.style.setProperty('--row-left', `${anchor.left}px`);
+    }
+  }, [anchor]);
+
   return (
     <Portal>
-      <div ref={ref} style={{ top: anchor.top, left: anchor.left }}
-        className="fixed w-40 bg-white border border-zinc-200 rounded-xl shadow-2xl z-[300] py-1 text-[13px]">
+      <div ref={ref}
+        className="portal-row-menu w-40 bg-white border border-zinc-200 rounded-xl shadow-2xl z-[300] py-1 text-[13px]">
         {onDuplicate && (
           <button onClick={() => { onDuplicate(rowId); onClose(); }} className="w-full text-left px-3 py-2 hover:bg-zinc-50 flex items-center gap-2.5 text-zinc-700">
             <span className="material-symbols-outlined text-[16px] text-zinc-400">content_copy</span>Duplicate
@@ -403,7 +425,7 @@ export function DataTable({
   const getCellValue = (row: Record<string, any>, fieldId: string) => row[fieldId] ?? '';
 
   const groupField = groupByFieldId ? fields.find(f => f.id === groupByFieldId) : null;
-  const groups: [string, Record<string, any>][] = groupField ? (() => {
+  const groups: [string, Record<string, any>[]][] = groupField ? (() => {
     const map: Record<string, Record<string, any>[]> = {};
     rows.forEach(r => {
       const key = String(r[groupField.id] || 'No Value');
@@ -507,7 +529,7 @@ export function DataTable({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {groupRows.map(row => {
+                    {groupRows.map((row: Record<string, any>) => {
                       const rowId = row.id;
                       const cellVal = getCellValue(row, doneField?.id || '');
                       const isCompleted = doneField && (cellVal === true || cellVal === 'true');

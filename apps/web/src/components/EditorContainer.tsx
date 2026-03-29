@@ -1,20 +1,22 @@
 'use client';
-
 import { useEffect, useRef } from 'react';
 import { useEditor } from '../editor/context';
+import '../styles/orbit.css';
 
 const EditorContainer = () => {
-  const { editor } = useEditor()!;
+  const context = useEditor();
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (editorContainerRef.current && editor) {
+    if (context && editorContainerRef.current && context.editor) {
       editorContainerRef.current.innerHTML = '';
-      editorContainerRef.current.appendChild(editor);
+      editorContainerRef.current.appendChild(context.editor);
     }
-  }, [editor]);
+  }, [context]);
 
-  return <div ref={editorContainerRef} style={{ flex: 1, minHeight: '100vh', overflow: 'auto' }} />;
+  if (!context) return null;
+
+  return <div ref={editorContainerRef} className="orbit-editor-container" />;
 };
 
 export default EditorContainer;

@@ -21,14 +21,23 @@ importers:
   apps/web:
     dependencies:
       '@blocksuite/blocks':
-        specifier: 0.0.0-canary-20250316001624
-        version: 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+        specifier: 0.19.5
+        version: 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/data-view':
+        specifier: 0.19.5
+        version: 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/global':
+        specifier: 0.19.5
+        version: 0.19.5
+      '@blocksuite/icons':
+        specifier: 2.2.17
+        version: 2.2.17(@types/react@19.2.14)(change-case@4.1.2)(lit@3.3.2)(react@19.2.4)
       '@blocksuite/presets':
-        specifier: 0.0.0-canary-20250316001624
-        version: 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+        specifier: 0.19.5
+        version: 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
       '@blocksuite/store':
-        specifier: 0.0.0-canary-20250316001624
-        version: 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+        specifier: 0.19.5
+        version: 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@grapesjs/react':
         specifier: ^2.0.0
         version: 2.0.0(grapesjs@0.22.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -236,41 +245,41 @@ packages:
     resolution: {integrity: sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A==}
     engines: {node: '>=6.9.0'}
 
-  '@blocksuite/affine-block-embed@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-u7IJu/qV3n3WqjbnVkwm/z1Q9NnEBBoSc+9qIe3P9ToEnscrvX9bSuMlCIsODZY4iMbGftYKF47spwzAQXSTxQ==}
+  '@blocksuite/affine-block-embed@0.19.5':
+    resolution: {integrity: sha512-RitpfEkr1ishGU3eNFQVkMdwhMtdmG73a3q4U5oW6+/K+XXpQcOxKBAy+cDHW3IbQrZKW7fM1OQni1c9aV4qIA==}
 
-  '@blocksuite/affine-block-list@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-cvHeS9WehkWOyi5eC3v+z3fqqHguaoHqM403P5e4qanXk7a3jhIREbLFqvlC7KCqe1dy06rP8eS6CpTHMDGHJg==}
+  '@blocksuite/affine-block-list@0.19.5':
+    resolution: {integrity: sha512-VQai6PpB5hWS7e/CPmQkgAIoUEGog1qAb74Zlo//VMsbMvei59Rl7MVkuVJFqIHJjIKVfY92vTnWIhkPyXDTRg==}
 
-  '@blocksuite/affine-block-paragraph@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-9dLiFcNi5NXTpCXzfE7gv7XMKDhu/vrxYah/Csb8VY3XtMA2hAhQ4R57+qwUNVPkz9D6iKyBky+zSSPOPkJzRA==}
+  '@blocksuite/affine-block-paragraph@0.19.5':
+    resolution: {integrity: sha512-3KNwB2Sh1wJ4Czgwp7W0PFMQXgPybleHnemqumQul6kqa+QKRb7Mf85IiibdYla4jZVRoYDMSELp2zVXkvZegA==}
 
-  '@blocksuite/affine-block-surface@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-Aqd8TgIIifeU+U13z6DNiTL+etSDfDw/2sgmLCiJ8JfG3y2rwEmd2IHYGgy6gkcvgHqggCgc9qHAXcaR2bFLPA==}
+  '@blocksuite/affine-block-surface@0.19.5':
+    resolution: {integrity: sha512-J4x7eokB4vJSdBBpo4ZHqD1HPjfaY0F7ymHQjo4e9TNqYaBGGdWVJi7UsdXyKIvTxFg5GCX3GbgZ9wMm2Moj2Q==}
 
-  '@blocksuite/affine-components@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-XJv6Tx0V/Nxaf1EFxwkviwLQvhLzSTeFRRbcpFDAN+seqlTpTkli+Efyan4RU5zbvVZapJsnNntQqvTfC7TWMg==}
+  '@blocksuite/affine-components@0.19.5':
+    resolution: {integrity: sha512-TM5xWqDBiFuXyj9DKBvmvFdWOfKPfTVTIlv8RnwK6z8x7wOeWIyoMFOku5kTKJl301mc3FPH/eQS1mkckzm6rQ==}
 
-  '@blocksuite/affine-model@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-pt9tKrr+v4bpGZueLfPuKcmAn3rvx4tX4tZQ6cjhCnTjrNyfIrL+LJxRdvYeBfO8px73KLzZ3eIgbzYmZ466rA==}
+  '@blocksuite/affine-model@0.19.5':
+    resolution: {integrity: sha512-OqlUg5GbctRYTd+6txKZKAfiOIMJAq+6CT9RXqoSU41LdmsDGbuMMRrY4qpyg1qk/HbOB0JYjc+PIYmKiCy16w==}
 
-  '@blocksuite/affine-shared@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-u9FIzrHdqIORApSs5G9t/5gXvaDIbO7H62fzPebJyHioIPKbahAZusgBqubesMAcskkckXZSQXhRj1xE6MYU8A==}
+  '@blocksuite/affine-shared@0.19.5':
+    resolution: {integrity: sha512-95yAjuSR178nL6/LGqUfmBaaWZO9OEYd+9EGmJ915HyxiYgsgyAxThiGYHIB/hYC6pOF7a9owYdthB71fwb5Bg==}
 
-  '@blocksuite/affine-widget-scroll-anchoring@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-8zQa3UQP8CFiLZQuTsG1v9vb8jFQGgIK7LxzBew4uSvOQJfEm2ppRJbB7iqfv6AXt2kvnwW0dKPbYXEBTypXCA==}
+  '@blocksuite/affine-widget-scroll-anchoring@0.19.5':
+    resolution: {integrity: sha512-gqKJh+gnmSWeHn17VLTMn05jouHTvDVtxRMtPRX85sjwxXkiyBqaYaaXNNqeEpCS/3sA3+3vqPxAHVvLer/VxQ==}
 
-  '@blocksuite/block-std@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-A5vSerrTDunFWoegJBONrhgQN8B6RoigAGkXgXdd3hp6PlpndCLJRQPhfG+gHQZrSDI3h74/yocxvVF7/wQhiw==}
+  '@blocksuite/block-std@0.19.5':
+    resolution: {integrity: sha512-MhUmdp+EBqHqlhXE+cYvlqq9+HFFdMivWss4t/GqUEwbD45SEEDLm1U2BQmEDVvDPE84bDb5yYfFYM2mgr2n6w==}
 
-  '@blocksuite/blocks@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-5c2kd9XYMNT6Z5zAf1kcsGoRsorNS+JT8ru7ITXjwHqHAATQfSKovve2Yt95oG7G7bRjcFNOaCTyT25E8CZseA==}
+  '@blocksuite/blocks@0.19.5':
+    resolution: {integrity: sha512-C3Uuhnun3I++wfWeNBdXu2H8aJc0SQJZQRBzs+A/n+C+SmkLutam0WXvBZMeLjvIh4h+q0L1GySfemU1Q1tFBg==}
 
-  '@blocksuite/data-view@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-Z1de4ADF4QFDdioZxbYKO480lwJGx4+UBzNGiZTzyZR3g3EuGd2cWL3YF+vMMSqxqA6UEfcwo4YtDtKGjq56sw==}
+  '@blocksuite/data-view@0.19.5':
+    resolution: {integrity: sha512-RD9Fru6gP6cTvUXxr73f4uPYqK+O4WtCzYCehsInvaZvA/8QxM3YKGvZl1Kv3xfclVqAkYeSsSx/tV9TWHKCMw==}
 
-  '@blocksuite/global@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-D8QPq9UWUaJBoq3iPhClPEVDbrUfddiP1PM3S7+TaJqetAkxTQIDCxd1ckTVhLLbpxX5TOHReng8nUOZPtjK1Q==}
+  '@blocksuite/global@0.19.5':
+    resolution: {integrity: sha512-IlYFNwb2NVZG8BMnf5OQ68brE7qlgQfsluFbqKUbe6xUHDUzjA97vQ0+uL05ct+tf8RDeXgFBOllasEeWqy8Og==}
 
   '@blocksuite/icons@2.2.17':
     resolution: {integrity: sha512-JSetbNEyE+/HnefmDR8J1Tt6ebWn7F150tkKfaqPegOU+s1lLWN/4cRel8z6IiQ/ft3qrO+Mqd115AHfp1eTDA==}
@@ -286,22 +295,22 @@ packages:
       react:
         optional: true
 
-  '@blocksuite/inline@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-SOg6o+jotlERc9w4FK0fZ0z8Bx924BReYP6xftduh38Atp5Te5GtonaxNg8fyYsyIpnWoQtu7Irkp7SUkA/4Lw==}
+  '@blocksuite/inline@0.19.5':
+    resolution: {integrity: sha512-IaLnhM7miagKHZL/b2KbkYjglEYZoTOwUHl70DAAQsWg/Na5aZX5y5DHBwkVu4942yRos1Mw+OJ6QGomd/m/aQ==}
     peerDependencies:
       lit: ^3.2.0
       yjs: ^13.6.18
 
-  '@blocksuite/presets@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-GiMupZMQtrobsZE7kPxTDKtlkUql4ausjY58J2UzRBTo5R+EEN7B1biji7tKWThSIHAuWPkG1r718cDyJRZhXQ==}
+  '@blocksuite/presets@0.19.5':
+    resolution: {integrity: sha512-FRNX8U9zUPfFO0Fy8Lo8BazVDYxyqlCNVGDyP+G54LA92yBIuBgFRJTAAyL9Rpga0v1RYjKaS11jiAZane69WA==}
 
-  '@blocksuite/store@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-bJn3S9KoYUO7hWU6h0xHXYFKEROVMJZwd7hoU+jWxQ6IgwafLFzEKBcLkOD8FuHVuRlRsI2JFALSQ2QqO+BUmA==}
+  '@blocksuite/store@0.19.5':
+    resolution: {integrity: sha512-PK+4wQtwk0U4Y6YCj/EgWlPYx8GYYn4o2CCTqVgXnN5hcmSb7O4QM5+atBE72nrPt1u88fAAsY3ZjbPUxo0vLw==}
     peerDependencies:
       yjs: ^13.6.18
 
-  '@blocksuite/sync@0.0.0-canary-20250316001624':
-    resolution: {integrity: sha512-2rWOVWaJhjo07ij6/hnnPP8zksfwVLyLXgzGZQgvGZq8AbAQvG9SzEEqLd7UcU+l/3QxcSqteZq/v5QjHg203A==}
+  '@blocksuite/sync@0.19.5':
+    resolution: {integrity: sha512-A+6Lvn0USsXmDJc3MfCR7wkUH8wAc0pkygqgBXbJBdMBTfL44Xz1F8B5kMvF08D8DR6NVBbFgDTUOV5cipWV0g==}
     peerDependencies:
       yjs: ^13.6.15
 
@@ -3594,17 +3603,17 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@blocksuite/affine-block-embed@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+  '@blocksuite/affine-block-embed@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/affine-block-surface': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-components': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-model': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/affine-shared': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
+      '@blocksuite/affine-block-surface': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-components': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-model': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-shared': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
       '@blocksuite/icons': 2.2.17(@types/react@19.2.14)(change-case@4.1.2)(lit@3.3.2)(react@19.2.4)
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@floating-ui/dom': 1.7.6
       '@lit/context': 1.1.6
       '@preact/signals-core': 1.14.0
@@ -3618,38 +3627,15 @@ snapshots:
       - react
       - yjs
 
-  '@blocksuite/affine-block-list@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+  '@blocksuite/affine-block-list@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/affine-components': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-model': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/affine-shared': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@floating-ui/dom': 1.7.6
-      '@lit/context': 1.1.6
-      '@preact/signals-core': 1.14.0
-      '@toeverything/theme': 1.1.23
-      '@types/mdast': 4.0.4
-      lit: 3.3.2
-      minimatch: 10.2.4
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - '@types/react'
-      - change-case
-      - react
-      - yjs
-
-  '@blocksuite/affine-block-paragraph@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
-    dependencies:
-      '@blocksuite/affine-components': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-model': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/affine-shared': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-components': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-model': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-shared': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@floating-ui/dom': 1.7.6
       '@lit/context': 1.1.6
       '@preact/signals-core': 1.14.0
@@ -3664,15 +3650,38 @@ snapshots:
       - react
       - yjs
 
-  '@blocksuite/affine-block-surface@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+  '@blocksuite/affine-block-paragraph@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/affine-components': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-model': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/affine-shared': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-components': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-model': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-shared': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@floating-ui/dom': 1.7.6
+      '@lit/context': 1.1.6
+      '@preact/signals-core': 1.14.0
+      '@toeverything/theme': 1.1.23
+      '@types/mdast': 4.0.4
+      lit: 3.3.2
+      minimatch: 10.2.4
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@types/react'
+      - change-case
+      - react
+      - yjs
+
+  '@blocksuite/affine-block-surface@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+    dependencies:
+      '@blocksuite/affine-components': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-model': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-shared': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@lit/context': 1.1.6
       '@preact/signals-core': 1.14.0
       '@toeverything/theme': 1.1.23
@@ -3687,15 +3696,15 @@ snapshots:
       - react
       - yjs
 
-  '@blocksuite/affine-components@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+  '@blocksuite/affine-components@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/affine-model': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/affine-shared': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
+      '@blocksuite/affine-model': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-shared': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
       '@blocksuite/icons': 2.2.17(@types/react@19.2.14)(change-case@4.1.2)(lit@3.3.2)(react@19.2.4)
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@floating-ui/dom': 1.7.6
       '@lit/context': 1.1.6
       '@lottiefiles/dotlottie-wc': 0.4.6
@@ -3714,26 +3723,26 @@ snapshots:
       - react
       - yjs
 
-  '@blocksuite/affine-model@0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)':
+  '@blocksuite/affine-model@0.19.5(lit@3.3.2)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       fractional-indexing: 3.2.0
       zod: 3.25.76
     transitivePeerDependencies:
       - lit
       - yjs
 
-  '@blocksuite/affine-shared@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+  '@blocksuite/affine-shared@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/affine-model': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
+      '@blocksuite/affine-model': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
       '@blocksuite/icons': 2.2.17(@types/react@19.2.14)(change-case@4.1.2)(lit@3.3.2)(react@19.2.4)
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@floating-ui/dom': 1.7.6
       '@lit/context': 1.1.6
       '@preact/signals-core': 1.14.0
@@ -3751,12 +3760,12 @@ snapshots:
       - react
       - yjs
 
-  '@blocksuite/affine-widget-scroll-anchoring@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+  '@blocksuite/affine-widget-scroll-anchoring@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/affine-model': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/affine-shared': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
+      '@blocksuite/affine-model': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-shared': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
       '@preact/signals-core': 1.14.0
       '@toeverything/theme': 1.1.23
       lit: 3.3.2
@@ -3766,11 +3775,11 @@ snapshots:
       - react
       - yjs
 
-  '@blocksuite/block-std@0.0.0-canary-20250316001624(yjs@13.6.30)':
+  '@blocksuite/block-std@0.19.5(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/global': 0.0.0-canary-20250316001624
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@lit/context': 1.1.6
       '@preact/signals-core': 1.14.0
       '@types/hast': 3.0.4
@@ -3785,22 +3794,22 @@ snapshots:
     transitivePeerDependencies:
       - yjs
 
-  '@blocksuite/blocks@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+  '@blocksuite/blocks@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/affine-block-embed': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-block-list': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-block-paragraph': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-block-surface': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-components': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-model': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/affine-shared': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-widget-scroll-anchoring': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/data-view': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
+      '@blocksuite/affine-block-embed': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-block-list': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-block-paragraph': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-block-surface': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-components': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-model': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-shared': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-widget-scroll-anchoring': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/data-view': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
       '@blocksuite/icons': 2.2.17(@types/react@19.2.14)(change-case@4.1.2)(lit@3.3.2)(react@19.2.4)
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@floating-ui/dom': 1.7.6
       '@lit/context': 1.1.6
       '@preact/signals-core': 1.14.0
@@ -3845,14 +3854,14 @@ snapshots:
       - supports-color
       - yjs
 
-  '@blocksuite/data-view@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+  '@blocksuite/data-view@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/affine-components': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-shared': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
+      '@blocksuite/affine-components': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-shared': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
       '@blocksuite/icons': 2.2.17(@types/react@19.2.14)(change-case@4.1.2)(lit@3.3.2)(react@19.2.4)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@emotion/hash': 0.9.2
       '@floating-ui/dom': 1.7.6
       '@lit/context': 1.1.6
@@ -3867,7 +3876,7 @@ snapshots:
       - react
       - yjs
 
-  '@blocksuite/global@0.0.0-canary-20250316001624':
+  '@blocksuite/global@0.19.5':
     dependencies:
       '@preact/signals-core': 1.14.0
       lib0: 0.2.117
@@ -3882,24 +3891,24 @@ snapshots:
       lit: 3.3.2
       react: 19.2.4
 
-  '@blocksuite/inline@0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)':
+  '@blocksuite/inline@0.19.5(lit@3.3.2)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/global': 0.0.0-canary-20250316001624
+      '@blocksuite/global': 0.19.5
       '@preact/signals-core': 1.14.0
       lit: 3.3.2
       yjs: 13.6.30
       zod: 3.25.76
 
-  '@blocksuite/presets@0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
+  '@blocksuite/presets@0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/affine-block-surface': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/affine-model': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/affine-shared': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/block-std': 0.0.0-canary-20250316001624(yjs@13.6.30)
-      '@blocksuite/blocks': 0.0.0-canary-20250316001624(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
-      '@blocksuite/global': 0.0.0-canary-20250316001624
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/store': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-block-surface': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/affine-model': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/affine-shared': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/block-std': 0.19.5(yjs@13.6.30)
+      '@blocksuite/blocks': 0.19.5(@types/react@19.2.14)(change-case@4.1.2)(react@19.2.4)(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/store': 0.19.5(lit@3.3.2)(yjs@13.6.30)
       '@floating-ui/dom': 1.7.6
       '@lottiefiles/dotlottie-wc': 0.4.6
       '@preact/signals-core': 1.14.0
@@ -3913,11 +3922,11 @@ snapshots:
       - supports-color
       - yjs
 
-  '@blocksuite/store@0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)':
+  '@blocksuite/store@0.19.5(lit@3.3.2)(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/global': 0.0.0-canary-20250316001624
-      '@blocksuite/inline': 0.0.0-canary-20250316001624(lit@3.3.2)(yjs@13.6.30)
-      '@blocksuite/sync': 0.0.0-canary-20250316001624(yjs@13.6.30)
+      '@blocksuite/global': 0.19.5
+      '@blocksuite/inline': 0.19.5(lit@3.3.2)(yjs@13.6.30)
+      '@blocksuite/sync': 0.19.5(yjs@13.6.30)
       '@preact/signals-core': 1.14.0
       '@types/flexsearch': 0.7.42
       '@types/lodash.ismatch': 4.4.9
@@ -3935,9 +3944,9 @@ snapshots:
     transitivePeerDependencies:
       - lit
 
-  '@blocksuite/sync@0.0.0-canary-20250316001624(yjs@13.6.30)':
+  '@blocksuite/sync@0.19.5(yjs@13.6.30)':
     dependencies:
-      '@blocksuite/global': 0.0.0-canary-20250316001624
+      '@blocksuite/global': 0.19.5
       idb: 8.0.3
       idb-keyval: 6.2.2
       y-protocols: 1.0.7(yjs@13.6.30)

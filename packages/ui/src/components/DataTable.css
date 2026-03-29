@@ -1,0 +1,17 @@
+.portal-menu {
+  position: fixed;
+  top: var(--menu-top);
+  left: var(--menu-left);
+}
+
+.portal-dropdown {
+  position: fixed;
+  top: var(--dropdown-top);
+  left: var(--dropdown-left);
+}
+
+.portal-row-menu {
+  position: fixed;
+  top: var(--row-top);
+  left: var(--row-left);
+}
