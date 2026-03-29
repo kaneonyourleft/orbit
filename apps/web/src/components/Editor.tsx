@@ -7,7 +7,8 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { SuggestionMenuController, getDefaultReactSlashMenuItems } from "@blocknote/react";
 import { TwoColumns, ThreeColumns, FourColumns, Divider, Spacer } from "./blocks/ColumnsBlock";
 import { ColorPanel, Banner, IconCard, CalloutBlock } from "./blocks/DesignBlocks";
-import { layoutSlashMenuItems, designSlashMenuItems } from "./blocks/slashMenuItems";
+import { KpiCard, StatusBoard, EscProduction, ProgressBar } from "./blocks/WidgetBlocks";
+import { layoutSlashMenuItems, designSlashMenuItems, widgetSlashMenuItems } from "./blocks/slashMenuItems";
 
 const schema = BlockNoteSchema.create({
   blockSpecs: {
@@ -21,6 +22,10 @@ const schema = BlockNoteSchema.create({
     banner: Banner(),
     iconCard: IconCard(),
     callout: CalloutBlock(),
+    kpiCard: KpiCard(),
+    statusBoard: StatusBoard(),
+    escProduction: EscProduction(),
+    progressBar: ProgressBar(),
   },
 });
 
@@ -34,7 +39,8 @@ export default function Editor() {
           const defaultItems = getDefaultReactSlashMenuItems(editor);
           const layout = layoutSlashMenuItems(editor);
           const design = designSlashMenuItems(editor);
-          return [...defaultItems, ...layout, ...design].filter(
+          const widgets = widgetSlashMenuItems(editor);
+          return [...defaultItems, ...layout, ...design, ...widgets].filter(
             (item) =>
               item.title.toLowerCase().includes(query.toLowerCase()) ||
               (item.aliases?.some((a: string) => a.toLowerCase().includes(query.toLowerCase())) ?? false)

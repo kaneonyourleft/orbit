@@ -15,3 +15,10 @@ export const designSlashMenuItems = (editor: any) => [
   { title: "아이콘 카드", subtext: "아이콘이 있는 카드", onItemClick: () => insertOrUpdateBlockForSlashMenu(editor, { type: "iconCard" as any }), aliases: ["icon", "card", "아이콘", "카드"], group: "디자인" },
   { title: "콜아웃", subtext: "강조 텍스트 박스", onItemClick: () => insertOrUpdateBlockForSlashMenu(editor, { type: "callout" as any }), aliases: ["callout", "콜아웃", "강조"], group: "디자인" },
 ];
+
+export const widgetSlashMenuItems = (editor: any) => [
+  { title: "KPI 카드", subtext: "핵심 지표 카드", onItemClick: () => insertOrUpdateBlockForSlashMenu(editor, { type: "kpiCard" as any }), aliases: ["kpi", "지표", "카드", "metric"], group: "위젯" },
+  { title: "상태 보드", subtext: "생산 상태 현황판", onItemClick: () => insertOrUpdateBlockForSlashMenu(editor, { type: "statusBoard" as any }), aliases: ["status", "상태", "현황", "board"], group: "위젯" },
+  { title: "ESC 생산현황", subtext: "세라믹 ESC 라인 모니터", onItemClick: () => insertOrUpdateBlockForSlashMenu(editor, { type: "escProduction" as any }), aliases: ["esc", "생산", "ceramic", "production"], group: "위젯" },
+  { title: "진행률 바", subtext: "퍼센트 진행 표시", onItemClick: () => insertOrUpdateBlockForSlashMenu(editor, { type: "progressBar" as any }), aliases: ["progress", "진행", "bar", "퍼센트"], group: "위젯" },
+];
