@@ -364,7 +364,7 @@ export default function Home(){
             title="사이드바 닫기"
           >✕</button>
         </div>
-        {activePanel==="files"&&<div style={{flex:1,overflowY:"auto",padding:"4px 0"}}>
+        {activePanel==="files"&&<div style={{flex:1,overflowY:"auto",padding:"4px 0 60px" if isMobile else "4px 0", paddingBottom: isMobile ? 60 : 0}}>
           {favPages.length>0&&<><div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>FAVORITES</div>{favPages.map(p=><div key={p.id} onClick={()=>setSelectedId(p.id)} style={{height:28,padding:"0 12px 0 20px",display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,borderRadius:6,margin:"0 4px",background:selectedId===p.id?t.hv:"transparent"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(selectedId!==p.id)e.currentTarget.style.background="transparent";}}>{Icons.star(t.ac)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span></div>)}<div style={{height:1,background:t.bd,margin:"6px 12px"}}/></>}
           <div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>PRIVATE</div>
           <div style={{padding:"4px 8px 8px",display:"flex",gap:6}}>
@@ -385,10 +385,10 @@ export default function Home(){
           {tree.map(n=><FileNode key={n.id} node={n} depth={0} selectedId={selectedId} onSelect={setSelectedId} onToggle={toggleCollapse} onCtx={(e:any,nd:TreeNode)=>setCtxMenu({x:e.clientX,y:e.clientY,node:nd})} renameId={renameId} renameVal={renameVal} setRenameVal={setRenameVal} commitRename={commitRename} dragSrc={dragSrc} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} t={t}/>)}
 
         </div>}
-        {activePanel==="search"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}><input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="페이지 검색..." autoFocus style={{width:"100%",padding:"8px 10px",fontSize:13,background:t.hv,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,outline:"none",fontFamily:"var(--font-main)"}}/><div style={{marginTop:8}}>{searchResults.map(p=><div key={p.id} onClick={()=>{setSelectedId(p.id);}} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.page(t.tx2)} <span style={{marginLeft:6}}>{p.name}</span></div>)}{searchQ&&searchResults.length===0&&<div style={{padding:12,fontSize:13,color:t.tx2}}>결과 없음</div>}</div></div>}
-        {activePanel==="bookmark"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{Array.from(bookmarks).map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.bookmark(t.ac)}{nd.name}</div>:null;})}{bookmarks.size===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>북마크가 없습니다</div>}</div>}
-        {activePanel==="recent"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{recentIds.map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.recent(t.tx2)}{nd.name}</div>:null;})}{recentIds.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>최근 문서 없음</div>}</div>}
-        {activePanel==="trash"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{trashedNodes.map(nd=><div key={nd.id} style={{padding:"6px 10px",fontSize:13,borderRadius:6,display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}><span style={{display:"flex",alignItems:"center",gap:6}}>{Icons.page(t.tx2)}{nd.name}</span><span onClick={()=>restoreNode(nd)} style={{cursor:"pointer",opacity:0.5,display:"flex"}} title="복원">{Icons.restore(t.ac)}</span></div>)}{trashedNodes.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>휴지통이 비어 있습니다</div>}</div>}
+        {activePanel==="search"&&<div style={{flex:1,overflowY:"auto",padding:8,paddingBottom:isMobile?60:8}}><input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="페이지 검색..." autoFocus style={{width:"100%",padding:"8px 10px",fontSize:13,background:t.hv,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,outline:"none",fontFamily:"var(--font-main)"}}/><div style={{marginTop:8}}>{searchResults.map(p=><div key={p.id} onClick={()=>{setSelectedId(p.id);}} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.page(t.tx2)} <span style={{marginLeft:6}}>{p.name}</span></div>)}{searchQ&&searchResults.length===0&&<div style={{padding:12,fontSize:13,color:t.tx2}}>결과 없음</div>}</div></div>}
+        {activePanel==="bookmark"&&<div style={{flex:1,overflowY:"auto",padding:8,paddingBottom:isMobile?60:8}}>{Array.from(bookmarks).map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.bookmark(t.ac)}{nd.name}</div>:null;})}{bookmarks.size===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>북마크가 없습니다</div>}</div>}
+        {activePanel==="recent"&&<div style={{flex:1,overflowY:"auto",padding:8,paddingBottom:isMobile?60:8}}>{recentIds.map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.recent(t.tx2)}{nd.name}</div>:null;})}{recentIds.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>최근 문서 없음</div>}</div>}
+        {activePanel==="trash"&&<div style={{flex:1,overflowY:"auto",padding:8,paddingBottom:isMobile?60:8}}>{trashedNodes.map(nd=><div key={nd.id} style={{padding:"6px 10px",fontSize:13,borderRadius:6,display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}><span style={{display:"flex",alignItems:"center",gap:6}}>{Icons.page(t.tx2)}{nd.name}</span><span onClick={()=>restoreNode(nd)} style={{cursor:"pointer",opacity:0.5,display:"flex"}} title="복원">{Icons.restore(t.ac)}</span></div>)}{trashedNodes.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>휴지통이 비어 있습니다</div>}</div>}
         {activePanel==="settings"&&<div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
           {/* Settings tabs */}
           <div style={{display:"flex",borderBottom:`1px solid ${t.bd}`,flexShrink:0}}>
@@ -528,7 +528,7 @@ export default function Home(){
 
             {/* General tab */}
             {settingsTab==="general"&&<>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <div style={{display:"flex",flexDirection:"column",gap:8,paddingBottom:isMobile?60:0}}>
                 {/* Focus mode */}
                 <div onClick={()=>setFocusMode(!focusMode)}
                   style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 10px",borderRadius:8,cursor:"pointer",background:t.hv}}>
@@ -556,6 +556,59 @@ export default function Home(){
             </>}
           </div>
         </div>}
+
+        {/* 모바일 사이드바 바텀 내비게이션 바 */}
+        {isMobile && (
+          <div style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 56,
+            borderTop: `1px solid ${t.bd}`,
+            background: t.sb,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-around",
+            padding: "0 8px",
+            zIndex: 10,
+          }}>
+            {[
+              { icon: "📁", panel: "files" as PanelType, label: "파일" },
+              { icon: "🔍", panel: "search" as PanelType, label: "검색" },
+              { icon: "⭐", panel: "bookmark" as PanelType, label: "북마크" },
+              { icon: "🕐", panel: "recent" as PanelType, label: "최근" },
+              { icon: "🗑", panel: "trash" as PanelType, label: "휴지통" },
+              { icon: "⚙", panel: "settings" as PanelType, label: "설정" },
+            ].map(item => (
+              <button
+                key={item.panel}
+                onClick={() => setActivePanel(
+                  activePanel === item.panel ? "files" : item.panel
+                )}
+                style={{
+                  background: activePanel === item.panel ? t.ac + "22" : "none",
+                  border: "none",
+                  color: activePanel === item.panel ? t.ac : t.tx,
+                  fontSize: 20,
+                  cursor: "pointer",
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 2,
+                  opacity: activePanel === item.panel ? 1 : 0.6,
+                }}
+                title={item.label}
+              >
+                <span>{item.icon}</span>
+                <span style={{ fontSize: 9 }}>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         <div onMouseDown={startResize} style={{position:"absolute",right:0,top:0,bottom:0,width:3,cursor:"col-resize",zIndex:10}} onMouseEnter={e=>{e.currentTarget.style.background=t.ac;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}/>
       </div>
       <div style={{
