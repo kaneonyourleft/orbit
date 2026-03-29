@@ -1,8 +1,9 @@
+'use client';
 import React from 'react';
 import { createReactBlockSpec } from '@blocknote/react';
 import DatabaseBlock from './DatabaseBlock';
 
-export const databaseBlockSpec = (createReactBlockSpec as any)(
+export const databaseBlockSpec = createReactBlockSpec(
   {
     type: 'database' as const,
     propSchema: {
@@ -12,12 +13,14 @@ export const databaseBlockSpec = (createReactBlockSpec as any)(
     content: 'none' as const,
   },
   {
-    render: (props: any) => {
-      return React.createElement(DatabaseBlock, {
-        blockId: props.block.id,
-        pageId: props.block.props.pageId,
-        existingDbId: props.block.props.databaseId,
-      });
+    render: ({ block }) => {
+      return (
+        <DatabaseBlock
+          blockId={block.id}
+          pageId={block.props.pageId}
+          existingDbId={block.props.databaseId}
+        />
+      );
     },
   }
 );
