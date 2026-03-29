@@ -1,7 +1,6 @@
 "use client";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-import "../styles/blocks.css";
 import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -38,7 +37,7 @@ interface EditorProps {
 export default function Editor({ initialContent, onChange }: EditorProps) {
   const editor = useCreateBlockNote({
     schema,
-    initialContent: initialContent?.length ? initialContent : undefined,
+    initialContent: initialContent && initialContent.length > 0 ? initialContent : undefined,
   });
 
   return (
@@ -47,9 +46,7 @@ export default function Editor({ initialContent, onChange }: EditorProps) {
       slashMenu={false}
       theme="light"
       onChange={() => {
-        if (onChange) {
-          onChange(editor.document);
-        }
+        if (onChange) onChange(editor.document as any);
       }}
     >
       <SuggestionMenuController

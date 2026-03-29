@@ -16,13 +16,9 @@ export const KpiCard = createReactBlockSpec(
   {
     render: (props) => (
       <div className="orbit-kpi-card">
-        <p style={{ fontSize: 12, color: "#71717a", margin: "0 0 8px 0", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          {props.block.props.label}
-        </p>
-        <h2 style={{ fontSize: 32, fontWeight: 900, color: "#18181b", margin: "0 0 4px 0", letterSpacing: "-0.01em" }}>
-          {props.block.props.value}
-        </h2>
-        <p style={{ fontSize: 13, color: props.block.props.changeColor, margin: 0, fontWeight: 600 }}>
+        <p className="orbit-kpi-label">{props.block.props.label}</p>
+        <h2 className="orbit-kpi-value">{props.block.props.value}</h2>
+        <p className="orbit-kpi-change" style={{ color: props.block.props.changeColor }}>
           {props.block.props.change}
         </p>
       </div>
@@ -45,10 +41,8 @@ export const StatusBoard = createReactBlockSpec(
   {
     render: (props) => (
       <div className="orbit-status-board">
-        <h3 style={{ fontSize: 14, fontWeight: 800, color: "#18181b", margin: "0 0 16px 0", textTransform: "uppercase", letterSpacing: "0.02em" }}>
-          {props.block.props.title}
-        </h3>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <h3 className="orbit-status-title">{props.block.props.title}</h3>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <span className="orbit-status-badge" style={{ background: "#dbeafe", color: "#1d4ed8", borderColor: "#bfdbfe" }}>
             Planned: {props.block.props.planned}
           </span>
@@ -82,39 +76,16 @@ export const EscProduction = createReactBlockSpec(
       const yieldNum = parseFloat(props.block.props.yieldRate) || 0;
       return (
         <div className="orbit-esc-monitor" style={{ background: "linear-gradient(135deg, #001B3E, #0058BE)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <div style={{
-              width: 44, height: 44,
-              background: "rgba(255,255,255,0.15)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: 14,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 20,
-            }}>⚡</div>
-            <span style={{ fontSize: 13, fontWeight: 800, opacity: 0.9, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              Ceramic ESC Line
-            </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div className="orbit-esc-icon-wrapper">⚡</div>
+            <span className="orbit-esc-label">Ceramic ESC Line</span>
           </div>
-          <h2 style={{ fontSize: 32, fontWeight: 900, margin: "0 0 8px 0", letterSpacing: "-0.02em" }}>
-            {props.block.props.units} units
-          </h2>
-          <p style={{ fontSize: 12, opacity: 0.7, margin: 0, fontWeight: 600 }}>
+          <h2 className="orbit-esc-value">{props.block.props.units} units</h2>
+          <p className="orbit-esc-meta">
             Daily target: {props.block.props.target} | Yield: {props.block.props.yieldRate}%
           </p>
-          <div style={{
-            marginTop: 20,
-            background: "rgba(255,255,255,0.15)",
-            borderRadius: 99,
-            height: 10,
-            overflow: "hidden",
-            border: "1px solid rgba(255,255,255,0.1)",
-          }}>
-            <div style={{
-              width: `${yieldNum}%`,
-              height: "100%",
-              background: "linear-gradient(90deg, #38bdf8, #22d3ee)",
-              borderRadius: 99,
-            }} />
+          <div className="orbit-esc-progress-bg">
+            <div className="orbit-esc-progress-fill" style={{ width: `${yieldNum}%` }} />
           </div>
         </div>
       );
@@ -136,13 +107,15 @@ export const ProgressBar = createReactBlockSpec(
     render: (props) => {
       const pct = parseFloat(props.block.props.percent) || 0;
       return (
-        <div className="orbit-progress-container">
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#18181b" }}>{props.block.props.label}</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: props.block.props.color }}>{pct}%</span>
+        <div className="orbit-progress-item">
+          <div className="orbit-progress-label-row">
+            <span>{props.block.props.label}</span>
+            <span style={{ color: props.block.props.color }}>{pct}%</span>
           </div>
           <div className="orbit-progress-bg">
-            <div style={{ width: `${pct}%`, height: "100%", background: props.block.props.color, borderRadius: 99, transition: "width 0.3s ease" }} />
+            <div 
+              style={{ width: `${pct}%`, height: "100%", background: props.block.props.color, borderRadius: 99, transition: "width 0.3s ease" }} 
+            />
           </div>
         </div>
       );

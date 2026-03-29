@@ -65,3 +65,213 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ORBIT Layout Styles */
+.orbit-home-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: white;
+}
+
+.orbit-main-sidebar {
+  width: 240px;
+  background: #fbfbfa;
+  border-right: 1px solid #efefef;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  flex-shrink: 0;
+}
+
+.orbit-brand-large {
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #1a1a1b;
+  margin-bottom: 32px;
+}
+
+.orbit-sidebar-section {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.orbit-sidebar-header {
+  padding: 0 16px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #91918e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.orbit-add-page-btn {
+  background: transparent;
+  border: none;
+  color: #91918e;
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.orbit-add-page-btn:hover {
+  color: #37352f;
+}
+
+.orbit-page-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.orbit-page-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+  font-size: 14px;
+  color: #37352f;
+  font-weight: 500;
+}
+
+.orbit-page-item:hover {
+  background: #efefed;
+}
+
+.orbit-page-item.active {
+  background: #ededec;
+  font-weight: 600;
+}
+
+.orbit-page-icon {
+  font-size: 16px;
+}
+
+.orbit-page-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orbit-page-delete-btn {
+  opacity: 0;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: #91918e;
+  cursor: pointer;
+}
+
+.orbit-page-item:hover .orbit-page-delete-btn {
+  opacity: 1;
+}
+
+.orbit-sidebar-footer-text {
+  padding: 16px;
+  font-size: 10px;
+  color: #91918e;
+  font-weight: 600;
+}
+
+.orbit-editor-viewport {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.orbit-empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #91918e;
+}
+
+.orbit-placeholder-circle {
+  width: 120px;
+  height: 120px;
+  background: #fbfbfa;
+  border-radius: 50%;
+  margin-bottom: 24px;
+}
+
+.orbit-primary-btn {
+  margin-top: 16px;
+  background: #37352f;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.orbit-editor-wrapper {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 80px 40px;
+}
+
+.orbit-editor-header {
+  margin-bottom: 40px;
+}
+
+.orbit-title-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.orbit-icon-input {
+  font-size: 48px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 60px;
+  outline: none;
+}
+
+.orbit-main-title-input {
+  font-size: 40px;
+  font-weight: 800;
+  border: none;
+  outline: none;
+  flex: 1;
+  color: #37352f;
+}
+
+.orbit-loading-screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.orbit-pulse {
+  width: 40px;
+  height: 40px;
+  background: #37352f;
+  border-radius: 50%;
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from { transform: scale(0.8); opacity: 0.5; }
+  to { transform: scale(1.1); opacity: 1; }
+}

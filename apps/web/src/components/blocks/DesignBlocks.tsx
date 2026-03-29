@@ -48,7 +48,7 @@ export const IconCard = createReactBlockSpec(
   {
     render: (props) => (
       <div className="orbit-icon-card" style={{ background: props.block.props.cardColor }}>
-        <span style={{ fontSize: 32 }}>{props.block.props.icon}</span>
+        <span className="orbit-icon-wrapper">{props.block.props.icon}</span>
         <div style={{ flex: 1 }}>
           <div ref={props.contentRef} />
         </div>
@@ -70,7 +70,7 @@ export const CalloutBlock = createReactBlockSpec(
   {
     render: (props) => (
       <div className="orbit-callout" style={{ background: props.block.props.bgColor, borderLeftColor: props.block.props.borderColor }}>
-        <span style={{ fontSize: 24 }}>{props.block.props.emoji}</span>
+        <span className="orbit-callout-icon">{props.block.props.emoji}</span>
         <div style={{ flex: 1 }}>
           <div ref={props.contentRef} />
         </div>
