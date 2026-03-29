@@ -2,10 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { EditorContext } from '../editor/context';
 import { Doc, DocCollection } from '@blocksuite/store';
-import { AffineEditorContainer } from '@blocksuite/presets';
 
 type EditorContextType = {
-  editor: AffineEditorContainer;
+  editor: any; // AffineEditorContainer is dynamically imported in initEditor
   collection: DocCollection;
   setDoc: (doc: Doc) => void;
 };
@@ -14,16 +13,24 @@ export const EditorProvider = ({ children }: { children: React.ReactNode }) => {
   const [ctx, setCtx] = useState<EditorContextType | null>(null);
 
   useEffect(() => {
-    // HTMLElement(AffineEditorContainer)는 브라우저 사이드에서만 안전하게 생성할 수 있으므로,
-    // useEffect에서 동적으로 초기화합니다.
+    let cancelled = false;
+    
+    // HTMLElement(AffineEditorContainer)는 브라우저 사이드에서만 안전하게 생성할 수 있으며,
+    // Custom Elements가 등록된 후에 생성자를 호출해야 하므로 비동기 initEditor를 사용합니다.
     import('../editor/editor').then(({ initEditor, switchDoc }) => {
-      const { editor, collection } = initEditor();
-      setCtx({ 
-        editor, 
-        collection,
-        setDoc: (doc: Doc) => switchDoc(editor, doc)
+      initEditor().then((result) => {
+        if (!cancelled) {
+          setCtx({
+            ...result,
+            setDoc: (doc: Doc) => switchDoc(result.editor, doc)
+          });
+        }
       });
     });
+    
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!ctx) return (
