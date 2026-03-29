@@ -12,7 +12,16 @@ interface Props {
 }
 
 export default function Editor({ initialContent, onChange, darkMode = false }: Props) {
-  const editor = useCreateBlockNote({ initialContent: initialContent && initialContent.length > 0 ? initialContent : undefined });
+  // BlockNote v0.47+ requires initialContent to be an array of blocks.
+  // If it's a string (legacy data), we treat it as empty or should convert it.
+  const validatedContent = useMemo(() => {
+    if (Array.isArray(initialContent) && initialContent.length > 0) {
+      return initialContent;
+    }
+    return undefined;
+  }, [initialContent]);
+
+  const editor = useCreateBlockNote({ initialContent: validatedContent });
   const isFirst = useRef(true);
 
   useEffect(() => {

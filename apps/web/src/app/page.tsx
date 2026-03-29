@@ -260,12 +260,13 @@ export default function Home(){
     if (!data.allSheets) return;
 
     setSaveStatus("saving");
-    setTree(prev => prev.map(n => {
-      if (n.id === selectedId) {
-        return { ...n, content: { ...n.content, sheets: data.allSheets } };
-      }
-      return n;
-    }));
+    setTree(prev => {
+      const upd = (ns: TreeNode[]): TreeNode[] => ns.map(n => {
+        if (n.id === selectedId) return { ...n, content: { ...n.content, sheets: data.allSheets } };
+        return { ...n, children: upd(n.children) };
+      });
+      return upd(prev);
+    });
 
     if (contentTimer.current) clearTimeout(contentTimer.current);
     contentTimer.current = setTimeout(() => {
@@ -283,7 +284,14 @@ export default function Home(){
   const onContentChange = useCallback((content: any[]) => {
     if (!selectedId) return;
     setSaveStatus("saving");
-    setTree(prev => prev.map(n => n.id === selectedId ? { ...n, content: { ...n.content, editorContent: content } } : n));
+    if (!Array.isArray(content)) return;
+    setTree(prev => {
+      const upd = (ns: TreeNode[]): TreeNode[] => ns.map(n => {
+        if (n.id === selectedId) return { ...n, content: { ...n.content, editorContent: content } };
+        return { ...n, children: upd(n.children) };
+      });
+      return upd(prev);
+    });
     if (contentTimer.current) clearTimeout(contentTimer.current);
     contentTimer.current = setTimeout(() => { 
       const nd = findNode(tree, selectedId); 
@@ -313,22 +321,26 @@ export default function Home(){
         }));
       };
 
-      setTree(prev => prev.map(n => {
-        if (n.id === selectedId) {
-          const oldBlocks = Array.isArray(n.content?.editorContent) ? n.content.editorContent : [];
-          const newBlocks = contentToBlocks(data);
-          const combined = [...oldBlocks, ...newBlocks];
-          
-          saveNode({ 
-            ...n, 
-            content: { ...n.content, editorContent: combined },
-            parent_id: findParentId(prev, selectedId)
-          }).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error"));
+      setTree(prev => {
+        const upd = (ns: TreeNode[]): TreeNode[] => ns.map(n => {
+          if (n.id === selectedId) {
+            const oldBlocks = Array.isArray(n.content?.editorContent) ? n.content.editorContent : [];
+            const newBlocks = contentToBlocks(data);
+            const combined = [...oldBlocks, ...newBlocks];
+            
+            // Side effect: save to DB
+            saveNode({ 
+              ...n, 
+              content: { ...n.content, editorContent: combined },
+              parent_id: findParentId(prev, selectedId)
+            }).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error"));
 
-          return { ...n, content: { ...n.content, editorContent: combined } };
-        }
-        return n;
-      }));
+            return { ...n, content: { ...n.content, editorContent: combined } };
+          }
+          return { ...n, children: upd(n.children) };
+        });
+        return upd(prev);
+      });
     }
   }, [selectedId, saveNode]);
 
