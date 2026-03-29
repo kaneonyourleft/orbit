@@ -101,8 +101,9 @@ export default function SpreadsheetTable({ darkMode = true, accentColor = "#a78b
   const [loading, setLoading] = useState(false);
   
   const activeSheet = sheets.find(s => s.id === activeSheetId) || sheets[0];
-  const columns = activeSheet.columns;
-  const rows = activeSheet.rows;
+  if (!activeSheet) return <div style={{padding:20,opacity:0.5}}>시트를 불러오는 중...</div>;
+  const columns = activeSheet.columns || [];
+  const rows = activeSheet.rows || [];
 
   const bg = darkMode ? "#13111a" : "#fff";
   const bd = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -118,9 +119,20 @@ export default function SpreadsheetTable({ darkMode = true, accentColor = "#a78b
       setLoading(true);
       const supabase = createClient();
       const { data } = await supabase.from("pages").select("content").eq("id", pageId).single();
-      if (data?.content && Array.isArray(data.content)) {
-        setSheets(data.content as Sheet[]);
-        if (data.content[0]) setActiveSheetId(data.content[0].id);
+      if (data?.content) {
+        // content.sheets 형태로 저장된 경우
+        const raw = data.content as any;
+        let loadedSheets: Sheet[] | null = null;
+        if (raw.sheets && Array.isArray(raw.sheets)) {
+          loadedSheets = raw.sheets;
+        } else if (Array.isArray(raw) && raw[0]?.columns && raw[0]?.rows) {
+          loadedSheets = raw;
+        }
+        if (loadedSheets && loadedSheets.length > 0 && loadedSheets[0].columns) {
+          setSheets(loadedSheets);
+          setActiveSheetId(loadedSheets[0].id);
+        }
+        // 그 외(BlockNote content 등)는 무시 → 기본 시트 유지
       }
       setLoading(false);
     };
@@ -130,7 +142,7 @@ export default function SpreadsheetTable({ darkMode = true, accentColor = "#a78b
   const saveToSupabase = useCallback(async (newSheets: Sheet[]) => {
     if (!pageId) return;
     const supabase = createClient();
-    await supabase.from("pages").update({ content: newSheets as any }).eq("id", pageId);
+    await supabase.from("pages").update({ content: { sheets: newSheets } as any }).eq("id", pageId);
   }, [pageId]);
 
   // Debounced save
