@@ -6,8 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "node scripts/patch-blocksuite.js"
+    "lint": "next lint",
+    "postinstall": "node scripts/patch-blocksuite.js",
+    "deploy": "next build && cd ../.. && git add -A && git commit -m \"auto-deploy\" && git push origin main"
   },
   "dependencies": {
     "@blocksuite/blocks": "0.19.5",
