@@ -125,6 +125,32 @@ export default function Home(){
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
   const sidebarRef=useRef<HTMLDivElement>(null);
   const resizing=useRef(false);
+  const [todos, setTodos] = useState<{id: string, text: string, completed: boolean}[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("orbit-todos");
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  const [newTodo, setNewTodo] = useState("");
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("orbit-todos", JSON.stringify(todos));
+  }, [todos]);
+
+  const addTodo = () => {
+    if (!newTodo.trim()) return;
+    setTodos(prev => [{ id: Date.now().toString(), text: newTodo, completed: false }, ...prev]);
+    setNewTodo("");
+  };
+
+  const toggleTodo = (id: string) => {
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  };
+
+  const removeTodo = (id: string) => {
+    setTodos(prev => prev.filter(t => t.id !== id));
+  };
+
   const contentTimer=useRef<NodeJS.Timeout|null>(null);
 
   const [isMobile, setIsMobile] = useState(false);
@@ -251,7 +277,12 @@ export default function Home(){
         }).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error"));
       } 
     }, 800);
-    try { const txt = JSON.stringify(content); setWordCount(txt.replace(/[^가-힣a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).length); } catch { setWordCount(0); }
+    try { 
+      const txt = JSON.stringify(content); 
+      setWordCount(txt.replace(/[^가-힣a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).length); 
+    } catch { 
+      setWordCount(0); 
+    }
   }, [selectedId, tree, saveNode]);
 
   const onAIApply = useCallback((type: "editor" | "spreadsheet", data: any) => {
@@ -259,27 +290,34 @@ export default function Home(){
     setSaveStatus("saving");
 
     if (type === "editor") {
-      // 간단한 삽입 로직: 현재 에디터 내용 뒤에 추가 (실제 구현 시 에디터 API에 따라 다를 수 있음)
-      // 여기서는 텍스트 기반으로 예시 구현
+      const contentToBlocks = (text: string) => {
+        const lines = text.split("\n").filter(l => l.trim() !== "");
+        return lines.map(line => ({
+          id: Math.random().toString(36).substr(2, 9),
+          type: "paragraph",
+          props: { textColor: "default", backgroundColor: "default", textAlignment: "left" },
+          content: [{ type: "text", text: line.replace(/[#*`]/g, ""), styles: {} }],
+          children: []
+        }));
+      };
+
       setTree(prev => prev.map(n => {
         if (n.id === selectedId) {
-          const oldContent = n.content?.editorContent || "";
-          const newContent = typeof oldContent === "string" ? oldContent + "\n\n" + data : data;
-          return { ...n, content: { ...n.content, editorContent: newContent } };
+          const oldBlocks = Array.isArray(n.content?.editorContent) ? n.content.editorContent : [];
+          const newBlocks = contentToBlocks(data);
+          const combined = [...oldBlocks, ...newBlocks];
+          
+          saveNode({ 
+            ...n, 
+            content: { ...n.content, editorContent: combined },
+            parent_id: findParentId(prev, selectedId)
+          }).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error"));
+
+          return { ...n, content: { ...n.content, editorContent: combined } };
         }
         return n;
       }));
     }
-
-    // 변경사항 즉시 저장
-    setTimeout(() => {
-      const nd = findNode(tree, selectedId);
-      if (nd) {
-        saveNode(nd)
-          .then(() => setSaveStatus("saved"))
-          .catch(() => setSaveStatus("error"));
-      }
-    }, 100);
   }, [selectedId, tree, saveNode]);
 
   const onTitleChange=(newTitle:string)=>{setPageTitle(newTitle);renameNode(selectedId!,newTitle);};
@@ -348,6 +386,30 @@ export default function Home(){
 
         <div style={{flex:1,overflowY:"auto",paddingBottom:60,scrollbarWidth:"none"}}>
           {activePanel==="files"&&(<>
+            <Accordion title="오늘의 할 일" icon="✅" defaultOpen={true} theme={t}>
+              <div style={{ padding: "8px 16px" }}>
+                <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                  <input 
+                    value={newTodo}
+                    onChange={e => setNewTodo(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && addTodo()}
+                    placeholder="할 일 추가..."
+                    style={{ flex: 1, background: t.hv, border: `1px solid ${t.bd}`, borderRadius: 8, padding: "6px 10px", fontSize: 12, color: t.tx, outline: "none" }}
+                  />
+                  <button onClick={addTodo} style={{ background: t.ac, color: "#fff", border: "none", borderRadius: 8, padding: "0 10px", cursor: "pointer", fontSize: 16 }}>+</button>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 180, overflowY: "auto", scrollbarWidth: "none" }}>
+                  {todos.map(todo => (
+                    <div key={todo.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: t.hv, border: `1px solid ${t.bd}30` }}>
+                      <input type="checkbox" checked={todo.completed} onChange={() => toggleTodo(todo.id)} style={{ cursor: "pointer" }} />
+                      <span style={{ flex: 1, fontSize: 11, color: todo.completed ? `${t.tx}60` : t.tx, textDecoration: todo.completed ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis" }}>{todo.text}</span>
+                      <button onClick={() => removeTodo(todo.id)} style={{ background: "transparent", border: "none", color: `${t.tx}40`, cursor: "pointer", fontSize: 10 }}>✕</button>
+                    </div>
+                  ))}
+                  {todos.length === 0 && <div style={{ textAlign: "center", padding: "12px", fontSize: 11, color: `${t.tx}40` }}>할 일이 없네요! 🌱</div>}
+                </div>
+              </div>
+            </Accordion>
             <Accordion title="가시성" icon={Icons.folder(t.tx2)} defaultOpen={true} theme={t}>
               <div style={{padding:"8px 0"}}>
                 <div style={{margin:"0 16px 12px 16px",display:"flex",gap:6}}>
