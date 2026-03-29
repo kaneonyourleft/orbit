@@ -217,7 +217,7 @@ export default function Home(){
   const onContentChange=useCallback((content:any)=>{if(!selectedId)return;
     setTree(prev=>prev.map(n=>n.id===selectedId?{...n,content}:n));
     if(contentTimer.current)clearTimeout(contentTimer.current);
-    contentTimer.current=setTimeout(()=>{const nd=findNode(tree,selectedId);if(nd)saveNode({...nd,content,parent_id:findParentId(tree,selectedId)});},800);
+    contentTimer.current=setTimeout(()=>{const nd=findNode(tree,selectedId);if(nd)saveNode({...nd,content:{editorContent:content,sheets:nd.content?.sheets},parent_id:findParentId(tree,selectedId)});},800);
     try{const txt=JSON.stringify(content);setWordCount(txt.replace(/[^가-힣a-zA-Z0-9\s]/g,"").split(/\s+/).filter(Boolean).length);}catch{setWordCount(0);}
   },[selectedId, tree, saveNode]);
 
@@ -256,10 +256,24 @@ export default function Home(){
         </div>
         {activePanel==="files"&&<div style={{flex:1,overflowY:"auto",padding:"4px 0"}}>
           {favPages.length>0&&<><div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>FAVORITES</div>{favPages.map(p=><div key={p.id} onClick={()=>setSelectedId(p.id)} style={{height:28,padding:"0 12px 0 20px",display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,borderRadius:6,margin:"0 4px",background:selectedId===p.id?t.hv:"transparent"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(selectedId!==p.id)e.currentTarget.style.background="transparent";}}>{Icons.star(t.ac)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span></div>)}<div style={{height:1,background:t.bd,margin:"6px 12px"}}/></>}
-          <div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>PRIVATE</span><span style={{cursor:"pointer",display:"flex",gap:4}} onClick={()=>addNew(null,"page")}>{Icons.plus(t.tx2)}</span></div>
+          <div style={{padding:"8px 12px 4px",fontSize:11,fontWeight:600,color:t.tx2,letterSpacing:0.5}}>PRIVATE</div>
+          <div style={{padding:"4px 8px 8px",display:"flex",gap:6}}>
+            <div onClick={()=>addNew(null,"page")}
+              style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"6px 0",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:500,color:t.tx2,background:t.hv,border:`1px solid ${t.bd}`,transition:"all 0.15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=t.ac;e.currentTarget.style.color=t.ac;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=t.bd;e.currentTarget.style.color=t.tx2;}}>
+              {Icons.page(t.tx2)} 새 노트
+            </div>
+            <div onClick={()=>addNew(null,"folder")}
+              style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"6px 0",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:500,color:t.tx2,background:t.hv,border:`1px solid ${t.bd}`,transition:"all 0.15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=t.ac;e.currentTarget.style.color=t.ac;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=t.bd;e.currentTarget.style.color=t.tx2;}}>
+              {Icons.folder(t.tx2)} 새 폴더
+            </div>
+          </div>
           {loading && <div style={{padding:12,opacity:0.4,fontSize:12}}>불러오는 중...</div>}
           {tree.map(n=><FileNode key={n.id} node={n} depth={0} selectedId={selectedId} onSelect={setSelectedId} onToggle={toggleCollapse} onCtx={(e:any,nd:TreeNode)=>setCtxMenu({x:e.clientX,y:e.clientY,node:nd})} renameId={renameId} renameVal={renameVal} setRenameVal={setRenameVal} commitRename={commitRename} dragSrc={dragSrc} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} t={t}/>)}
-          <div style={{padding:"8px 12px",display:"flex",gap:8}}><span onClick={()=>addNew(null,"folder")} style={{fontSize:12,cursor:"pointer",color:t.tx2,display:"flex",alignItems:"center",gap:4,borderRadius:4,padding:"4px 8px"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.folder(t.tx2)} 새 폴더</span></div>
+
         </div>}
         {activePanel==="search"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}><input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="페이지 검색..." autoFocus style={{width:"100%",padding:"8px 10px",fontSize:13,background:t.hv,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,outline:"none",fontFamily:"var(--font-main)"}}/><div style={{marginTop:8}}>{searchResults.map(p=><div key={p.id} onClick={()=>{setSelectedId(p.id);}} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.page(t.tx2)} <span style={{marginLeft:6}}>{p.name}</span></div>)}{searchQ&&searchResults.length===0&&<div style={{padding:12,fontSize:13,color:t.tx2}}>결과 없음</div>}</div></div>}
         {activePanel==="bookmark"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{Array.from(bookmarks).map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.bookmark(t.ac)}{nd.name}</div>:null;})}{bookmarks.size===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>북마크가 없습니다</div>}</div>}
@@ -442,7 +456,7 @@ export default function Home(){
           {selectedNode&&<span style={{fontSize:11,color:t.tx2}}>{wordCount} 단어</span>}
         </div>
         <div style={{flex:1,overflow:"auto"}}>
-          {selectedNode&&selectedNode.type==="page"?(<div className="fade-in editor-wrap"><div style={{maxWidth:"100%",margin:"0",padding:"32px 48px 0"}}><input value={pageTitle} onChange={e=>onTitleChange(e.target.value)} placeholder="제목 없음" style={{width:"100%",background:"transparent",border:"none",outline:"none",fontSize:32,fontWeight:700,color:t.tx,fontFamily:"var(--font-main)",marginBottom:4}}/></div><DynamicEditor key={selectedId!} initialContent={selectedNode.content} onChange={onContentChange} darkMode={isDark} />
+          {selectedNode&&selectedNode.type==="page"?(<div className="fade-in editor-wrap"><div style={{maxWidth:"100%",margin:"0",padding:"32px 48px 0"}}><input value={pageTitle} onChange={e=>onTitleChange(e.target.value)} placeholder="제목 없음" style={{width:"100%",background:"transparent",border:"none",outline:"none",fontSize:32,fontWeight:700,color:t.tx,fontFamily:"var(--font-main)",marginBottom:4}}/></div><DynamicEditor key={selectedId!} initialContent={selectedNode.content?.editorContent || selectedNode.content} onChange={onContentChange} darkMode={isDark} />
           <div style={{maxWidth:"100%",padding:"0 48px 48px"}}>
             <div onClick={()=>setShowTable(!showTable)}
               style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:6,cursor:"pointer",fontSize:12,color:t.tx2,border:`1px dashed ${t.bd}`,marginBottom:showTable?12:0,transition:"all 0.15s"}}

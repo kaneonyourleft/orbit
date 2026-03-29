@@ -238,7 +238,9 @@ export default function SpreadsheetTable({ darkMode=true, accentColor="#569cd6",
     if(!pageId) return;
     try{
       const supabase=createClient();
-      await supabase.from("pages").update({content:{sheets:data}}).eq("id",pageId);
+      const {data:existing}=await supabase.from("pages").select("content").eq("id",pageId).single();
+      const prev=existing?.content||{};
+      await supabase.from("pages").update({content:{...prev,sheets:data}}).eq("id",pageId);
     }catch(e){console.error("Table save error:",e);}
   },[pageId]);
 

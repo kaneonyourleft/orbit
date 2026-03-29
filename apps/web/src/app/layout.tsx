@@ -1,23 +1,48 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: 'ORBIT | Workspace OS',
-  description: 'The Notion-style workspace for modern teams.',
+  title: "ORBIT | Workspace OS",
+  description: "노션 + 옵시디언 + 엑셀을 하나로",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ORBIT",
+  },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  themeColor: "#7f6df2",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full scroll-smooth">
+    <html lang="ko">
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="bg-white text-zinc-900 font-sans antialiased min-h-full flex flex-col overflow-hidden">
+      <body>
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js').then(reg => {
+                    console.log('SW registered:', reg);
+                  }).catch(err => {
+                    console.log('SW error:', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
