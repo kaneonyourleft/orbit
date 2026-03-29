@@ -134,8 +134,22 @@ function FileNode({node,depth,selectedId,onSelect,onToggle,onCtx,renameId,rename
 /* ── Main ── */
 export default function Home(){
   const {loading,loadTree,saveNode,deleteNode:dbDelete,loadBookmarks:dbLoadBM,syncBookmarks:dbSyncBM}=usePages();
-  const [theme,setTheme]=useState<string>(()=>{if(typeof window!=="undefined"){return localStorage.getItem("orbit-theme")||"obsidian";}return"obsidian";});
-  const [activePanel,setActivePanel]=useState<string>("files");
+  type PanelType = "files" | "search" | "bookmark" | "recent" | "trash" | "settings";
+  const [theme, setTheme] = useState<string>(() => {
+    if (typeof window !== "undefined") { return localStorage.getItem("orbit-theme") || "obsidian"; }
+    return "obsidian";
+  });
+  const [activePanel, setActivePanel] = useState<PanelType>("files");
+  const [settingsTab, setSettingsTab] = useState<"theme"|"shortcuts"|"general">("theme");
+  const [savedCustomThemes, setSavedCustomThemes] = useState<{name:string;colors:any}[]>(()=>{
+    if(typeof window!=="undefined"){const s=localStorage.getItem("orbit-custom-themes");if(s)try{return JSON.parse(s);}catch{}}return[];
+  });
+  const [customThemeName, setCustomThemeName] = useState("");
+  const [showRibbon, setShowRibbon] = useState(true);
+
+  // savedCustomThemes persist
+  useEffect(()=>{if(typeof window!=="undefined")localStorage.setItem("orbit-custom-themes",JSON.stringify(savedCustomThemes));},[savedCustomThemes]);
+  useEffect(()=>{if(typeof window!=="undefined")localStorage.setItem("orbit-theme",theme);},[theme]);
   const [sidebarOpen,setSidebarOpen]=useState(true);
   const [sidebarWidth,setSidebarWidth]=useState(248);
   const [customTheme, setCustomTheme] = useState<{bg:string;sb:string;rb:string;tx:string;tx2:string;ac:string;bd:string;hv:string;card:string}|null>(null);
@@ -185,12 +199,12 @@ export default function Home(){
   },[sidebarWidth]);
 
   const toggleCollapse=(id:string)=>{setTree(prev=>{const upd=(ns:TreeNode[]):TreeNode[]=>ns.map(n=>n.id===id?{...n,collapsed:!n.collapsed}:{...n,children:upd(n.children)});return upd(prev);});const nd=findNode(tree,id);if(nd)saveNode({...nd,collapsed:!nd.collapsed});};
-  const renameNode=(id:string,name:string)=>{if(!name.trim())return;setTree(prev=>{const upd=(ns:TreeNode[]):TreeNode[]=>ns.map(n=>n.id===id?{...n,name}:{...n,children:upd(n.children)});return upd(prev);});const nd=findNode(tree,id);if(nd)saveNode({...nd,name},findParentId(tree,id));};
+  const renameNode=(id:string,name:string)=>{if(!name.trim())return;setTree(prev=>{const upd=(ns:TreeNode[]):TreeNode[]=>ns.map(n=>n.id===id?{...n,name}:{...n,children:upd(n.children)});return upd(prev);});const nd=findNode(tree,id);if(nd)saveNode({...nd,name,parent_id:findParentId(tree,id)});};
   const commitRename=()=>{if(renameId&&renameVal.trim())renameNode(renameId,renameVal);setRenameId(null);};
   const handleDelete=(id:string)=>{const nd=findNode(tree,id);if(nd)setTrashedNodes(p=>[...p,nd]);setTree(prev=>removeLocal(prev,id));if(selectedId===id)setSelectedId(null);dbDelete(id);};
-  const restoreNode=(nd:TreeNode)=>{setTree(p=>[...p,nd]);setTrashedNodes(p=>p.filter(n=>n.id!==nd.id));saveNode(nd,null);};
-  const duplicateNode=(nd:TreeNode)=>{const dup:TreeNode={...nd,id:uid(),name:nd.name+" (복사)",children:[]};const pid=findParentId(tree,nd.id);setTree(p=>pid?insertLocal(p,pid,dup):[...p,dup]);saveNode(dup,pid);};
-  const addNew=(parentId:string|null,type:"folder"|"page")=>{const child:TreeNode={id:uid(),type,name:type==="folder"?"새 폴더":"새 페이지",children:[],content:null};setTree(p=>parentId?insertLocal(p,parentId,child):[...p,child]);saveNode(child,parentId);if(type==="page")setSelectedId(child.id);};
+  const restoreNode=(nd:TreeNode)=>{setTree(p=>[...p,nd]);setTrashedNodes(p=>p.filter(n=>n.id!==nd.id));saveNode(nd);};
+  const duplicateNode=(nd:TreeNode)=>{const pid=findParentId(tree,nd.id);const dup:TreeNode={...nd,id:uid(),name:nd.name+" (복사)",parent_id:pid,children:[]};setTree(p=>pid?insertLocal(p,pid,dup):[...p,dup]);saveNode(dup);};
+  const addNew=(parentId:string|null,type:"folder"|"page")=>{const child:TreeNode={id:uid(),type,name:type==="folder"?"새 폴더":"새 페이지",parent_id:parentId,position:tree.length,collapsed:false,content:null,children:[]};setTree(p=>parentId?insertLocal(p,parentId,child):[...p,child]);saveNode(child);if(type==="page")setSelectedId(child.id);};
   const toggleBookmark=(id:string)=>{setBookmarks(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);dbSyncBM(Array.from(s));return s;});};
   const toggleFavorite=(id:string)=>{setFavorites(p=>{const s=new Set(p);s.has(id)?s.delete(id):s.add(id);return s;});};
 
@@ -198,13 +212,12 @@ export default function Home(){
   const onDragOver=(e:DragEvent,id:string)=>{e.preventDefault();e.dataTransfer.dropEffect="move";};
   const onDrop=(e:DragEvent,targetId:string)=>{e.preventDefault();if(!dragSrc||dragSrc===targetId)return;if(isDesc(tree,dragSrc,targetId))return;
     const nd=findNode(tree,dragSrc);if(!nd)return;const targetNd=findNode(tree,targetId);const dropParent=targetNd?.type==="folder"?targetId:findParentId(tree,targetId);
-    setTree(p=>{let t=removeLocal(p,dragSrc);return insertLocal(t,dropParent,nd);});saveNode({...nd,parent_id:dropParent},dropParent);setDragSrc(null);};
+    setTree(p=>{let t=removeLocal(p,dragSrc);return insertLocal(t,dropParent,nd);});saveNode({...nd,parent_id:dropParent});setDragSrc(null);};
 
-  const contentTimer=useRef<any>(null);
   const onContentChange=useCallback((content:any)=>{if(!selectedId)return;
     setTree(prev=>prev.map(n=>n.id===selectedId?{...n,content}:n));
     if(contentTimer.current)clearTimeout(contentTimer.current);
-    contentTimer.current=setTimeout(()=>{const nd=findNode(tree,selectedId);if(nd)saveNode({...nd,content},findParentId(tree,selectedId));},800);
+    contentTimer.current=setTimeout(()=>{const nd=findNode(tree,selectedId);if(nd)saveNode({...nd,content,parent_id:findParentId(tree,selectedId)});},800);
     try{const txt=JSON.stringify(content);setWordCount(txt.replace(/[^가-힣a-zA-Z0-9\s]/g,"").split(/\s+/).filter(Boolean).length);}catch{setWordCount(0);}
   },[selectedId, tree, saveNode]);
 
@@ -252,106 +265,173 @@ export default function Home(){
         {activePanel==="bookmark"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{Array.from(bookmarks).map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.bookmark(t.ac)}{nd.name}</div>:null;})}{bookmarks.size===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>북마크가 없습니다</div>}</div>}
         {activePanel==="recent"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{recentIds.map(id=>{const nd=findNode(tree,id);return nd?<div key={id} onClick={()=>setSelectedId(id)} style={{padding:"6px 10px",fontSize:13,cursor:"pointer",borderRadius:6,display:"flex",alignItems:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>{Icons.recent(t.tx2)}{nd.name}</div>:null;})}{recentIds.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>최근 문서 없음</div>}</div>}
         {activePanel==="trash"&&<div style={{flex:1,overflowY:"auto",padding:"8px"}}>{trashedNodes.map(nd=><div key={nd.id} style={{padding:"6px 10px",fontSize:13,borderRadius:6,display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}} onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}><span style={{display:"flex",alignItems:"center",gap:6}}>{Icons.page(t.tx2)}{nd.name}</span><span onClick={()=>restoreNode(nd)} style={{cursor:"pointer",opacity:0.5,display:"flex"}} title="복원">{Icons.restore(t.ac)}</span></div>)}{trashedNodes.length===0&&<div style={{padding:16,fontSize:13,color:t.tx2,textAlign:"center"}}>휴지통이 비어 있습니다</div>}</div>}
-        {activePanel==="settings"&&<div style={{flex:1,overflowY:"auto",padding:"16px 12px"}}>
-  {/* Theme Mode Tabs */}
-  <div style={{display:"flex",gap:4,marginBottom:12,background:t.hv,borderRadius:8,padding:3}}>
-    {(["preset","palette","custom"] as const).map(m=>(
-      <div key={m} onClick={()=>setThemeMode(m)}
-        style={{flex:1,padding:"6px 0",textAlign:"center",fontSize:11,fontWeight:600,borderRadius:6,cursor:"pointer",
-          background:themeMode===m?t.ac:"transparent",color:themeMode===m?(theme==="light"||theme==="cream"?"#fff":"#fff"):t.tx2,
-          transition:"all 0.15s"}}>
-        {m==="preset"?"프리셋":m==="palette"?"팔레트":"커스텀"}
-      </div>
-    ))}
-  </div>
-
-  {/* Preset themes */}
-  {themeMode==="preset"&&<>
-    <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>기본 테마</div>
-    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-      {Object.entries(THEMES).map(([key,val])=>(
-        <div key={key} onClick={()=>{setTheme(key);setCustomTheme(null);}}
-          style={{padding:"8px 10px",borderRadius:6,cursor:"pointer",display:"flex",alignItems:"center",gap:10,
-            background:theme===key&&!customTheme?t.hv:"transparent",border:theme===key&&!customTheme?`1px solid ${t.ac}`:"1px solid transparent",transition:"all 0.15s"}}
-          onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!(theme===key&&!customTheme))e.currentTarget.style.background="transparent";}}>
-          <div style={{width:18,height:18,borderRadius:"50%",background:val.bg,border:`2px solid ${val.ac}`}}/>
-          <span style={{fontSize:13}}>{val.n}</span>
-        </div>
-      ))}
-    </div>
-  </>}
-
-  {/* Palette presets */}
-  {themeMode==="palette"&&<>
-    <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>추천 색조합</div>
-    <div style={{display:"flex",flexDirection:"column",gap:6}}>
-      {PALETTE_PRESETS.map((p,i)=>(
-        <div key={i} onClick={()=>setCustomTheme(p.colors)}
-          style={{padding:"8px 10px",borderRadius:8,cursor:"pointer",display:"flex",alignItems:"center",gap:10,
-            border:customTheme&&customTheme.ac===p.colors.ac?`1px solid ${p.colors.ac}`:"1px solid transparent",
-            background:customTheme&&customTheme.ac===p.colors.ac?"rgba(255,255,255,0.04)":"transparent",transition:"all 0.15s"}}
-          onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.04)";}} onMouseLeave={e=>{if(!(customTheme&&customTheme.ac===p.colors.ac))e.currentTarget.style.background="transparent";}}>
-          <div style={{display:"flex",gap:3}}>
-            <div style={{width:14,height:14,borderRadius:"50%",background:p.colors.bg,border:"1px solid rgba(255,255,255,0.1)"}}/>
-            <div style={{width:14,height:14,borderRadius:"50%",background:p.colors.sb}}/>
-            <div style={{width:14,height:14,borderRadius:"50%",background:p.colors.ac}}/>
-            <div style={{width:14,height:14,borderRadius:"50%",background:p.colors.tx}}/>
+        {activePanel==="settings"&&<div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+          {/* Settings tabs */}
+          <div style={{display:"flex",borderBottom:`1px solid ${t.bd}`,flexShrink:0}}>
+            {([{id:"theme",label:"테마"},{id:"shortcuts",label:"단축키"},{id:"general",label:"일반"}] as const).map(tab=>(
+              <div key={tab.id} onClick={()=>setSettingsTab(tab.id)}
+                style={{flex:1,padding:"10px 0",textAlign:"center",fontSize:12,fontWeight:600,cursor:"pointer",
+                  color:settingsTab===tab.id?t.ac:t.tx2,borderBottom:settingsTab===tab.id?`2px solid ${t.ac}`:"2px solid transparent",transition:"all 0.15s"}}>
+                {tab.label}
+              </div>
+            ))}
           </div>
-          <span style={{fontSize:12,fontWeight:500}}>{p.name}</span>
-        </div>
-      ))}
-    </div>
-  </>}
 
-  {/* Custom color picker */}
-  {themeMode==="custom"&&<>
-    <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>영역별 색상 설정</div>
-    <div style={{display:"flex",flexDirection:"column",gap:8}}>
-      {([
-        {key:"bg",label:"배경"},
-        {key:"sb",label:"사이드바"},
-        {key:"rb",label:"리본"},
-        {key:"tx",label:"텍스트"},
-        {key:"tx2",label:"보조 텍스트"},
-        {key:"ac",label:"강조색"},
-        {key:"bd",label:"테두리"},
-      ] as {key:string;label:string}[]).map(item=>(
-        <div key={item.key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 0"}}>
-          <span style={{fontSize:12,color:t.tx}}>{item.label}</span>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <input type="color" value={(customTheme as any)?.[item.key] || (t as any)[item.key] || "#000000"}
-              onChange={e=>{
-                const prev = customTheme || {bg:t.bg,sb:t.sb,rb:t.rb,tx:t.tx,tx2:t.tx2,ac:t.ac,bd:t.bd,hv:t.hv,card:t.card};
-                setCustomTheme({...prev,[item.key]:e.target.value});
-              }}
-              style={{width:28,height:28,border:"none",borderRadius:6,cursor:"pointer",background:"transparent",padding:0}}/>
-            <span style={{fontSize:10,color:t.tx2,fontFamily:"monospace"}}>{(customTheme as any)?.[item.key] || (t as any)[item.key]}</span>
+          <div style={{flex:1,overflowY:"auto",padding:"16px 12px"}}>
+            {/* Theme tab */}
+            {settingsTab==="theme"&&<>
+              {/* Mode tabs */}
+              <div style={{display:"flex",gap:4,marginBottom:16,background:t.hv,borderRadius:8,padding:3}}>
+                {(["preset","palette","custom"] as const).map(m=>(
+                  <div key={m} onClick={()=>setThemeMode(m)}
+                    style={{flex:1,padding:"6px 0",textAlign:"center",fontSize:11,fontWeight:600,borderRadius:6,cursor:"pointer",
+                      background:themeMode===m?t.ac:"transparent",color:themeMode===m?"#fff":t.tx2,transition:"all 0.15s"}}>
+                    {m==="preset"?"기본":m==="palette"?"추천":m==="custom"?"커스텀":""}
+                  </div>
+                ))}
+              </div>
+
+              {themeMode==="preset"&&<div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {Object.entries(THEMES).map(([key,val])=>(
+                  <div key={key} onClick={()=>{setTheme(key);setCustomTheme(null);}}
+                    style={{padding:"10px 12px",borderRadius:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12,
+                      background:theme===key&&!customTheme?t.hv:"transparent",border:theme===key&&!customTheme?`1px solid ${t.ac}`:"1px solid transparent",transition:"all 0.15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!(theme===key&&!customTheme))e.currentTarget.style.background="transparent";}}>
+                    <div style={{display:"flex",gap:3}}>
+                      <div style={{width:16,height:16,borderRadius:"50%",background:val.bg,border:`2px solid ${val.ac}`}}/>
+                      <div style={{width:16,height:16,borderRadius:"50%",background:val.sb}}/>
+                      <div style={{width:16,height:16,borderRadius:"50%",background:val.ac}}/>
+                    </div>
+                    <span style={{fontSize:13,fontWeight:500}}>{val.n}</span>
+                  </div>
+                ))}
+              </div>}
+
+              {themeMode==="palette"&&<div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {PALETTE_PRESETS.map((p,i)=>(
+                  <div key={i} onClick={()=>setCustomTheme(p.colors)}
+                    style={{padding:"10px 12px",borderRadius:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12,
+                      border:customTheme&&customTheme.ac===p.colors.ac?`1px solid ${p.colors.ac}`:"1px solid transparent",
+                      background:customTheme&&customTheme.ac===p.colors.ac?t.hv:"transparent",transition:"all 0.15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!(customTheme&&customTheme.ac===p.colors.ac))e.currentTarget.style.background="transparent";}}>
+                    <div style={{display:"flex",gap:3}}>
+                      {[p.colors.bg,p.colors.sb,p.colors.ac,p.colors.tx].map((c,j)=>(
+                        <div key={j} style={{width:14,height:14,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.2)"}}/>
+                      ))}
+                    </div>
+                    <span style={{fontSize:12,fontWeight:500}}>{p.name}</span>
+                  </div>
+                ))}
+              </div>}
+
+              {themeMode==="custom"&&<>
+                <div style={{fontSize:11,color:t.tx2,marginBottom:12}}>각 영역의 색상을 직접 설정합니다</div>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {([{key:"bg",label:"배경",icon:"◼"},{key:"sb",label:"사이드바",icon:"◧"},{key:"rb",label:"리본",icon:"▮"},{key:"tx",label:"텍스트",icon:"A"},{key:"tx2",label:"보조 텍스트",icon:"a"},{key:"ac",label:"강조색",icon:"●"}] as any[]).map(item=>(
+                    <div key={item.key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:6,background:t.hv}}>
+                      <span style={{fontSize:12,display:"flex",alignItems:"center",gap:6}}><span style={{opacity:0.4}}>{item.icon}</span> {item.label}</span>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{fontSize:10,color:t.tx2,fontFamily:"monospace"}}>{(customTheme as any)?.[item.key]||(t as any)[item.key]}</span>
+                        <input type="color" value={(customTheme as any)?.[item.key]||(t as any)[item.key]||"#000"}
+                          onChange={e=>{const prev=customTheme||{bg:t.bg,sb:t.sb,rb:t.rb,tx:t.tx,tx2:t.tx2,ac:t.ac,bd:t.bd,hv:t.hv,card:t.card};setCustomTheme({...prev,[item.key]:e.target.value});}}
+                          style={{width:24,height:24,border:`1px solid ${t.bd}`,borderRadius:6,cursor:"pointer",padding:0,background:"transparent"}}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Save custom theme */}
+                <div style={{marginTop:12,display:"flex",gap:6}}>
+                  <input value={customThemeName} onChange={e=>setCustomThemeName(e.target.value)} placeholder="테마 이름"
+                    style={{flex:1,padding:"6px 8px",fontSize:12,background:t.hv,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,outline:"none"}}/>
+                  <div onClick={()=>{if(customTheme&&customThemeName.trim()){setSavedCustomThemes(p=>[...p,{name:customThemeName,colors:customTheme}]);setCustomThemeName("");}}}
+                    style={{padding:"6px 12px",fontSize:12,borderRadius:6,background:t.ac,color:"#fff",cursor:"pointer",fontWeight:600}}>저장</div>
+                </div>
+
+                {/* Saved custom themes */}
+                {savedCustomThemes.length>0&&<>
+                  <div style={{fontSize:11,color:t.tx2,marginTop:16,marginBottom:8}}>저장된 커스텀 테마</div>
+                  {savedCustomThemes.map((st,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:6,marginBottom:4,
+                      border:customTheme&&customTheme.ac===st.colors.ac?`1px solid ${st.colors.ac}`:"1px solid transparent"}}
+                      onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                      <div onClick={()=>setCustomTheme(st.colors)} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",flex:1}}>
+                        <div style={{display:"flex",gap:2}}>
+                          {[st.colors.bg,st.colors.sb,st.colors.ac].map((c:string,j:number)=>(
+                            <div key={j} style={{width:12,height:12,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.2)"}}/>
+                          ))}
+                        </div>
+                        <span style={{fontSize:12}}>{st.name}</span>
+                      </div>
+                      <span onClick={()=>setSavedCustomThemes(p=>p.filter((_,j)=>j!==i))} style={{cursor:"pointer",color:"#e55",fontSize:12,padding:"2px 6px"}}>삭제</span>
+                    </div>
+                  ))}
+                </>}
+
+                <div onClick={()=>setCustomTheme(null)} style={{marginTop:12,padding:"8px",textAlign:"center",fontSize:12,color:t.tx2,borderRadius:6,cursor:"pointer",border:`1px dashed ${t.bd}`}}
+                  onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                  기본 테마로 초기화
+                </div>
+              </>}
+            </>}
+
+            {/* Shortcuts tab */}
+            {settingsTab==="shortcuts"&&<>
+              <div style={{fontSize:11,color:t.tx2,marginBottom:12}}>키보드 단축키를 확인하세요</div>
+              {[
+                {keys:"Ctrl + N",desc:"새 페이지 생성"},
+                {keys:"Ctrl + P",desc:"빠른 검색 열기"},
+                {keys:"Ctrl + \\",desc:"사이드바 토글"},
+                {keys:"Ctrl + Shift + F",desc:"포커스 모드 토글"},
+                {keys:"Ctrl + S",desc:"페이지 저장 (자동 저장됨)"},
+                {keys:"Ctrl + Z",desc:"실행 취소"},
+                {keys:"Ctrl + Shift + Z",desc:"다시 실행"},
+                {keys:"/",desc:"슬래시 명령어"},
+                {keys:"Ctrl + B",desc:"굵게"},
+                {keys:"Ctrl + I",desc:"기울임"},
+              ].map((s,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 10px",borderRadius:6,marginBottom:2}}
+                  onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                  <span style={{fontSize:13}}>{s.desc}</span>
+                  <div style={{display:"flex",gap:4}}>
+                    {s.keys.split(" + ").map((k,j)=>(
+                      <span key={j} style={{padding:"3px 8px",borderRadius:4,background:t.hv,border:`1px solid ${t.bd}`,fontSize:11,fontWeight:600,fontFamily:"monospace",color:t.tx2}}>{k}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </>}
+
+            {/* General tab */}
+            {settingsTab==="general"&&<>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {/* Focus mode */}
+                <div onClick={()=>setFocusMode(!focusMode)}
+                  style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 10px",borderRadius:8,cursor:"pointer",background:t.hv}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:500}}>포커스 모드</div>
+                    <div style={{fontSize:11,color:t.tx2,marginTop:2}}>사이드바와 도구모음을 숨깁니다</div>
+                  </div>
+                  <div style={{width:40,height:22,borderRadius:11,background:focusMode?t.ac:t.bd,position:"relative",transition:"background 0.2s",cursor:"pointer"}}>
+                    <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:focusMode?20:2,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+                  </div>
+                </div>
+
+                {/* Sidebar width info */}
+                <div style={{padding:"12px 10px",borderRadius:8,background:t.hv}}>
+                  <div style={{fontSize:13,fontWeight:500}}>사이드바 너비</div>
+                  <div style={{fontSize:11,color:t.tx2,marginTop:2}}>사이드바 우측 모서리를 드래그하여 조절 (현재: {sidebarWidth}px)</div>
+                </div>
+
+                {/* Version */}
+                <div style={{padding:"12px 10px",borderRadius:8,background:t.hv}}>
+                  <div style={{fontSize:13,fontWeight:500}}>ORBIT Workspace OS</div>
+                  <div style={{fontSize:11,color:t.tx2,marginTop:2}}>버전 0.3.0 · Phase 3 · Supabase 연동됨</div>
+                </div>
+              </div>
+            </>}
           </div>
-        </div>
-      ))}
-    </div>
-    <div onClick={()=>setCustomTheme(null)} style={{marginTop:12,padding:"8px",textAlign:"center",fontSize:12,color:t.tx2,borderRadius:6,cursor:"pointer",border:`1px dashed ${t.bd}`}}
-      onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
-      기본 테마로 초기화
-    </div>
-  </>}
-
-  <div style={{height:1,background:t.bd,margin:"16px 0"}}/>
-  <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>단축키</div>
-  <div style={{fontSize:12,color:t.tx2,lineHeight:2}}>
-    <div>Ctrl+N — 새 페이지</div>
-    <div>Ctrl+P — 검색</div>
-    <div>Ctrl+\ — 사이드바 토글</div>
-    <div>Ctrl+Shift+F — 포커스 모드</div>
-  </div>
-  <div style={{height:1,background:t.bd,margin:"16px 0"}}/>
-  <div style={{fontSize:12,fontWeight:600,color:t.tx2,marginBottom:8}}>포커스 모드</div>
-  <div onClick={()=>setFocusMode(!focusMode)}
-    style={{padding:"8px 10px",borderRadius:6,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:8,background:focusMode?t.hv:"transparent"}}
-    onMouseEnter={e=>{e.currentTarget.style.background=t.hv;}} onMouseLeave={e=>{if(!focusMode)e.currentTarget.style.background="transparent";}}>
-    {Icons.focus(t.ac)}{focusMode?"포커스 모드 끄기":"포커스 모드 켜기"}
-  </div>
-</div>}
+        </div>}
         <div onMouseDown={startResize} style={{position:"absolute",right:0,top:0,bottom:0,width:3,cursor:"col-resize",zIndex:10}} onMouseEnter={e=>{e.currentTarget.style.background=t.ac;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}/>
       </div>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -370,7 +450,7 @@ export default function Home(){
               onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor=t.bd;e.currentTarget.style.color=t.tx2;}}>
               {showTable?"▾ 테이블 숨기기":"▸ 스프레드시트 테이블 열기"}
             </div>
-            {showTable && <SpreadsheetTable darkMode={isDark} accentColor={t.ac} />}
+            {showTable && <SpreadsheetTable darkMode={isDark} accentColor={t.ac} pageId={selectedId || undefined} />}
           </div></div>):(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",opacity:0.3}}><div style={{fontSize:48,marginBottom:16}}>🌑</div><div style={{fontSize:14}}>사이드바에서 페이지를 선택하거나</div><div style={{fontSize:14,marginTop:4}}>Ctrl+N으로 새 페이지를 만드세요</div></div>)}
         </div>
       </div>
