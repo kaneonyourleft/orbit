@@ -8,12 +8,11 @@ interface Props {
   rows: DBRow[];
   filters: DBFilter[];
   sorts: DBSort[];
-  onUpdateCell: (rowId: string, columnId: string, value: any) => void;
+  onUpdateCell: (rowId: string, columnId: string, value: string | number | boolean | null | undefined) => void;
   onAddRow: () => void;
   onDeleteRow: (rowId: string) => void;
   onAddColumn: (col: DBColumn) => void;
   onUpdateColumn: (colId: string, updates: Partial<DBColumn>) => void;
-  onDeleteColumn: (colId: string) => void;
 }
 
 function applyFilters(rows: DBRow[], filters: DBFilter[]): DBRow[] {
@@ -49,7 +48,7 @@ function applySorts(rows: DBRow[], sorts: DBSort[]): DBRow[] {
   });
 }
 
-export default function InlineTable({ columns, rows, filters, sorts, onUpdateCell, onAddRow, onDeleteRow, onAddColumn, onUpdateColumn, onDeleteColumn }: Props) {
+export default function InlineTable({ columns, rows, filters, sorts, onUpdateCell, onAddRow, onDeleteRow, onAddColumn, onUpdateColumn }: Props) {
   const [editingCell, setEditingCell] = useState<{ rowId: string; colId: string } | null>(null);
   const [addColOpen, setAddColOpen] = useState(false);
   const [editColId, setEditColId] = useState<string | null>(null);
@@ -114,6 +113,8 @@ export default function InlineTable({ columns, rows, filters, sorts, onUpdateCel
       return (
         <input 
           ref={inputRef} autoFocus defaultValue={val ?? ''}
+          aria-label={`${col.name} 셀 수정`}
+          placeholder={`${col.name} 입력`}
           onBlur={e => { onUpdateCell(row.id, col.id, col.type === 'number' ? Number(e.target.value) : e.target.value); setEditingCell(null); }}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingCell(null); }}
           className="w-full text-xs font-bold bg-indigo-500/10 text-white rounded-lg px-2 py-1 outline-none ring-1 ring-indigo-500/50"

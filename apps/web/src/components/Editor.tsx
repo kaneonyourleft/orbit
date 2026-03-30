@@ -18,12 +18,7 @@ import DatabaseBlock from "./blocks/DatabaseBlock";
 import ChartBlock from "./blocks/ChartBlock";
 import KPIDashboardBlock from "./blocks/KPIDashboardBlock";
 
-interface Props {
-  pageId: string;
-  initialContent?: Block[];
-  onChange?: (content: Block[]) => void;
-  darkMode?: boolean;
-}
+
 
 /* ── 1. Dashboard Block ── */
 const DashboardBlockSpec = createReactBlockSpec(
@@ -229,6 +224,13 @@ const customBlockSpecs = {
 };
 
 /* ── Editor Component ── */
+interface Props {
+  pageId: string;
+  initialContent?: Block[];
+  onChange?: (content: Block[]) => void;
+  darkMode?: boolean;
+}
+
 export default function Editor({ pageId, initialContent, onChange, darkMode = false }: Props) {
   const editor = useCreateBlockNote({
     initialContent: Array.isArray(initialContent) ? initialContent : undefined,
@@ -258,7 +260,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                   onItemClick: () => { editor.insertBlocks([{ type: "database" as any, props: { pageId } }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["db", "table", "kanban", "calendar", "데이터베이스"],
                   group: "Collections",
-                  icon: <span style={{ fontSize: 18 }}>▤</span>,
+                  icon: <span title="Database" style={{ fontSize: 18 }}>▤</span>,
                   subtext: "테이블 · 칸반 · 캘린더 뷰",
                 },
                 {
@@ -266,7 +268,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                   onItemClick: () => { editor.insertBlocks([{ type: "chart" as any, props: { pageId } }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["chart", "graph", "차트", "시각화"],
                   group: "Visualization",
-                  icon: <span style={{ fontSize: 16 }}>📈</span>,
+                  icon: <span title="Chart" style={{ fontSize: 16 }}>📈</span>,
                   subtext: "막대 · 원형 차트",
                 },
                 {
@@ -274,7 +276,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                   onItemClick: () => { editor.insertBlocks([{ type: "kpiDashboard" as any, props: { pageId } }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["kpi", "metrics", "대시보드", "현황판"],
                   group: "Visualization",
-                  icon: <span style={{ fontSize: 16 }}>🎯</span>,
+                  icon: <span title="KPI Dashboard" style={{ fontSize: 16 }}>🎯</span>,
                   subtext: "KPI 카드 모음",
                 },
                 {
@@ -282,7 +284,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                   onItemClick: () => { editor.insertBlocks([{ type: "dashboard" as any }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["production", "stats", "생산현황"],
                   group: "Manufacturing",
-                  icon: <span style={{ fontSize: 16 }}>🚀</span>,
+                  icon: <span title="Dashboard" style={{ fontSize: 16 }}>🚀</span>,
                   subtext: "생산 현황 대시보드",
                 },
                 {
@@ -290,7 +292,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                   onItemClick: () => { editor.insertBlocks([{ type: "pivotTable" as any }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["pivot", "report", "피벗"],
                   group: "Manufacturing",
-                  icon: <span style={{ fontSize: 16 }}>📊</span>,
+                  icon: <span title="Pivot Table" style={{ fontSize: 16 }}>📊</span>,
                   subtext: "성과 테이블",
                 },
                 {

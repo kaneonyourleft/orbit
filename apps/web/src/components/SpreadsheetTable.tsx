@@ -18,7 +18,7 @@ interface Props {
   darkMode?: boolean;
   accentColor?: string;
   pageId?: string;
-  onDataUpdate?: (data: { columns: Column[], rows: Row[] }) => void;
+  onDataUpdate?: (data: { columns: Column[], rows: Row[], allSheets?: Sheet[] }) => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -74,7 +74,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
   const [showGroup, setShowGroup] = useState(false);
   const [groupByCol, setGroupByCol] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "timeline" | "calendar">("table");
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [filterQuery, setFilterQuery] = useState("");
   const [calMonth] = useState(new Date());
   const [colResize, setColResize] = useState<{ colId: string, startX: number, startW: number } | null>(null);
 
@@ -108,7 +108,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
       if (onDataUpdate) onDataUpdate({ columns: cur.columns, rows: cur.rows, allSheets: next });
       return next;
     });
-  }, [pageId]);
+  }, [activeSheet, onDataUpdate]);
 
   /* ── Interaction Handlers ── */
   const addRow = useCallback(() => updateSheets(p => p.map(s => s.id !== activeSheet ? s : { ...s, rows: [...s.rows, { id: uid(), cells: {} }] })), [activeSheet, updateSheets]);
@@ -116,15 +116,15 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
   const addCol = useCallback((type: Column["type"]) => {
     const name = { text: "텍스트", number: "숫자", date: "날짜", select: "선택", checkbox: "체크", formula: "수식", url: "URL", percent: "진행" }[type];
     updateSheets(p => p.map(s => s.id !== activeSheet ? s : { ...s, columns: [...s.columns, { id: uid(), name: `${name} ${s.columns.length + 1}`, type, width: 120 }] }));
-    setShowNewCol(false);
   }, [activeSheet, updateSheets]);
-  const deleteCol = useCallback((id: string) => updateSheets(p => p.map(s => s.id !== activeSheet ? s : { ...s, columns: s.columns.filter(c => c.id !== id) })), [activeSheet, updateSheets]);
   const updateCell = useCallback((rowId: string, colId: string, value: CellValue) => updateSheets(p => p.map(s => s.id !== activeSheet ? s : { ...s, rows: s.rows.map(r => r.id !== rowId ? r : { ...r, cells: { ...r.cells, [colId]: value } }) })), [activeSheet, updateSheets]);
+
   const addSheet = useCallback(() => { 
     const id = uid(); 
-    updateSheets(p => [...p, { id, name: `Sheet${p.length + 1}`, columns: [{ id: uid(), name: "이름", type: "text", width: 150 }], rows: [{ id: uid(), cells: {} }] }]); 
+    updateSheets(p => [...p, { id, name: `Sheet ${p.length + 1}`, columns: [{ id: uid(), name: "이름", type: "text", width: 150 }], rows: [{ id: uid(), cells: {} }] }]); 
     setActiveSheet(id); 
   }, [updateSheets]);
+
   const deleteSheet = useCallback((id: string) => { 
     if (sheets.length <= 1) return; 
     const nextList = sheets.filter(s => s.id !== id);
@@ -134,25 +134,34 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
 
   const insertAbove = useCallback((id: string) => updateSheets(p => p.map(s => s.id !== activeSheet ? s : { ...s, rows: s.rows.reduce((acc, r) => r.id === id ? [...acc, { id: uid(), cells: {} }, r] : [...acc, r], [] as Row[]) })), [activeSheet, updateSheets]);
   const insertBelow = useCallback((id: string) => updateSheets(p => p.map(s => s.id !== activeSheet ? s : { ...s, rows: s.rows.reduce((acc, r) => r.id === id ? [...acc, r, { id: uid(), cells: {} }] : [...acc, r], [] as Row[]) })), [activeSheet, updateSheets]);
-  const dupRow = useCallback((id: string) => updateSheets(p => p.map(s => s.id !== activeSheet ? s : { ...s, rows: s.rows.reduce((acc, r) => r.id === id ? [...acc, r, { ...r, id: uid() }] : [...acc, r], [] as Row[]) })), [activeSheet, updateSheets]);
 
   const copySelection = useCallback(() => { if (!sel) return; const row = rows.find(r => r.id === sel.rowId); if (row) navigator.clipboard.writeText(String(row.cells[sel.colId] || "")); }, [sel, rows]);
   const pasteFromClipboard = useCallback(async () => { if (!sel) return; const txt = await navigator.clipboard.readText(); updateCell(sel.rowId, sel.colId, txt); }, [sel, updateCell]);
 
   /* ── Process Data ── */
-  const processed = useMemo(() => {
-    let r = applyFilters(rows, filters, columns);
+  const tableRows = useMemo(() => {
+    let r = rows;
+    if (filterQuery) {
+      r = r.filter(row => columns.some(c => String(row.cells[c.id] || "").toLowerCase().includes(filterQuery.toLowerCase())));
+    }
     if (sorts.length > 0) {
       const { columnId, direction } = sorts[0];
       r = [...r].sort((a, b) => {
-        const v1 = a.cells[columnId], v2 = b.cells[columnId];
-        if (v1 === v2) return 0;
-        const res = String(v1 || "") > String(v2 || "") ? 1 : -1;
-        return direction === "asc" ? res : -res;
+        const valA = a.cells[columnId] || "";
+        const valB = b.cells[columnId] || "";
+        return direction === "asc" ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
       });
     }
     return r;
-  }, [rows, filters, columns, sorts]);
+  }, [rows, filterQuery, columns, sorts]);
+
+  const calDates = useMemo(() => {
+    const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1).getDay();
+    const days = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
+    return Array.from({ length: 42 }, (_, i) => (i >= first && i < first + days) ? i - first + 1 : null);
+  }, [calMonth]);
+
+  const processed = useMemo(() => applyFilters(tableRows, filters, columns), [tableRows, filters, columns]);
 
   const grouped = useMemo(() => {
     if (!groupByCol) return null;
@@ -164,11 +173,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
     }, {} as Record<string, Row[]>);
   }, [processed, groupByCol]);
 
-  const calDates = useMemo(() => {
-    const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1).getDay();
-    const days = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
-    return Array.from({ length: 42 }, (_, i) => (i >= first && i < first + days) ? i - first + 1 : null);
-  }, [calMonth]);
+
 
   /* ── Resize Logic ── */
   useEffect(() => {
@@ -336,7 +341,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
             { id: "timeline", l: "타임라인", i: "📊" },
             { id: "calendar", l: "캘린더", i: "📅" }
           ].map(v => (
-            <button key={v.id} onClick={() => setViewMode(v.id as any)} style={{ 
+            <button key={v.id} onClick={() => setViewMode(v.id as "table" | "timeline" | "calendar")} style={{ 
               padding: "4px 12px", 
               fontSize: 11, 
               borderRadius: 8, 
@@ -428,7 +433,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
         <select title="정렬 기준" value={sorts[0]?.columnId} onChange={e => setSorts([{ columnId: e.target.value, direction: sorts[0]?.direction || "asc" }])} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
           {columns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select title="정렬 방향" value={sorts[0]?.direction} onChange={e => setSorts([{ columnId: sorts[0]?.columnId || columns[0]?.id, direction: e.target.value as any }])} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
+        <select title="정렬 방향" value={sorts[0]?.direction} onChange={e => setSorts([{ columnId: sorts[0]?.columnId || columns[0]?.id, direction: e.target.value as "asc" | "desc" }])} style={{ padding: "4px 8px", fontSize: 11, background: cellBg, color: tx, border: `1px solid ${bd}`, borderRadius: 6 }}>
           <option value="asc">오름차순</option>
           <option value="desc">내림차순</option>
         </select>
@@ -533,7 +538,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
           <div style={{ background: bg, width: 340, borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 16, border: `1px solid ${bd}` }}>
             <h3 style={{ margin: 0, fontSize: 16 }}>컬럼 설정</h3>
             <input title="컬럼 이름" value={editColData.name} onChange={e => setEditColData({...editColData, name: e.target.value})} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${bd}`, background: cellBg, color: tx }} />
-            <select title="컬럼 타입" value={editColData.type} onChange={e => setEditColData({...editColData, type: e.target.value as any})} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${bd}`, background: cellBg, color: tx }}>
+            <select title="컬럼 타입" value={editColData.type} onChange={e => setEditColData({...editColData, type: e.target.value as Column["type"]})} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${bd}`, background: cellBg, color: tx }}>
               {["text", "number", "date", "select", "checkbox", "formula", "percent"].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <div style={{ display: "flex", gap: 10 }}>
@@ -548,7 +553,7 @@ export default function SpreadsheetTable({ darkMode, accentColor, pageId, onData
         <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setShowNewCol(false)}>
           <div onClick={e => e.stopPropagation()} style={{ position: "absolute", right: 20, top: 100, background: bg, border: `1px solid ${bd}`, borderRadius: 12, padding: 8, width: 160 }}>
             {["text", "number", "date", "select", "checkbox", "formula", "percent"].map(t => (
-              <button key={t} onClick={() => addCol(t as any)} style={{ width: "100%", padding: "8px", textAlign: "left", background: "transparent", border: "none", color: tx, cursor: "pointer" }}>{t}</button>
+              <button key={t} onClick={() => addCol(t as Column["type"])} style={{ width: "100%", padding: "8px", textAlign: "left", background: "transparent", border: "none", color: tx, cursor: "pointer" }}>{t}</button>
             ))}
           </div>
         </div>

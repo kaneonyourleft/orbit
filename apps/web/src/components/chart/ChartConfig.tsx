@@ -51,11 +51,12 @@ export default function ChartConfig(props: Props) {
       </div>
 
       <div className="space-y-2">
-        <label className="flex items-center gap-2 mb-1">
+        <label htmlFor="source-db-select" className="flex items-center gap-2 mb-1">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f644]" />
           데이터 소스
         </label>
         <select 
+          id="source-db-select"
           value={sourceDbId} 
           onChange={e => onChangeSource(e.target.value)} 
           className="w-full p-2.5 bg-slate-900/60 text-slate-300 border border-white/10 rounded-lg outline-none cursor-pointer hover:border-white/20 transition-colors uppercase font-mono text-[10px]"
@@ -66,11 +67,12 @@ export default function ChartConfig(props: Props) {
       </div>
 
       <div className="space-y-2">
-        <label className="flex items-center gap-2 mb-1">
+        <label htmlFor="label-column-select" className="flex items-center gap-2 mb-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b98144]" />
           라벨 설정
         </label>
         <select 
+          id="label-column-select"
           value={labelColumn} 
           onChange={e => onChangeLabelColumn(e.target.value)} 
           className="w-full p-2.5 bg-slate-900/60 text-slate-300 border border-white/10 rounded-lg outline-none cursor-pointer hover:border-white/20 transition-colors uppercase font-mono text-[10px]"
@@ -80,11 +82,12 @@ export default function ChartConfig(props: Props) {
       </div>
 
       <div className="space-y-2">
-        <label className="flex items-center gap-2 mb-1">
+        <label htmlFor="value-column-select" className="flex items-center gap-2 mb-1">
           <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_8px_#8b5cf644]" />
           값 설정
         </label>
         <select 
+          id="value-column-select"
           value={valueColumn} 
           onChange={e => onChangeValueColumn(e.target.value)} 
           className="w-full p-2.5 bg-slate-900/60 text-slate-300 border border-white/10 rounded-lg outline-none cursor-pointer hover:border-white/20 transition-colors uppercase font-mono text-[10px]"

@@ -6,7 +6,7 @@ import FilterBar from '../database/FilterBar';
 import InlineTable from '../database/InlineTable';
 import InlineKanban from '../database/InlineKanban';
 import InlineCalendar from '../database/InlineCalendar';
-import type { DBView } from '../database/types';
+
 
 interface Props {
   blockId: string;
@@ -19,7 +19,7 @@ export default function DatabaseBlock({ blockId, pageId, existingDbId }: Props) 
   const { 
     db, rows, loading, 
     createDatabase, addRow, updateCell, deleteRow, 
-    addColumn, updateColumn, deleteColumn, updateView 
+    addColumn, updateColumn, updateView 
   } = useDatabase(dbId);
   const [activeViewId, setActiveViewId] = useState<string>('view_table');
   const [nameEditing, setNameEditing] = useState(false);
@@ -65,6 +65,8 @@ export default function DatabaseBlock({ blockId, pageId, existingDbId }: Props) 
              <div>
                 {nameEditing ? (
                   <input autoFocus defaultValue={db.name}
+                    aria-label="데이터베이스 이름"
+                    placeholder="이름 입력"
                     onBlur={() => setNameEditing(false)}
                     onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                     className="text-lg font-black bg-transparent text-white border-none outline-none focus:ring-0 p-0" />
@@ -96,7 +98,7 @@ export default function DatabaseBlock({ blockId, pageId, existingDbId }: Props) 
            {activeView.type === 'table' && (
              <InlineTable columns={db.columns} rows={rows} filters={activeView.filters} sorts={activeView.sorts}
                onUpdateCell={updateCell} onAddRow={() => addRow()} onDeleteRow={deleteRow}
-               onAddColumn={addColumn} onUpdateColumn={updateColumn} onDeleteColumn={deleteColumn} />
+               onAddColumn={addColumn} onUpdateColumn={updateColumn} />
            )}
            {activeView.type === 'kanban' && (
              <InlineKanban columns={db.columns} rows={rows}
