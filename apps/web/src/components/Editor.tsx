@@ -5,7 +5,6 @@ import {
   defaultBlockSpecs,
   filterSuggestionItems,
   Block,
-  insertOrUpdateBlock,
 } from "@blocknote/core";
 import {
   useCreateBlockNote,
@@ -256,7 +255,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                 ...getDefaultReactSlashMenuItems(editor),
                 {
                   title: "Inline Database",
-                  onItemClick: () => { insertOrUpdateBlock(editor, { type: "database", props: { pageId } } as any); },
+                  onItemClick: () => { editor.insertBlocks([{ type: "database" as any, props: { pageId } }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["db", "table", "kanban", "calendar", "데이터베이스"],
                   group: "Collections",
                   icon: <span style={{ fontSize: 18 }}>▤</span>,
@@ -264,7 +263,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                 },
                 {
                   title: "Chart",
-                  onItemClick: () => { insertOrUpdateBlock(editor, { type: "chart", props: { pageId } } as any); },
+                  onItemClick: () => { editor.insertBlocks([{ type: "chart" as any, props: { pageId } }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["chart", "graph", "차트", "시각화"],
                   group: "Visualization",
                   icon: <span style={{ fontSize: 16 }}>📈</span>,
@@ -272,7 +271,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                 },
                 {
                   title: "KPI Dashboard",
-                  onItemClick: () => { insertOrUpdateBlock(editor, { type: "kpiDashboard", props: { pageId } } as any); },
+                  onItemClick: () => { editor.insertBlocks([{ type: "kpiDashboard" as any, props: { pageId } }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["kpi", "metrics", "대시보드", "현황판"],
                   group: "Visualization",
                   icon: <span style={{ fontSize: 16 }}>🎯</span>,
@@ -280,7 +279,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                 },
                 {
                   title: "Dashboard",
-                  onItemClick: () => { insertOrUpdateBlock(editor, { type: "dashboard" } as any); },
+                  onItemClick: () => { editor.insertBlocks([{ type: "dashboard" as any }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["production", "stats", "생산현황"],
                   group: "Manufacturing",
                   icon: <span style={{ fontSize: 16 }}>🚀</span>,
@@ -288,7 +287,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                 },
                 {
                   title: "Pivot Table",
-                  onItemClick: () => { insertOrUpdateBlock(editor, { type: "pivotTable" } as any); },
+                  onItemClick: () => { editor.insertBlocks([{ type: "pivotTable" as any }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["pivot", "report", "피벗"],
                   group: "Manufacturing",
                   icon: <span style={{ fontSize: 16 }}>📊</span>,
@@ -296,7 +295,7 @@ export default function Editor({ pageId, initialContent, onChange, darkMode = fa
                 },
                 {
                   title: "SN Status",
-                  onItemClick: () => { insertOrUpdateBlock(editor, { type: "snStatus" } as any); },
+                  onItemClick: () => { editor.insertBlocks([{ type: "snStatus" as any }], editor.getTextCursorPosition().block, "after"); },
                   aliases: ["sn", "tracking", "추적"],
                   group: "Manufacturing",
                   icon: <span style={{ fontSize: 16 }}>🏷️</span>,
